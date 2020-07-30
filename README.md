@@ -216,6 +216,6 @@ For more information see [CAMI](cami/README.md).
 
 There are several ways to contact us:
 
-- [The public HVMI Slack](https://kvm-vmi.slack.com) - join the public Slack to discuss ideas publicly, or privately, with both Bitdefender developers and other members of the community
+- [The public HVMI Slack](https://kvm-vmi.slack.com) - [join here](https://kvm-vmi.herokuapp.com) the public Slack to discuss ideas publicly, or privately, with both Bitdefender developers and other members of the community
 - Bitdefender HVMI OSS team contact - hvmi-oss@bitdefender.com - contact Bitdefender folks directly regarding any issue that is not well suited for public Slack discussions
 - HVMI security - hvmi-security@bitdefender.com - report security issues and vulnerabilities; we kindly ask that you follow the guideline described [here](SECURITY.md)
