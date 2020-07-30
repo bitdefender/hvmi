@@ -1,0 +1,198 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+-
+    # - Windows 7x86 with KPTI
+    !syscall_pattern
+    id: [ SYSCALL_SIG_FLAG_KPTI, IG_GUEST_WINDOWS ]
+    offset: 0
+    flags: [ LOC_SYSENTER ]
+    pattern: !code_pattern
+        code:
+            - [0xb9, 0x23, 0x00, 0x00, 0x00]                       # mov     ecx,23h
+            - [0x6a, 0x30]                                         # push    30h
+            - [0x0f, 0xa1]                                         # pop     fs
+            - [0x8e, 0xd9]                                         # mov     ds,cx
+            - [0x8e, 0xc1]                                         # mov     es,cx
+            - [0x64, 0x8b, 0x0d, 0x40, 0x00, 0x00, 0x00]           # mov     ecx,dword ptr fs:[40h]
+            - [0x8b, 0x61, 0x04]                                   # mov     esp,dword ptr [ecx+4]
+            - [0x6a, 0x23]                                         # push    23h
+            - [0x52]                                               # push    edx
+            - [0x9c]                                               # pushfd
+            - [0x6a, 0x02]                                         # push    2
+            - [0x83, 0xc2, 0x08]                                   # add     edx,8
+            - [0x9d]                                               # popfd
+            - [0x80, 0x4c, 0x24, 0x01, 0x02]                       # or      byte ptr [esp+1],2
+            - [0x6a, 0x1b]                                         # push    1Bh
+            - [0xff, 0x35, 0x100, 0x100, 0x100, 0x100]             # push    dword ptr ds:[0FFDF0304h]
+            - [0x6a, 0x00]                                         # push    0
+            - [0x55]                                               # push    ebp
+            - [0x53]                                               # push    ebx
+            - [0x56]                                               # push    esi
+            - [0x57]                                               # push    edi
+            - [0x64, 0x8b, 0x1d, 0x1c, 0x00, 0x00, 0x00]           # mov     ebx,dword ptr fs:[1Ch]
+            - [0x6a, 0x3b]                                         # push    3Bh
+            - [0x8b, 0xb3, 0x100, 0x100, 0x00, 0x00]               # mov     esi,dword ptr [ebx+124h]
+            - [0xff, 0x33]                                         # push    dword ptr [ebx]
+            - [0xc7, 0x03, 0xff, 0xff, 0xff, 0xff]                 # mov     dword ptr [ebx],0FFFFFFFFh
+            - [0x8b, 0x6e, 0x100]                                  # mov     ebp,dword ptr [esi+28h]
+            - [0x6a, 0x01]                                         # push    1
+            - [0x83, 0xec, 0x48]                                   # sub     esp,48h
+            - [0x81, 0xed, 0x9c, 0x02, 0x00, 0x00]                 # sub     ebp,29Ch
+            - [0xc6, 0x86, 0x100, 0x100, 0x00, 0x00, 0x01]         # mov     byte ptr [esi+13Ah],1
+            - [0x3b, 0xec]                                         # cmp     ebp,esp
+            - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]             # jne     nt!KiFastCallEntry2+0x25 (8287b816)
+            - [0x36, 0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x01] # test    byte ptr ss:[nt!KiKvaShadow (829afada)],1
+
+-            
+    # Windows x86 guests (sysenter) with KPTI enabled:
+    !syscall_pattern
+    id: [ SYSCALL_SIG_FLAG_KPTI, IG_GUEST_WINDOWS ]
+    offset: 0
+    flags: [ LOC_SYSENTER ]
+    pattern: !code_pattern
+        code:
+            - [0xB9, 0x100, 0x100, 0x100, 0x100]                       # mov     ecx,23h
+            - [0x6A, 0x30]                                             # push    30h
+            - [0x0F, 0xA1]                                             # pop     fs
+            - [0x8E, 0xD9]                                             # mov     ds,cx
+            - [0x8E, 0xC1]                                             # mov     es,ecx
+            - [0x33, 0xc9]                                             # xor     ecx,ecx
+            - [0x8e, 0xe9]                                             # mov     gs,ecx
+            - [0x64, 0x8b, 0x0d, 0x100, 0x100, 0x00, 0x00]             # mov     ecx, dword ptr fs:[0x5000]
+            - [0x64, 0x0f, 0xba, 0x25, 0x100, 0x100, 0x00, 0x00, 0x01] # bt    dword ptr fs:[0x500c], 0x01
+            - [0x72, 0x03]                                             # jc      0x26
+            - [0x0f, 0x22, 0xd9]                                       # mov     cr3, ecx
+            - [0x64, 0x8b, 0x25, 0x100, 0x100, 0x00, 0x00]             # mov     esp, dword ptr fs : [0x5004]
+            - [0x6a, 0x23]                                             # push    0x00000023
+            - [0x52]                                                   # push    edx
+            - [0x9c]                                                   # pushfd
+            - [0xe9, 0x100, 0x100, 0x100, 0x100]                       # jmp     0xfff1b41f
+            - [0x8d, 0xa4, 0x24, 0x00, 0x00, 0x00, 0x00]               # lea     esp,[esp + 0x0]
+            - [0x8d, 0x49, 0x00]                                       # lea     ecx,[ecx + 0x0]
+-
+
+    # - Windows 7 x64
+    !syscall_pattern
+    id: [ IG_GUEST_WINDOWS ]
+    offset: 0
+    flags: [ LOC_SYSCALL ]
+    pattern: !code_pattern
+        code:
+            - [0x0f, 0x01, 0xf8]                                       # swapgs
+            - [0x65, 0x48, 0x89, 0x24, 0x25, 0x100, 0x100, 0x00, 0x00] # mov   qword ptr gs:[10h],rsp
+            - [0x65, 0x48, 0x8b, 0x24, 0x25, 0x100, 0x100, 0x00, 0x00] # mov   rsp,qword ptr gs:[1A8h]
+            - [0x6a, 0x2b]                                             # push    2Bh
+            - [0x65, 0xff, 0x34, 0x25, 0x100, 0x100, 0x00, 0x00]       # push    qword ptr gs:[10h]
+            - [0x41, 0x53]                                             # push    r11
+            - [0x6a, 0x33]                                             # push    33h
+            - [0x51]                                                   # push    rcx
+            - [0x49, 0x8b, 0xca]                                       # mov     rcx,r10
+            - [0x48, 0x83, 0xec, 0x08]                                 # sub     rsp,8
+            - [0x55]                                                   # push    rbp
+            - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]             # sub     rsp,158h
+            - [0x48, 0x8d, 0xac, 0x24, 0x100, 0x100, 0x00, 0x00]       # lea     rbp,[rsp+80h]
+            - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x00, 0x00]             # mov     qword ptr [rbp+0C0h],rbx
+            - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x00, 0x00]             # mov     qword ptr [rbp+0C8h],rdi
+            - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x00, 0x00]             # mov     qword ptr [rbp+0D0h],rsi
+            - [0xc6, 0x45, 0x100, 0x02]                                # mov     byte ptr [rbp-55h],2
+            - [0x65, 0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00]   # mov   rbx,qword ptr gs:[188h]
+            - [0x0f, 0x0d, 0x8b, 0x100, 0x100, 0x00, 0x00]             # prefetchw [rbx+1D8h]
+-
+    # Windows 7 x64 with KPTI
+    !syscall_pattern
+    id: [ SYSCALL_SIG_FLAG_KPTI, IG_GUEST_WINDOWS ]
+    offset: 0
+    flags: [ LOC_SYSCALL ]
+    pattern: !code_pattern
+        code:
+            - [0x0f, 0x01, 0xf8]                                             # swapgs
+            - [0x65, 0x48, 0x89, 0x24, 0x25, 0x100, 0x100, 0x00, 0x00]       # mov     qword ptr gs:[7010h],rsp
+            - [0x65, 0x48, 0x8b, 0x24, 0x25, 0x100, 0x100, 0x00, 0x00]       # mov     rsp,qword ptr gs:[7000h]
+            - [0x65, 0x0f, 0xba, 0x24, 0x25, 0x100, 0x100, 0x00, 0x00, 0x01] # bt      dword ptr gs:[7018h],1
+            - [0x72, 0x100]                                                  # jb      nt!KiSystemCall64Shadow+0x24 (fffff803`37aa1ea4)
+            - [0x0f, 0x22, 0xdc]                                             # mov     cr3,rsp
+            - [0x65, 0x48, 0x8b, 0x24, 0x25, 0x100, 0x100, 0x00, 0x00]       # mov     rsp,qword ptr gs:[7008h]
+            - [0x6a, 0x2b]                                                   # push    2Bh
+            - [0x65, 0xff, 0x34, 0x25, 0x100, 0x100, 0x00, 0x00]             # push    qword ptr gs:[7010h]
+            - [0x41, 0x53]                                                   # push    r11
+            - [0x6a, 0x33]                                                   # push    33h
+            - [0x51]                                                         # push    rcx
+            - [0x49, 0x8b, 0xca]                                             # mov     rcx,r10
+-
+    # Windows 7 x86
+    !syscall_pattern
+    id: [ IG_GUEST_WINDOWS ]
+    offset: 0
+    flags: [ LOC_SYSENTER ]
+    pattern: !code_pattern
+        code:
+            - [0xB9,  0x100, 0x100, 0x100, 0x100]               # mov     ecx,23h
+            - [0x6A,  0x30]                                     # push    30h
+            - [0x0F,  0xA1]                                     # pop     fs
+            - [0x8E,  0xD9]                                     # mov     ds,cx
+            - [0x8E,  0xC1]                                     # mov     es,cx
+            - [0x64,  0x8B, 0x0D, 0x100, 0x100, 0x100, 0x100]   # mov     ecx,dword ptr fs:[40h]
+            - [0x8b,  0x61, 0x100]                              # mov     esp,dword ptr [ecx+4]
+            - [0x6a,  0x23]                                     # push    23h
+            - [0x52]                                            # push    edx
+            - [0x9c]                                            # pushfd
+            - [0x6a,  0x02]                                     # push    2
+            - [0x83,  0xc2, 0x08]                               # add     edx,8
+            - [0x9d]                                            # popfd
+-
+    # Ubuntu 18.04 (kernel 4.15)
+    # CentOS (kernel 4.18)
+    !syscall_pattern
+    id: [ IG_GUEST_LINUX ]
+    offset: 0
+    flags: [ LOC_SYSCALL ]
+    pattern: !code_pattern
+        code:
+            - [0x0f, 0x01, 0xf8]                                # SWAPGS
+            - [0x48, 0x89, 0x25, 0x100, 0x100, 0x100, 0x100]    # MOV       qword ptr[rel 0xffffffffffffc1f8], rsp
+            - [0x100, 0x100]                                    #
+            - [0x0f, 0x20, 0xdc]                                # MOV       rsp, cr3
+            - [0x100, 0x100, 0x100, 0x100, 0x100]               #
+            - [0x48, 0x81, 0xe4, 0x100, 0x100, 0x100, 0x100]    # AND       rsp, 0xffffe7ff
+            - [0x0f, 0x22, 0xdc]                                # MOV       cr3, rsp
+            - [0x48, 0x8b, 0x25, 0x100, 0x100, 0x100, 0x100]    # MOV       rsp, qword ptr[rel 0xffffffffffffd00c]
+            - [0x6a, 0x2b]                                      # PUSH      0x2b
+            - [0xff, 0x35, 0x100, 0x100, 0x100, 0x100]          # PUSH      qword ptr[rel 0xffffffffffffc1f8]
+            - [0x41, 0x53]                                      # PUSH      r11
+            - [0x6a, 0x33]                                      # PUSH      0x33
+            - [0x51]                                            # PUSH      rcx
+            - [0x57]                                            # PUSH      rdi
+            - [0x48, 0xc7, 0xc7, 0x100, 0x100, 0x100, 0x100]    # MOV       rdi, 0xb8400010
+-
+    # Cent OS (kernel 4.18)
+    !syscall_pattern
+    id: [ IG_GUEST_LINUX ]
+    offset: 0
+    flags: [ LOC_SYSCALL ]
+    pattern: !code_pattern
+        code:
+            - [0x0f, 0x01, 0xf8]                                                # SWAPGS
+            - [0x65, 0x48, 0x89, 0x24, 0x25, 0x100, 0x100, 0x00, 0x00]          # MOV    QWORD PTR gs:0x5014,rsp
+            - [0x100, 0x100]                                                    # XCHG   ax,ax
+            - [0x0f, 0x20, 0xdc]                                                # MOV    rsp,cr3
+            - [0x100, 0x100, 0x100, 0x100, 0x100]                               # BTS    rsp,0x3f
+            - [0x48, 0x81, 0xe4, 0xff, 0xe7, 0xff, 0xff]                        # AND    rsp,0xffffffffffffe7ff
+            - [0x0f, 0x22, 0xdc]                                                # MOV    cr3,rsp
+            - [0x65, 0x48, 0x8b, 0x24, 0x25, 0x100, 0x100, 0x00, 0x00]          # MOV    rsp,QWORD PTR gs:0x500c
+            - [0x6a, 0x2b]                                                      # PUSH   0x2b
+            - [0x65, 0xff, 0x34, 0x25, 0x100, 0x100, 0x00, 0x00]                # PUSH   QWORD PTR gs:0x5014
+            - [0x41, 0x53]                                                      # PUSH   r11
+            - [0x6a, 0x33]                                                      # PUSH   0x33
+            - [0x51]                                                            # PUSH   rcx
+            - [0x50]                                                            # PUSH   rax
+            - [0xeb, 0x100]                                                     # JMP    0x5a
+            - [0x50]                                                            # PUSH   rax
+            - [0x51]                                                            # PUSH   rcx
+            - [0x52]                                                            # PUSH   rdx
+            - [0xb9, 0x48, 0x00, 0x00, 0x00]                                    # MOV    ecx,0x48
+            - [0x65, 0x8b, 0x14, 0x25, 0x100, 0x100, 0x100, 0x00]               # MOV    edx,DWORD PTR gs:0x15bb4
+            - [0x65, 0x8b, 0x04, 0x25, 0x100, 0x100, 0x100, 0x00]               # MOV    eax,DWORD PTR gs:0x15bb0
+            - [0x0f, 0x30]                                                      # WRMSR

@@ -1,0 +1,12 @@
+div.body {
+    max-width: 90% !important;
+}
+
+/* Uncomment this for the default RTD theme */
+/*
+
+.wy-nav-content {
+    max-width: 1200px !important;
+    }
+
+*/

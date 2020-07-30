@@ -1,0 +1,245 @@
+{
+	"exceptions": {
+		"enabled": false,
+		"items": []
+	},
+	"kernelSpaceMemoryIntrospection": {
+		"actions": {
+			"primaryAction": 2,
+			"remediationAction": 5
+		},
+		"enabled": true,
+		"monitoringOptions": {
+			"antimalwareDrivers": true,
+			"controlRegisters": true,
+			"driverEvents": true,
+			"idtOrGdtIntegrity": true,
+			"modelSpecificRegisters": true,
+			"osFailures": true,
+			"xenDrivers": true
+		}
+	},
+	"userSpaceMemoryIntrospection": {
+		"applicationCrashes": true,
+		"enabled": true,
+		"rules": [
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"iexplore",
+					"thunderbird*",
+					"firefox*",
+					"chrome",
+					"MicrosoftEdge",
+					"MicrosoftEdgeCP",
+					"safari",
+					"opera",
+					"chromium",
+					"chromium-browser"
+				],
+				"ruleName": "Browsers"
+			},
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"dovecot",
+					"cyrmaster",
+					"master",
+					"sendmail",
+					"cyrus-master"
+				],
+				"ruleName": "Email"
+			},
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"vsftpd"
+				],
+				"ruleName": "File Transfer"
+			},
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"Microsoft.ActiveDirectory.WebServices",
+					"dsac",
+					"dns",
+					"dhcpd",
+					"sshd",
+					"named",
+					"smbd",
+					"snmpd"
+				],
+				"ruleName": "Network"
+			},
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"dfssvc",
+					"nfssvc",
+					"dfsrs",
+					"msdtc",
+					"mmc",
+					"ismserv",
+					"ntpd",
+					"systemd",
+					"apt",
+					"dpkg"
+				],
+				"ruleName": "Operating System"
+			},
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"acrord32",
+					"winword",
+					"powerpnt",
+					"outlook",
+					"excel",
+					"eqnedt32"
+				],
+				"ruleName": "Productivity"
+			},
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"nodejs",
+					"java",
+					"postgres",
+					"node-default",
+					"node"
+				],
+				"ruleName": "Programming & Scripting"
+			},
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"abrtd",
+					"flashplayer*",
+					"plugin-container"
+				],
+				"ruleName": "Utilities"
+			},
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"nginx",
+					"httpd",
+					"squid",
+					"squid3",
+					"apache",
+					"apache2",
+					"httpd-prefork",
+					"mongod"
+				],
+				"ruleName": "Web Services"
+			},
+			{
+				"actions": {
+					"primaryAction": 2,
+					"remediationAction": 5
+				},
+				"monitoringOptions": {
+					"dllHooks": true,
+					"exeUnpackAttemtps": true,
+					"exploits": true,
+					"processRemoteWrites": true,
+					"winSockHooking": true
+				},
+				"processes": [
+					"introum*"
+				],
+				"ruleName": "HVI tools"
+			}
+		]
+	}
+}

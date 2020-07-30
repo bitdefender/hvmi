@@ -1,0 +1,119 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+# See cami_intro_defines for available options
+
+globals: !global_introcore_options
+    common: !global_options
+        core_options: !options_control
+             force_off: [NONE]
+             force_beta: [NONE]
+             force_feedback: [NONE]
+             force_on: [NONE]
+
+        shemu_options: !options_control
+             force_off: [NONE]
+             force_beta: [NONE]
+             force_feedback: [NONE]
+             force_on: [NONE]
+
+        proc_options: []
+#              - !process_options
+#                    name: firefox.exe
+#                    encoding: 'utf-16'
+#                    options: !options_control
+#                        force_off: [NONE]
+#                        force_beta: [QUEUE_APC]
+#                        force_feedback: [DOUBLE_AGENT]
+#                        force_on: [KILL_ON_EXPLOIT]
+
+    linux: !global_options
+        core_options: !options_control
+             force_off: [NONE]
+             force_beta: [NONE]
+             force_feedback: [NONE]
+             force_on: [NONE]
+
+        shemu_options: !options_control
+             force_off: [TIB_ACCESS]
+             force_beta: [NONE]
+             force_feedback: [NONE] #[SYSCALL, STACK_STR]
+             force_on: [NONE]
+
+        proc_options: []
+#             - !process_options
+#                   name: firefox
+#                   options: !options_control
+#                       force_off: [EXPLOIT, KILL_ON_EXPLOIT]
+#                       force_beta: [QUEUE_APC]
+#                       force_feedback: [DOUBLE_AGENT]
+
+    windows: !global_options
+        core_options: !options_control
+             force_off: [NONE]
+             force_beta: [NONE]
+             force_feedback: [NONE]
+             force_on: [NONE]
+
+        shemu_options: !options_control
+             force_off: [NONE]
+             force_beta: [NONE]
+             force_feedback: [NONE] #[SYSCALL, STACK_STR]
+             force_on: [NONE]
+
+        proc_options:
+             - !process_options
+                   name: "*"
+                   options: !options_control
+                       force_off: [NONE]
+                       force_beta: [NONE]
+                       force_feedback: [NONE]
+                       force_on: [NONE]
+
+
+
+per_os: []
+# Windows version format: !!python/tuple [buildnumber, kpti, is64]
+# Linux version format: <version> field value in the yaml file
+#     - !os_options
+#           version: !!python/tuple [0, False, False]
+#           os_type: windows
+#           core_options: !options_control
+#               force_off: [NONE]
+#               force_beta: [NONE]
+#               force_feedback: [NONE]
+#               force_on: [NONE]
+#
+#           shemu_options: !options_control
+#                force_off: [NONE]
+#                force_beta: [NONE]
+#                force_feedback: [NONE]
+#                force_on: [NONE]
+#
+#           proc_options: []
+#               - !process_options
+#                   name: firefox
+#                   options: !options_control
+#                       force_off: [EXPLOIT]
+#                       force_beta: [QUEUE_APC]
+#                       force_feedback: []
+#
+#     - !os_options
+#           version: "None"
+#           os_type: linux
+#           core_options: !options_control
+#               force_off: [NONE]
+#               force_beta: [NONE]
+#               force_feedback: [NONE]
+#               force_on: [NONE]
+#
+#           shemu_options: !options_control
+#                force_off: [NONE]
+#                force_beta: [NONE]
+#                force_feedback: [NONE]
+#                force_on: [NONE]
+#
+#           proc_options: []
+#

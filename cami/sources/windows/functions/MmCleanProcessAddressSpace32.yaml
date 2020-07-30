@@ -1,0 +1,367 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MmCleanProcessAddressSpace
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX   # Eprocess
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 7602
+        args:
+            - DET_ARG_RAX   # Eprocess
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,14h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf0]                                       #  mov     esi,eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (82ec4008)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCleanProcessAddressSpace+0x5ad (82ced5b9)
+                - [0x64, 0x8b, 0x3d, 0x24, 0x01, 0x00, 0x00]         #  mov     edi,dword ptr fs:[124h]
+                - [0x66, 0xff, 0x8f, 0x100, 0x00, 0x00, 0x00]        #  dec     word ptr [edi+86h]
+                - [0x8d, 0x8e, 0x100, 0x100, 0x00, 0x00]             #  lea     ecx,[esi+100h]
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xf0, 0x0f, 0xba, 0x28, 0x00]                     #  lock bts dword ptr [eax],0
+                - [0x100, 0x100]                                     #  jae     nt!MmCleanProcessAddressSpace+0x40 (82ced04c)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExfAcquirePushLockExclusive (82ce7733)
+                - [0x80, 0x8f, 0x100, 0x100, 0x00, 0x00, 0x02]       #  or      byte ptr [edi+289h],2
+                - [0x66, 0xff, 0x8f, 0x100, 0x00, 0x00, 0x00]        #  dec     word ptr [edi+86h]
+                - [0x8d, 0x9e, 0x100, 0x100, 0x00, 0x00]             #  lea     ebx,[esi+1F0h]
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],ebx
+                - [0x8b, 0xc3]                                       #  mov     eax,ebx
+                - [0xf0, 0x0f, 0xba, 0x28, 0x00]                     #  lock bts dword ptr [eax],0
+                - [0x100, 0x100]                                     #  jae     nt!MmCleanProcessAddressSpace+0x68 (82ced074)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff, 0x55, 0x8b, 0xec, 0x83, 0xec, 0x14]   #
+                - [0x53, 0x56, 0x57, 0x8b, 0xf0, 0xe8, 0x100, 0x100] #
+                - [0x100, 0x100, 0x83, 0xf8, 0x01, 0x0f, 0x84, 0x100] #
+                - [0x100, 0x100, 0x100, 0x64, 0x8b, 0x3d, 0x24, 0x01] #
+                - [0x00, 0x00, 0x66, 0xff, 0x8f, 0x86, 0x00, 0x00]   #
+                - [0x00, 0x8d, 0x8e]                                 #
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #
+                - [0x55]                                             #
+                - [0x8b, 0xec]                                       #
+                - [0x83, 0xec, 0x1c]                                 #
+                - [0x53]                                             #
+                - [0x56]                                             #
+                - [0x57]                                             #
+                - [0x8b, 0xf9]                                       #
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #
+                - [0x83, 0xf8, 0x01]                                 #
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #
+                - [0x6a, 0x00]                                       #
+                - [0x6a, 0x00]                                       #
+                - [0x8d, 0x45, 0xe8]                                 #
+                - [0x50]                                             #
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #
+                - [0x64, 0x8b, 0x35, 0x24, 0x01, 0x00, 0x00]         #
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,1Ch
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (81dba73c)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCleanProcessAddressSpace+0x165 (81d21c6b)
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-18h]
+                - [0x50]                                             #  push    eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (81aad1e0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExFreeSvmAsid (81b36928)
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (81b31e20)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiJoinPartition (81ac3518)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+                - [0xeb, 0x100]                                      #  jmp     nt!MmCleanProcessAddressSpace+0x6a (81d21b70)
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiReferenceVad (81aaa7a4)
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!UNLOCK_ADDRESS_SPACE_SHARED (81aaa6e0)
+                - [0x8b, 0xd6]                                       #  mov     edx,esi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiLockVad (81aebbd0)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,1Ch
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (81dba73c)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCleanProcessAddressSpace+0x165 (81d21c6b)
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-18h]
+                - [0x50]                                             #  push    eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (81aad1e0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExFreeSvmAsid (81b36928)
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (81b31e20)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetThreadPartition (81e711f8)
+                - [0x89, 0x45, 0xfc]                                 #  mov     dword ptr [ebp-4],eax
+                - [0xeb, 0x0f]                                       #  jmp     nt!MmCleanProcessAddressSpace+0x59 (8217eca5)
+                - [0x24, 0x07]                                       #  and     al,7
+                - [0x3c, 0x01]                                       #  cmp     al,1
+                - [0x100, 0x100]                                     #  je      nt!MmCleanProcessAddressSpace+0x9f (8217eceb)
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiDeleteVad (81e90af0)
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!LOCK_ADDRESS_SPACE_SHARED (81ee7d70)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,1Ch
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (819e8aa8)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCleanProcessAddressSpace+0x17a
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-18h]
+                - [0x50]                                             #  push    eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (816c72e0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExFreeSvmAsid (8175342a)
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (81723456)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetThreadPartition (816e10c8)
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!LOCK_ADDRESS_SPACE_SHARED (816fab30)
+                - [0x8b, 0xb7, 0x100, 0x100, 0x00, 0x00]             #  mov     esi,dword ptr [edi+284h]
+                - [0x85, 0x100]                                      #  test    esi,esi
+                - [0x100, 0x100]                                     #  je      nt!MmCleanProcessAddressSpace+0xb3
+                - [0x100, 0x100]                                     #  jmp     nt!MmCleanProcessAddressSpace+0x60
+                - [0x8d, 0x49, 0x00]                                 #  lea     ecx,[ecx]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,1Ch
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (81faa42c)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCleanProcessAddressSpace+0x143 (81efd63d)
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-18h]
+                - [0x50]                                             #  push    eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (81ca5cb0)
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (81d479ee)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetControlAreaPartition (81cd98b4)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+                - [0xeb, 0x100]                                      #  jmp     nt!MmCleanProcessAddressSpace+0x65 (81efd55f)
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiReferenceVad (81cdf31c)
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!UNLOCK_ADDRESS_SPACE_SHARED (81cdf200)
+                - [0x8b, 0xd6]                                       #  mov     edx,esi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiLockVad (81cdf2d0)
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,24h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (82170fe0)
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x1bb (8212b38d)
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-20h]
+                - [0x50]                                             #  push    eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (81ecf306)
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (81f1aa02)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-10h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetControlAreaPartition (81ed7ec6)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-0Ch],eax
+                - [0x8b, 0x87, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [edi+208h]
+                - [0x83, 0xc0, 0x100]                                #  add     eax,18h
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!LOCK_ADDRESS_SPACE_SHARED (81ed28be)
+                - [0x8b, 0x87, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [edi+298h]
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,24h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp-4],ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (8199f700)
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x1c7 (819149a7)
+                - [0x8d, 0x83, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[ebx+1FCh]
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-0Ch],eax
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-24h]
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x50]                                             #  push    eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (81662360)
+                - [0x64, 0x8b, 0x3d, 0x24, 0x01, 0x00, 0x00]         #  mov     edi,dword ptr fs:[124h]
+                - [0x8b, 0xd3]                                       #  mov     edx,ebx
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (816c5474)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-14h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetControlAreaPartition (8163c8ea)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-10h],eax
+                - [0x8b, 0x83, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [ebx+208h]
+                - [0x83, 0xc0, 0x100]                                #  add     eax,18h
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0xeb, 0x100]                                      #  jmp     nt!MmCleanProcessAddressSpace+0x60 (81914840)
+                - [0x8d, 0x49, 0x00]                                 #  lea     ecx,[ecx]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,2Ch
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp-4],ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (81fd674a)
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x1ed (82024d0d)
+                - [0x8d, 0x83, 0x100, 0x100, 0x00, 0x00]             #  lea     eax,[ebx+1FCh]
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-10h],eax
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-28h]
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x50]                                             #  push    eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (81d5f380)
+                - [0x64, 0x8b, 0x3d, 0x24, 0x01, 0x00, 0x00]         #  mov     edi,dword ptr fs:[124h]
+                - [0x8b, 0xd3]                                       #  mov     edx,ebx
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (81cfc580)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-18h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetControlAreaPartition (81cfd1e8)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-14h],eax
+                - [0x8b, 0x83, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [ebx+208h]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-0Ch],eax
+                - [0xeb, 0x100]                                      #  jmp     nt!MmCleanProcessAddressSpace+0x60 (82024b80)
+                - [0x8d, 0x9b, 0x00, 0x00, 0x00, 0x00]               #  lea     ebx,[ebx]

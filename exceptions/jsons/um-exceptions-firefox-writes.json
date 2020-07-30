@@ -1,0 +1,212 @@
+{
+    "Type": "user",
+    "Exceptions": [
+        {
+            "process": "[firefox-processes]",
+            "originator": "mozglue.dll",
+            "victim": "ntdll.dll",
+            "object_type": "module",
+            "flags": "return",
+            "signatures": [
+                "mozglue-ntdll-hooked-functions",
+                "mozglue-codeblocks-32",
+                "mozglue-xul-code-64"
+            ]
+        },
+
+        {
+            "process": "[firefox-processes]",
+            "originator": "mozglue.dll",
+            "victim": "kernel32.dll",
+            "object_type": "module",
+            "flags": "return",
+            "signatures": [
+                "mozglue-kernel32-hooked-functions",
+                "mozglue-codeblocks-32",
+                "mozglue-xul-code-64"
+            ]
+        },
+
+        {
+            "process": "[firefox-processes]",
+            "originator": "xul.dll",
+            "victim": "kernel32.dll",
+            "object_type": "module",
+            "signatures": [
+                "xul-kernel32-hooked-functions",
+                "xul-codeblocks-32",
+                "xul-codeblocks-64"
+            ]
+        },
+
+        {
+            "process": "[firefox-processes]",
+            "originator": "xul.dll",
+            "victim": "kernelbase.dll",
+            "flags": "return",
+            "object_type": "module",
+            "signatures": [
+                "xul-kernel32-hooked-functions",
+                "xul-codeblocks-32",
+                "xul-codeblocks-64"
+            ]
+        },
+        
+        {
+            "process": "[firefox-processes]",
+            "originator": "xul.dll",
+            "victim": "kernel32.dll",
+            "object_type": "module",
+            "flags": "return",
+            "signatures": [
+                "xul-kernel32-hooked-functions",
+                "mozglue-xul-code-64"
+            ]
+        },
+        
+        {
+            "process": "[firefox-processes]",
+            "originator": "xul.dll",
+            "victim": "kernel32.dll",
+            "object_type": "module",
+            "flags": "return",
+            "signatures": [
+                "xul-codeblocks-32",
+                "xul-codeblocks-64"
+            ]
+        },
+        
+        {
+            "process": "[firefox-processes]",
+            "originator": "xul.dll",
+            "victim": "user32.dll",
+            "object_type": "module",
+            "flags": "return",
+            "signatures": [
+                "xul-codeblocks-32",
+                "xul-codeblocks-64"
+            ]
+        },
+
+        {
+            "process": "[firefox-processes]",
+            "originator": "xul.dll",
+            "victim": "user32.dll",
+            "object_type": "module",
+            "signatures": [
+                "xul-codeblocks-32",
+                "xul-codeblocks-64"
+            ]
+        },
+
+        {
+            "process": "firefox.exe",
+            "originator": "ntdll.dll",
+            "victim": "kernel32.dll",
+            "object_type": "module",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "firefox.exe",
+            "originator": "user32.dll",
+            "victim": "user32.dll",
+            "object_type": "module",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "firefox.exe",
+            "originator": "ntdll.dll",
+            "victim": "user32.dll",
+            "object_type": "module imports",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "firefox.exe",
+            "originator": "ntdll.dll",
+            "victim": "ws2_32.dll",
+            "object_type": "module",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "firefox.exe",
+            "originator": "ntdll.dll",
+            "victim": "wininet.dll",
+            "object_type": "module",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "kernelbase.dll",
+            "object_type": "module",
+            "signatures" : [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "user32.dll",
+            "object_type": "module",
+            "signatures" : [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "user32.dll",
+            "victim": "user32.dll",
+            "object_type": "module exports",
+            "signatures" : [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "ntdll.dll",
+            "object_type": "module",
+            "signatures" : [
+                "browsers-init-codeblocks"
+            ]
+        },
+        
+        {
+            "process": "firefox.exe",
+            "originator": "firefox.exe",
+            "victim": "ntdll.dll",
+            "object_type": "module",
+            "signatures" : [
+                "firefox-lib-writes-code"
+            ]
+        },
+
+        {
+            "process": "firefox.exe",
+            "originator": "firefox.exe",
+            "victim": "user32.dll",
+            "object_type": "module",
+            "signatures" : [
+                "firefox-lib-writes-code"
+            ]
+        }
+    ]
+}

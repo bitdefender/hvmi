@@ -1,0 +1,38 @@
+{
+    "Type": "user",
+    "Signatures": [
+        {
+            "sig_type": "export",
+            "sig_id": "chrome-injection-exports",
+            "library": "ntdll.dll",
+            "hashes": [
+                {
+                    "name": "NtOpenFile",
+                    "delta": 16
+                }
+            ]
+        },
+
+        {
+            "sig_type": "export",
+            "sig_id": "chrome-self-injection-exports",
+            "library": "chrome.exe",
+            "hashes": [
+                {
+                    "name": "*",
+                    "delta": 0
+                }
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "chrome-export-codeblocks",
+            "score": 3,
+            "hashes": [
+                ["0x4d8c1cff", "0x2a3282e3", "0xde81892c", "0x3b0f496d"],
+                ["0x4ead2c2a", "0x3c5d6c96", "0x89ff53e7", "0xcad991c2"]
+            ]
+        }
+    ]
+}

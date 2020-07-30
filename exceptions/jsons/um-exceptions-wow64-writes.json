@@ -1,0 +1,85 @@
+{
+    "Type": "user",
+    "Exceptions": [
+        {
+            "process": "*",
+            "originator": "wow64.dll",
+            "victim": "wow64.dll",
+            "object_type": "module",
+            "signatures": [
+                "wow64-self"
+            ]
+        },
+
+        {
+            "process": "*",
+            "flags": "return",
+            "originator": "wow64.dll",
+            "victim": "wow64.dll",
+            "object_type": "module",
+            "signatures": [
+                "wow64-self-ret"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "wow64.dll",
+            "victim": "kernel32.dll",
+            "object_type": "module",
+            "signatures": [
+                "wow64-reverse-imports"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "wow64.dll",
+            "victim": "kernel32.dll",
+            "object_type": "module imports",
+            "signatures": [
+                "wow64-reverse-imports"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "wow64.dll",
+            "victim": "kernelbase.dll",
+            "object_type": "module",
+            "signatures": [
+                "wow64-reverse-imports"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "wow64.dll",
+            "victim": "kernelbase.dll",
+            "object_type": "module imports",
+            "signatures": [
+                "wow64-reverse-imports"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "wow64.dll",
+            "victim": "user32.dll",
+            "object_type": "module",
+            "signatures": [
+                "wow64-reverse-imports"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "wow64.dll",
+            "victim": "user32.dll",
+            "object_type": "module imports",
+            "signatures": [
+                "wow64-reverse-imports"
+            ]
+        }
+    ]
+}

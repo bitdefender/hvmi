@@ -1,0 +1,14 @@
+{
+    "Type": "user",
+    "Exceptions": [
+        {
+            "process": "*",
+            "originator": "user32.dll",
+            "victim": "user32.dll",
+            "object_type": "module exports",
+            "signatures": [
+                "user32-export-writes"
+            ]
+        }
+    ]
+}

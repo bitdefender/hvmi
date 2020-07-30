@@ -1,0 +1,74 @@
+{
+    "Type": "user",
+    "Exceptions": [
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "*",
+            "object_type": "module imports",
+            "signatures": [
+                "ntdll-iat-writes"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "*",
+            "object_type": "module",
+            "signatures": [
+                "ntdll-rdata-64"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "wow64.dll",
+            "object_type": "module",
+            "signatures": [
+                "ntdll-wow64-init"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "[wow64-dlls]",
+            "object_type": "module",
+            "signatures": [
+                "ntdll-wow-rdata-64"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "*",
+            "object_type": "module",
+            "signatures": [
+                "ntdll-init-32"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "*",
+            "object_type": "module imports",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "*",
+            "originator": "ntdll.dll",
+            "victim": "*",
+            "object_type": "module",
+            "signatures": [
+                "ntdll-iat-writes"
+            ]
+        }
+    ]
+}

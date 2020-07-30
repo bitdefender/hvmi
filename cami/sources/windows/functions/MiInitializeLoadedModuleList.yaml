@@ -1,0 +1,78 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiInitializeLoadedModuleList
+guest64: True
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: INIT
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x8b, 0xdc]                                 #  mov     r11,rsp
+                - [0x49, 0x89, 0x5b, 0x08]                           #  mov     qword ptr [r11+8],rbx
+                - [0x49, 0x89, 0x6b, 0x10]                           #  mov     qword ptr [r11+10h],rbp
+                - [0x49, 0x89, 0x73, 0x18]                           #  mov     qword ptr [r11+18h],rsi
+                - [0x49, 0x89, 0x7b, 0x20]                           #  mov     qword ptr [r11+20h],rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0xb8, 0x0e, 0x00, 0x00, 0x00]                     #  mov     eax,0Eh
+                - [0x48, 0x8b, 0xf1]                                 #  mov     rsi,rcx
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleResource (fffff800`034a08c0)]
+                - [0x66, 0x89, 0x44, 0x24, 0x100]                    #  mov     word ptr [rsp+20h],ax
+                - [0xb8, 0x10, 0x00, 0x00, 0x00]                     #  mov     eax,10h
+                - [0x45, 0x33, 0xed]                                 #  xor     r13d,r13d
+                - [0x66, 0x89, 0x44, 0x24, 0x100]                    #  mov     word ptr [rsp+22h],ax
+                - [0x48, 0x8d, 0x05, 0x100, 0x100, 0x100, 0x100]     #  lea     rax,[nt! ?? ::PBOPGDP::`string' (fffff800`037d10a0)]
+                - [0x49, 0x8b, 0xed]                                 #  mov     rbp,r13
+                - [0x49, 0x89, 0x43, 0x100]                          #  mov     qword ptr [r11-20h],rax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExInitializeResourceLite (fffff800`032f4650)
+                - [0x4c, 0x8d, 0x3d, 0x100, 0x100, 0x100, 0x100]     #  lea     r15,[nt!PsLoadedModuleList (fffff800`034a0890)]
+                - [0x4c, 0x89, 0x3d, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [nt!PsLoadedModuleList+0x8 (fffff800`034a0898)],r15
+                - [0x4c, 0x89, 0x3d, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [nt!PsLoadedModuleList (fffff800`034a0890)],r15
+
+    -
+        !intro_update_win_pattern
+        section_hint: INIT
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbx
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x30]                           #  sub     rsp,30h
+                - [0x48, 0x8d, 0x05, 0x100, 0x100, 0x100, 0x100]     #  lea     rax,[nt!MiSystemImageFixupList (fffff800`6690a780)]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleResource (fffff800`6690a840)]
+                - [0x48, 0x89, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [nt!MiSystemImageFixupList+0x8 (fffff800`6690a788)],rax
+                - [0x48, 0x89, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [nt!MiSystemImageFixupList (fffff800`6690a780)],rax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExInitializeResourceLite (fffff800`666695d0)
+                - [0x48, 0x83, 0x25, 0x100, 0x100, 0x100, 0x100, 0x00] #  and     qword ptr [nt!ExpCovPushLock (fffff800`668e91a0)],0
+                - [0x48, 0x8d, 0x05, 0x100, 0x100, 0x100, 0x100]     #  lea     rax,[nt!PsLoadedModuleList (fffff800`6690a8b0)]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+    -
+        !intro_update_win_pattern
+        section_hint: INIT
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbx
+                - [0x48, 0x89, 0x74, 0x24, 0x18]                     #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x30]                           #  sub     rsp,30h
+                - [0x48, 0x8d, 0x05, 0x100, 0x100, 0x100, 0x100]     #  lea     rax,[nt!MiSystemImageFixupList (fffff802`16b7fdd0)]
+                - [0x48, 0x8b, 0xf1]                                 #  mov     rsi,rcx
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleResource (fffff802`16b7fe80)]
+                - [0x48, 0x89, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [nt!MiSystemImageFixupList+0x8 (fffff802`16b7fdd8)],rax
+                - [0x48, 0x89, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [nt!MiSystemImageFixupList (fffff802`16b7fdd0)],rax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExInitializeResourceLite (fffff802`168dcf00)
+                - [0x48, 0x83, 0x25, 0x100, 0x100, 0x100, 0x100, 0x100] #  and     qword ptr [nt!ExpCovPushLock (fffff802`16b5aff0)],0
+                - [0x48, 0x8d, 0x05]                                 #  lea     rax,[nt!PsLoadedModuleList (fffff802`16b7fef0)]

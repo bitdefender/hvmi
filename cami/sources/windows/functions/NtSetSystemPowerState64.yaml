@@ -1,0 +1,244 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: NtSetSystemPowerState
+guest64: True
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,100h
+                - [0x45, 0x33, 0xed]                                 #  xor     r13d,r13d
+                - [0x8d, 0x42, 0x100]                                #  lea     eax,[rdx-1]
+                - [0x41, 0x8b, 0xf8]                                 #  mov     edi,r8d
+                - [0x41, 0x8d, 0x75, 0x100]                          #  lea     esi,[r13+5]
+                - [0x8b, 0xea]                                       #  mov     ebp,edx
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x45, 0x8a, 0xfd]                                 #  mov     r15b,r13b
+                - [0x4c, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+48h],r13
+                - [0x4c, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+38h],r13
+                - [0x4c, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],r13
+                - [0x44, 0x88, 0x6c, 0x24, 0x100]                    #  mov     byte ptr [rsp+31h],r13b
+                - [0x44, 0x88, 0xac, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     byte ptr [rsp+158h],r13b
+                - [0x3b, 0xc6]                                       #  cmp     eax,esi
+                - [0x0f, 0x87, 0x100, 0x100, 0x100, 0x100]           #  ja      nt!NtSetSystemPowerState+0xa14 (fffff800`028cfdb4)
+                - [0x8d, 0x41, 0x100]                                #  lea     eax,[rcx-1]
+                - [0x8d, 0x4e, 0x100]                                #  lea     ecx,[rsi+1]
+                - [0x3b, 0xc1]                                       #  cmp     eax,ecx
+                - [0x0f, 0x87, 0x100, 0x100, 0x100, 0x100]           #  ja      nt!NtSetSystemPowerState+0xa14 (fffff800`028cfdb4)
+                - [0x41, 0xf7, 0xc0, 0x100, 0x100, 0x100, 0x100]     #  test    r8d,0FFFFFF8h
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x100]                          #  mov     qword ptr [rax+8],rbx
+                - [0x44, 0x89, 0x40, 0x100]                          #  mov     dword ptr [rax+18h],r8d
+                - [0x89, 0x50, 0x100]                                #  mov     dword ptr [rax+10h],edx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x68, 0x100]                          #  lea     rbp,[rax-58h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,120h
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0x8d, 0x42, 0x100]                                #  lea     eax,[rdx-1]
+                - [0x45, 0x8b, 0xe0]                                 #  mov     r12d,r8d
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+78h],rsi
+                - [0x44, 0x8b, 0xfa]                                 #  mov     r15d,edx
+                - [0x40, 0x88, 0x74, 0x24, 0x100]                    #  mov     byte ptr [rsp+32h],sil
+                - [0x44, 0x8b, 0xe9]                                 #  mov     r13d,ecx
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [rsp+54h],esi
+                - [0x8d, 0x7e, 0x100]                                #  lea     edi,[rsi+5]
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+58h],rsi
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+48h],rsi
+                - [0x44, 0x8d, 0x76, 0x100]                          #  lea     r14d,[rsi+1]
+                - [0x44, 0x89, 0x74, 0x24, 0x100]                    #  mov     dword ptr [rsp+50h],r14d
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+70h],rsi
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [rsp+34h],esi
+                - [0x3b, 0xc7]                                       #  cmp     eax,edi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x44, 0x89, 0x40, 0x100]                          #  mov     dword ptr [rax+18h],r8d
+                - [0x89, 0x50, 0x100]                                #  mov     dword ptr [rax+10h],edx
+                - [0x89, 0x48, 0x100]                                #  mov     dword ptr [rax+8],ecx
+                - [0x55]                                             #  push    rbp
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x68, 0x100]                          #  lea     rbp,[rax-78h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,138h
+                - [0x33, 0xff]                                       #  xor     edi,edi
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [rsp+60h],1
+                - [0x8d, 0x42, 0x100]                                #  lea     eax,[rdx-1]
+                - [0x48, 0x89, 0x7d, 0x100]                          #  mov     qword ptr [rbp-78h],rdi
+                - [0x45, 0x8b, 0xe0]                                 #  mov     r12d,r8d
+                - [0x40, 0x88, 0x7c, 0x24, 0x100]                    #  mov     byte ptr [rsp+42h],dil
+                - [0x44, 0x8b, 0xea]                                 #  mov     r13d,edx
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [rsp+5Ch],edi
+                - [0x44, 0x8d, 0x77, 0x100]                          #  lea     r14d,[rdi+5]
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+68h],rdi
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rdi
+                - [0x44, 0x8b, 0xf9]                                 #  mov     r15d,ecx
+                - [0x48, 0x89, 0x7d, 0x100]                          #  mov     qword ptr [rbp-80h],rdi
+                - [0xc6, 0x44, 0x24, 0x100, 0x100]                   #  mov     byte ptr [rsp+40h],1
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [rsp+44h],edi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x44, 0x89, 0x40, 0x100]                          #  mov     dword ptr [rax+18h],r8d
+                - [0x89, 0x50, 0x100]                                #  mov     dword ptr [rax+10h],edx
+                - [0x89, 0x48, 0x100]                                #  mov     dword ptr [rax+8],ecx
+                - [0x55]                                             #  push    rbp
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x68, 0x100]                          #  lea     rbp,[rax-78h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,138h
+                - [0x33, 0xff]                                       #  xor     edi,edi
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [rsp+5Ch],1
+                - [0x8d, 0x42, 0x100]                                #  lea     eax,[rdx-1]
+                - [0x48, 0x89, 0x7d, 0x100]                          #  mov     qword ptr [rbp-80h],rdi
+                - [0x45, 0x8b, 0xe0]                                 #  mov     r12d,r8d
+                - [0x40, 0x88, 0x7c, 0x24, 0x100]                    #  mov     byte ptr [rsp+42h],dil
+                - [0x44, 0x8b, 0xea]                                 #  mov     r13d,edx
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [rsp+60h],edi
+                - [0x44, 0x8d, 0x77, 0x100]                          #  lea     r14d,[rdi+5]
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+68h],rdi
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rdi
+                - [0x44, 0x8b, 0xf9]                                 #  mov     r15d,ecx
+                - [0x48, 0x89, 0x7d, 0x100]                          #  mov     qword ptr [rbp-78h],rdi
+                - [0xc6, 0x44, 0x24, 0x100, 0x100]                   #  mov     byte ptr [rsp+40h],1
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [rsp+44h],edi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x44, 0x24, 0x100]                    #  mov     dword ptr [rsp+18h],r8d
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [rsp+10h],edx
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [rsp+8],ecx
+                - [0x55]                                             #  push    rbp
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-48h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,148h
+                - [0x33, 0xff]                                       #  xor     edi,edi
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [rsp+58h],1
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x40, 0x88, 0x7c, 0x24, 0x100]                    #  mov     byte ptr [rsp+42h],dil
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0x48, 0x89, 0x45, 0x100]                          #  mov     qword ptr [rbp-68h],rax
+                - [0x44, 0x8b, 0xe1]                                 #  mov     r12d,ecx
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+60h],rdi
+                - [0x45, 0x8b, 0xf8]                                 #  mov     r15d,r8d
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rdi
+                - [0x8d, 0x50, 0x100]                                #  lea     edx,[rax+1]
+                - [0xc6, 0x44, 0x24, 0x100, 0x100]                   #  mov     byte ptr [rsp+40h],1
+                - [0x8d, 0x48, 0x100]                                #  lea     ecx,[rax+8]
+                - [0x44, 0x8b, 0xef]                                 #  mov     r13d,edi
+                - [0x8b, 0xf7]                                       #  mov     esi,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!PopTransitionCheckpoint (fffff800`5f385b10)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x44, 0x24, 0x100]                    #  mov     dword ptr [rsp+18h],r8d
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [rsp+10h],edx
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [rsp+8],ecx
+                - [0x55]                                             #  push    rbp
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-68h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,168h
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x44, 0x8b, 0xea]                                 #  mov     r13d,edx
+                - [0x48, 0x89, 0x45, 0x100]                          #  mov     qword ptr [rbp-70h],rax
+                - [0x44, 0x8b, 0xf9]                                 #  mov     r15d,ecx
+                - [0x88, 0x5c, 0x24, 0x100]                          #  mov     byte ptr [rsp+42h],bl
+                - [0x45, 0x8b, 0xf0]                                 #  mov     r14d,r8d
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+78h],rbx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x53]                                       #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,1B0h
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff803`a75785f0)]
+                - [0x48, 0x33, 0xc4]                                 #  xor     rax,rsp
+                - [0x48, 0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+1A0h],rax
+                - [0x41, 0x8b, 0xf0]                                 #  mov     esi,r8d
+                - [0x8b, 0xfa]                                       #  mov     edi,edx
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x41, 0xb8, 0x100, 0x100, 0x100, 0x100]           #  mov     r8d,178h
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+20h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!memset (fffff803`a73ca100)
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+20h]
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [rsp+20h],ebx
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [rsp+24h],edi
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [rsp+28h],esi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!PopTransitionSystemPowerStateEx (fffff803`a7646fd4)
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     rcx,qword ptr [rsp+1A0h]

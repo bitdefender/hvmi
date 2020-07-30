@@ -1,0 +1,225 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiCommitExistingVad
+guest64: True
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX   # Vad
+            - DET_ARG_RDX   # Protected Page
+            - DET_ARG_R8    # Protection Size
+            - DET_ARG_R9    # Vm Protection Flags
+
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7600
+        max_ver: 7602
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                                        # mov     dword ptr [rsp+20h],r9d
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                                        # mov     qword ptr [rsp+8],rcx
+                - [0x53]                                                                 # push    rbx
+                - [0x55]                                                                 # push    rbp
+                - [0x56]                                                                 # push    rsi
+                - [0x57]                                                                 # push    rdi
+                - [0x41, 0x54]                                                           # push    r12
+                - [0x41, 0x55]                                                           # push    r13
+                - [0x41, 0x56]                                                           # push    r14
+                - [0x41, 0x57]                                                           # push    r15
+                - [0x48, 0x83, 0xec, 0x100]                                              # sub     rsp,78h
+                - [0x4c, 0x8b, 0xe9]                                                     # mov     r13,rcx
+                - [0x41, 0x8b, 0xc9]                                                     # mov     ecx,r9d
+                - [0x4c, 0x8b, 0xfa]                                                     # mov     r15,rdx
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                                        # mov     qword ptr [rsp+20h],rdx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                                     # call    nt!MiMakeProtectionMask (fffff800`026a63a0)
+                - [0x65, 0x48, 0x8b, 0x2c, 0x25, 0x88, 0x01, 0x00, 0x00]                 # mov   rbp,qword ptr gs:[188h]
+                - [0x4c, 0x8b, 0x65, 0x100]                                              # mov     r12,qword ptr [rbp+70h]
+                - [0x48, 0xb9, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]   # mov rcx,80000000000000h
+                - [0x45, 0x33, 0xc9]                                                     # xor     r9d,r9d
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                                        # mov     qword ptr [rsp+68h],rbp
+                - [0x48, 0xba, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]   # mov rdx,0FFFFFFFFFh
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                                        # mov     qword ptr [rsp+28h],r12
+                - [0x49, 0x85, 0x4d, 0x100]                                              # test    qword ptr [r13+28h],rcx
+                - [0x74, 0x100]                                                          # je      nt!MiCommitExistingVad+0x7d (fffff800`026bb06d)
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7602
+        max_ver: 7602
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                                       # MOV       dword ptr [rsp+0x20], r9d
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                                       # MOV       qword ptr [rsp+0x8], rcx
+                - [0x53]                                                                # PUSH      rbx
+                - [0x55]                                                                # PUSH      rbp
+                - [0x56]                                                                # PUSH      rsi
+                - [0x57]                                                                # PUSH      rdi
+                - [0x41, 0x54]                                                          # PUSH      r12
+                - [0x41, 0x55]                                                          # PUSH      r13
+                - [0x41, 0x56]                                                          # PUSH      r14
+                - [0x41, 0x57]                                                          # PUSH      r15
+                - [0x48, 0x83, 0xec, 0x100]                                             # SUB       rsp, 0x0000000000000078
+                - [0x41, 0x8b, 0xc1]                                                    # MOV       eax, r9d
+                - [0x4c, 0x8b, 0xe9]                                                    # MOV       r13, rcx
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                                       # MOV       qword ptr [rsp+0x20], rdx
+                - [0x8b, 0xc8]                                                          # MOV       ecx, eax
+                - [0x4c, 0x8b, 0xca]                                                    # MOV       r9, rdx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                                    # CALL      0xffffffffffeca400
+                - [0x65, 0x4c, 0x8b, 0x24, 0x25, 0x88, 0x01, 0x00, 0x00]                # MOV       r12, qword ptr gs:[0x188]
+                - [0x48, 0xb9, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]  # MOV       rcx, 0x0080000000000000
+                - [0x4d, 0x8b, 0x7c, 0x24, 0x100]                                       # MOV       r15, qword ptr [r12+0x70]
+                - [0x45, 0x33, 0xd2]                                                    # XOR       r10d, r10d
+                - [0x48, 0xba, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]  # MOV       rdx, 0x0000000fffffffff
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                                       # MOV       qword ptr [rsp+0x60], r12
+                - [0x4c, 0x89, 0x7c, 0x24, 0x100]                                       # MOV       qword ptr [rsp+0x28], r15
+                - [0x49, 0x85, 0x4d, 0x100]                                             # TEST      qword ptr [r13+0x28], rcx
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7600
+        max_ver: 7602
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                                        # mov     dword ptr [rsp+20h],r9d
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                                        # mov     qword ptr [rsp+8],rcx
+                - [0x53]                                                                 # push    rbx
+                - [0x55]                                                                 # push    rbp
+                - [0x56]                                                                 # push    rsi
+                - [0x57]                                                                 # push    rdi
+                - [0x41, 0x54]                                                           # push    r12
+                - [0x41, 0x55]                                                           # push    r13
+                - [0x41, 0x56]                                                           # push    r14
+                - [0x41, 0x57]                                                           # push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]                         # sub     rsp,88h
+                - [0x4c, 0x8b, 0xf1]                                                     # mov     r14,rcx
+                - [0x41, 0x8b, 0xc9]                                                     # mov     ecx,r9d
+                - [0x4c, 0x8b, 0xfa]                                                     # mov     r15,rdx
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                                        # mov     qword ptr [rsp+20h],rdx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                                     # call    nt!MiMakeProtectionMask (fffff800`026948d0)
+                - [0x65, 0x48, 0x8b, 0x2c, 0x25, 0x88, 0x01, 0x00, 0x00]                 # mov   rbp,qword ptr gs:[188h]
+                - [0x4c, 0x8b, 0x65, 0x100]                                              # mov     r12,qword ptr [rbp+70h]
+                - [0x48, 0xb9, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]   # mov rcx,80000000000000h
+                - [0x45, 0x33, 0xc9]                                                     # xor     r9d,r9d
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                                        # mov     qword ptr [rsp+70h],rbp
+                - [0x48, 0xba, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]   # mov rdx,0FFFFFFFFFh
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                                        # mov     qword ptr [rsp+28h],r12
+                - [0x49, 0x85, 0x4e, 0x100]                                              # test    qword ptr [r14+28h],rcx
+                - [0x74, 0x100]                                                          # je      nt!MiCommitExistingVad+0x80 (fffff800`0267fc80)
+
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7600
+        max_ver: 7602
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                                        # mov     dword ptr [rsp+20h],r9d
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                                        # mov     qword ptr [rsp+8],rcx
+                - [0x53]                                                                 # push    rbx
+                - [0x55]                                                                 # push    rbp
+                - [0x56]                                                                 # push    rsi
+                - [0x57]                                                                 # push    rdi
+                - [0x41, 0x54]                                                           # push    r12
+                - [0x41, 0x55]                                                           # push    r13
+                - [0x41, 0x56]                                                           # push    r14
+                - [0x41, 0x57]                                                           # push    r15
+                - [0x48, 0x83, 0xec, 0x100]                                              # sub     rsp,78h
+                - [0x41, 0x8b, 0xc1]                                                     # mov     eax,r9d
+                - [0x4c, 0x8b, 0xe9]                                                     # mov     r13,rcx
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                                        # mov     qword ptr [rsp+20h],rdx
+                - [0x8b, 0xc8]                                                           # mov     ecx,eax
+                - [0x4c, 0x8b, 0xca]                                                     # mov     r9,rdx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                                     # call    nt!MiMakeProtectionMask (fffff800`028991a0)
+                - [0x65, 0x4c, 0x8b, 0x24, 0x25, 0x88, 0x01, 0x00, 0x00]                 # mov   r12,qword ptr gs:[188h]
+                - [0x48, 0xb9, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]   # mov rcx,80000000000000h
+                - [0x4d, 0x8b, 0x7c, 0x24, 0x100]                                        # mov     r15,qword ptr [r12+70h]
+                - [0x45, 0x33, 0xd2]                                                     # xor     r10d,r10d
+                - [0x48, 0xba, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]   # mov rdx,0FFFFFFFFFh
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                                        # mov     qword ptr [rsp+60h],r12
+                - [0x4c, 0x89, 0x7c, 0x24, 0x100]                                        # mov     qword ptr [rsp+28h],r15
+                - [0x49, 0x85, 0x4d, 0x100]                                              # test    qword ptr [r13+28h],rcx
+                - [0x74, 0x100]                                                          # je      nt!MiCommitExistingVad+0x80 (fffff800`029cdca0)
+
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7600
+        max_ver: 7602
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]             # mov dword [rsp + 0x20], r9d
+                - [0x53]                                      # push rbx
+                - [0x55]                                      # push rbp
+                - [0x56]                                      # push rsi
+                - [0x57]                                      # push rdi
+                - [0x41, 0x54]                                # push r12
+                - [0x41, 0x55]                                # push r13
+                - [0x41, 0x56]                                # push r14
+                - [0x41, 0x57]                                # push r15
+                - [0x48, 0x83, 0xec, 0x100]                   # sub rsp, 0x58
+                - [0x4c, 0x8b, 0xf9]                          # mov r15, rcx
+                - [0x41, 0x8b, 0xc9]                          # mov ecx, r9d
+                - [0x48, 0x8b, 0xf2]                          # mov rsi, rdx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]          # call 0x140093e72
+                - [0x65, 0x4c, 0x8b, 0x24, 0x25, 0x88, 0x01, 0x00, 0x00] # mov r12, qword gs:[0x188]
+                - [0x45, 0x33, 0xc9]                          # xor r9d, r9d
+                - [0x49, 0x8b, 0x4c, 0x24, 0x100]             # mov rcx, qword [r12 + 0x70]
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]             # mov qword [rsp + 0x48], r12
+                - [0x48, 0x89, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100]  # mov qword [rsp + 0xb0], rcx
+                - [0x48, 0xb9, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]  # movabs rcx, 0x80000000000000
+                - [0x49, 0x85, 0x4f, 0x100]                   # test qword [r15 + 0x28], rcx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]    # jne 0x140038efa
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]             # mov qword [rsp + 0x30], r9
+                - [0x8b, 0xd8]                                # mov ebx, eax
+                - [0x4e, 0x8d, 0x6c, 0x06, 0x100]             # lea r13, [rsi + r8 - 1]
+                - [0x48, 0xb9, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]  # movabs rcx, 0xfffff6fb40000000
+                - [0x48, 0x8b, 0xc6]                          # mov rax, rsi
+                - [0x49, 0x81, 0xcd, 0x100, 0x100, 0x100, 0x100]  # or r13, 0xfff
+                - [0x48, 0x8b, 0xfe]                          # mov rdi,  rsi
+                - [0x48, 0xc1, 0xe8, 0x100]                   # shr rax, 0x12
+                - [0x48, 0xc1, 0xef, 0x100]                   # shr rdi, 9
+
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                   # mov     qword ptr [rsp+20h],rbx
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                   # mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                   # mov     qword ptr [rsp+8],rcx
+                - [0x55]                                            # push    rbp
+                - [0x56]                                            # push    rsi
+                - [0x57]                                            # push    rdi
+                - [0x41, 0x54]                                      # push    r12
+                - [0x41, 0x55]                                      # push    r13
+                - [0x41, 0x56]                                      # push    r14
+                - [0x41, 0x57]                                      # push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                   # lea     rbp,[rsp-1Fh]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]    # sub     rsp,0E0h
+                - [0x44, 0x8b, 0x59, 0x100]                         # mov     r11d,dword ptr [rcx+30h]
+                - [0x4c, 0x8b, 0xe9]                                # mov     r13,rcx
+                - [0x45, 0x8b, 0xd3]                                # mov     r10d,r11d
+                - [0x41, 0x8b, 0xc9]                                # mov     ecx,r9d
+                - [0x41, 0xc1, 0xea, 0x100]                         # shr     r10d,3
+                - [0x4c, 0x8b, 0xe2]                                # mov     r12,rdx
+                - [0x41, 0x83, 0xe2, 0x100]                         # and     r10d,1Fh
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                # call    nt!MiMakeProtectionMask (fffff805`1bf90f50)
+                - [0x33, 0xc9]                                      # xor     ecx,ecx
+                - [0x89, 0x45, 0x100]                               # mov     dword ptr [rbp+6Fh],eax
+                - [0x8b, 0xd0]                                      # mov     edx,eax
+                - [0x83, 0xf8, 0x100]                               # cmp     eax,18h
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]          # je      nt!MiCommitExistingVad+0x154806 (fffff805`1c0e5806)
+                - [0x41, 0x83, 0xfa, 0x100]                         # cmp     r10d,18h
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]          # je      nt!MiCommitExistingVad+0x85f (fffff805`1bf9185f)
+                - [0x41, 0x83, 0xe2, 0x100]                         # and     r10d,18h

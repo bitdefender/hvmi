@@ -1,0 +1,150 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiGetWsAndInsertVad
+guest64: True
+# Arguments:
+#         RCX: pointer to a MMVAD or MMVAD_SHORT structure. Private VADs
+#              (created by VirtualAlloc(Ex) calls) are always MMVAD_SHORT.
+#              The process in which the allocation is made is always the current process.
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0xff, 0xf7]                                       #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x100, 0x100, 0x100, 0x100] #  mov   rdi,qword ptr gs:[188h]
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+40h],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+48h],rbp
+                - [0x66, 0xff, 0x8f, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [rdi+1C6h]
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rsi
+                - [0x48, 0x8b, 0x77, 0x70]                           #  mov     rsi,qword ptr [rdi+70h]
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                    #  mov     qword ptr [rsp+28h],r12
+                - [0x4c, 0x8b, 0xe1]                                 #  mov     r12,rcx
+                - [0x48, 0x8d, 0xae, 0x100, 0x100, 0x100, 0x100]     #  lea     rbp,[rsi+398h]
+                - [0xf0, 0x48, 0x0f, 0xba, 0x6d, 0x00, 0x100]        #  lock bts qword ptr [rbp],0
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiGetWsAndInsertVad+0x1d8 (fffff800`02cc1558)
+                - [0x80, 0x8f, 0x100, 0x100, 0x100, 0x100, 0x100]    #  or      byte ptr [rdi+458h],8
+                - [0x48, 0x8d, 0x96, 0x100, 0x100, 0x100, 0x100]     #  lea     rdx,[rsi+448h]
+                - [0x49, 0x8b, 0xcc]                                 #  mov     rcx,r12
+                - [0x4c, 0x89, 0xa6, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rsi+478h],r12
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiInsertNode (fffff800`02cb4e90)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x57]                                       #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rdi,qword ptr gs:[188h]
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+40h],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+48h],rbp
+                - [0x66, 0xff, 0x8f, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [rdi+1C6h]
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rsi
+                - [0x48, 0x8b, 0x77, 0x100]                          #  mov     rsi,qword ptr [rdi+70h]
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                    #  mov     qword ptr [rsp+28h],r12
+                - [0x4c, 0x8b, 0xe1]                                 #  mov     r12,rcx
+                - [0x48, 0x8d, 0xae, 0x100, 0x100, 0x100, 0x100]     #  lea     rbp,[rsi+398h]
+                - [0xf0, 0x48, 0x0f, 0xba, 0x6d, 0x100, 0x100]       #  lock bts qword ptr [rbp],0
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiGetWsAndInsertVad+0x1d8 (fffff800`030b96e8)
+                - [0x80, 0x8f, 0x100, 0x100, 0x100, 0x100, 0x100]    #  or      byte ptr [rdi+458h],8
+                - [0x48, 0x8d, 0x96, 0x100, 0x100, 0x100, 0x100]     #  lea     rdx,[rsi+448h]
+                - [0x49, 0x8b, 0xcc]                                 #  mov     rcx,r12
+                - [0x4c, 0x89, 0xa6, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rsi+478h],r12
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiInsertNode (fffff800`030b93c0)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x57]                                       #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rdi,qword ptr gs:[188h]
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+40h],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+48h],rbp
+                - [0x48, 0x8b, 0x6f, 0x100]                          #  mov     rbp,qword ptr [rdi+70h]
+                - [0x66, 0xff, 0x8f, 0x100, 0x100, 0x00, 0x00]       #  dec     word ptr [rdi+1C6h]
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rsi
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                    #  mov     qword ptr [rsp+28h],r12
+                - [0x4c, 0x8b, 0xe1]                                 #  mov     r12,rcx
+                - [0x48, 0x8d, 0xb5, 0x100, 0x100, 0x00, 0x00]       #  lea     rsi,[rbp+398h]
+                - [0xf0, 0x48, 0x0f, 0xba, 0x2e, 0x100]              #  lock bts qword ptr [rsi],0
+                - [0x73, 0x100]                                      #  jae     nt!MiGetWsAndInsertVad+0x48 (fffff800`02884de8)
+                - [0x48, 0x8b, 0xce]                                 #  mov     rcx,rsi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExfAcquirePushLockExclusive (fffff800`0289a7c0)
+                - [0x80, 0x8f, 0x100, 0x100, 0x100, 0x100, 0x100]    #  or      byte ptr [rdi+458h],8
+                - [0x48, 0x8d, 0x95, 0x100, 0x100, 0x100, 0x100]     #  lea     rdx,[rbp+448h]
+                - [0x49, 0x8b, 0xcc]                                 #  mov     rcx,r12
+                - [0x4c, 0x89, 0xa5, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+478h],r12
+
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],rsi
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x20]                           #  sub     rsp,20h
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rax,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xf1]                                 #  mov     rsi,rcx
+                - [0x0f, 0xb6, 0x69, 0x100]                          #  movzx   ebp,byte ptr [rcx+21h]
+                - [0x44, 0x0f, 0xb6, 0x71, 0x100]                    #  movzx   r14d,byte ptr [rcx+20h]
+                - [0x48, 0xc1, 0xe5, 0x100]                          #  shl     rbp,20h
+                - [0x48, 0x8b, 0xb8, 0x100, 0x100, 0x100, 0x100]     #  mov     rdi,qword ptr [rax+0B8h]
+                - [0x8b, 0x41, 0x1c]                                 #  mov     eax,dword ptr [rcx+1Ch]
+                - [0x48, 0x0b, 0xe8]                                 #  or      rbp,rax
+                - [0x49, 0xc1, 0xe6, 0x100]                          #  shl     r14,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+18h]
+                - [0x48, 0x8d, 0x8f, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[rdi+500h]
+                - [0x4c, 0x0b, 0xf0]                                 #  or      r14,rax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetSharedVm (fffff802`e9ac4270)
+                - [0x48, 0x8b, 0xc8]                                 #  mov     rcx,rax
+                - [0x48, 0x8b, 0xd8]                                 #  mov     rbx,rax
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    # mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    # mov     qword ptr [rsp+10h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    # mov     qword ptr [rsp+18h],rsi
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    # mov     qword ptr [rsp+20h],rdi
+                - [0x41, 0x54]                                       # push    r12
+                - [0x41, 0x56]                                       # push    r14
+                - [0x41, 0x57]                                       # push    r15
+                - [0x48, 0x83, 0xec, 0x20]                           # sub     rsp,20h
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x88, 0x01, 0x00, 0x00]   # mov   rax,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xf1]                                 # mov     rsi,rcx
+                - [0x0f, 0xb6, 0x69, 0x100]                          # movzx   ebp,byte ptr [rcx+21h]
+                - [0x44, 0x0f, 0xb6, 0x71, 0x100]                    # movzx   r14d,byte ptr [rcx+20h]
+                - [0x48, 0xc1, 0xe5, 0x100]                          # shl     rbp,20h
+                - [0x48, 0x8b, 0xb8, 0x100, 0x100, 0x100, 0x100]     # mov     rdi,qword ptr [rax+0B8h]
+                - [0x8b, 0x41, 0x1c]                                 # mov     eax,dword ptr [rcx+1Ch]
+                - [0x48, 0x0b, 0xe8]                                 # or      rbp,rax
+                - [0x49, 0xc1, 0xe6, 0x100]                          # shl     r14,20h
+                - [0x8b, 0x41, 0x100]                                # mov     eax,dword ptr [rcx+18h]
+                - [0x48, 0x8d, 0x8f, 0x100, 0x100, 0x100, 0x100]     # lea     rcx,[rdi+500h]
+                - [0x4c, 0x0b, 0xf0]                                 # or      r14,rax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 # call    nt!MiGetSharedVm (fffff802`e9ac4270)
+                - [0x48, 0x8b, 0xc8]                                 # mov     rcx,rax
+                - [0x48, 0x8b, 0xd8]                                 # mov     rbx,rax

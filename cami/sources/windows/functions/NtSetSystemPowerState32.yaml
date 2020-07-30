@@ -1,0 +1,257 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: NtSetSystemPowerState
+guest64: False
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,0A4h
+                - [0x53]                                             #  push    ebx
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+8]
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+0Ch]
+                - [0x8d, 0x47, 0x100]                                #  lea     eax,[edi-1]
+                - [0x88, 0x5c, 0x24, 0x100]                          #  mov     byte ptr [esp+15h],bl
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+38h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+3Ch],ebx
+                - [0x88, 0x5c, 0x24, 0x100]                          #  mov     byte ptr [esp+13h],bl
+                - [0x88, 0x5c, 0x24, 0x100]                          #  mov     byte ptr [esp+14h],bl
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,5
+                - [0x0f, 0x87, 0x100, 0x100, 0x100, 0x100]           #  ja      nt!NtSetSystemPowerState+0x84f (82972ba5)
+                - [0x8d, 0x46, 0x100]                                #  lea     eax,[esi-1]
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,6
+                - [0x0f, 0x87, 0x100, 0x100, 0x100, 0x100]           #  ja      nt!NtSetSystemPowerState+0x84f (82972ba5)
+                - [0xf7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    dword ptr [ebp+10h],0FFFFFF8h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!NtSetSystemPowerState+0x84f (82972ba5)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,0CCh
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (81a37b94)]
+                - [0x33, 0xc4]                                       #  xor     eax,esp
+                - [0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [esp+0C8h],eax
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+18h],1
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+0Ch]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+4Ch],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+50h],eax
+                - [0x88, 0x44, 0x24, 0x100]                          #  mov     byte ptr [esp+0Dh],al
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+44h],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+48h],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+1Ch],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+38h],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+3Ch],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],eax
+                - [0x8d, 0x46, 0x100]                                #  lea     eax,[esi-1]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,0DCh
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (8226db94)]
+                - [0x33, 0xc4]                                       #  xor     eax,esp
+                - [0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [esp+0D8h],eax
+                - [0x53]                                             #  push    ebx
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+48h],1
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+0Ch]
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+60h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+64h],ebx
+                - [0x88, 0x5c, 0x24, 0x100]                          #  mov     byte ptr [esp+15h],bl
+                - [0x8d, 0x47, 0x100]                                #  lea     eax,[edi-1]
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+44h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+54h],ebx
+                - [0xc6, 0x44, 0x24, 0x100, 0x100]                   #  mov     byte ptr [esp+14h],1
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],ebx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,0D4h
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (8161b0c0)]
+                - [0x33, 0xc4]                                       #  xor     eax,esp
+                - [0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [esp+0D0h],eax
+                - [0x53]                                             #  push    ebx
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+44h],1
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+0Ch]
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+50h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+54h],ebx
+                - [0x8d, 0x46, 0x100]                                #  lea     eax,[esi-1]
+                - [0x88, 0x5c, 0x24, 0x100]                          #  mov     byte ptr [esp+11h],bl
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+44h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+48h],ebx
+                - [0xc6, 0x44, 0x24, 0x100, 0x100]                   #  mov     byte ptr [esp+10h],1
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],ebx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,0F4h
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (816612d8)]
+                - [0x33, 0xc4]                                       #  xor     eax,esp
+                - [0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [esp+0F0h],eax
+                - [0x53]                                             #  push    ebx
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x56]                                             #  push    esi
+                - [0x41]                                             #  inc     ecx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+6Ch],ebx
+                - [0x57]                                             #  push    edi
+                - [0x6a, 0x100]                                      #  push    8
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+5Ch],ecx
+                - [0x8b, 0xd1]                                       #  mov     edx,ecx
+                - [0x88, 0x4c, 0x24, 0x100]                          #  mov     byte ptr [esp+14h],cl
+                - [0x59]                                             #  pop     ecx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+74h],ebx
+                - [0x88, 0x5c, 0x24, 0x100]                          #  mov     byte ptr [esp+12h],bl
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+48h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+4Ch],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+50h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+54h],ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!PopTransitionCheckpoint (817a5cee)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,0FCh
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (81aca5f8)]
+                - [0x33, 0xc4]                                       #  xor     eax,esp
+                - [0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [esp+0F8h],eax
+                - [0x53]                                             #  push    ebx
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x40]                                             #  inc     eax
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+60h],ebx
+                - [0x6a, 0x100]                                      #  push    8
+                - [0x8b, 0xd0]                                       #  mov     edx,eax
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+68h],ebx
+                - [0x59]                                             #  pop     ecx
+                - [0x88, 0x5c, 0x24, 0x100]                          #  mov     byte ptr [esp+15h],bl
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+48h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+4Ch],ebx
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+5Ch],eax
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+38h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+44h],ebx
+                - [0x88, 0x44, 0x24, 0x100]                          #  mov     byte ptr [esp+14h],al
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],eax
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],ebx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGELK
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,148h
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (816eb830)]
+                - [0x33, 0xc4]                                       #  xor     eax,esp
+                - [0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [esp+144h],eax
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    140h
+                - [0x8d, 0x44, 0x24, 0x100]                          #  lea     eax,[esp+4]
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x50]                                             #  push    eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!memset (815bef50)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x8d, 0x4c, 0x24, 0x100]                          #  lea     ecx,[esp+0Ch]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+0Ch],eax
+                - [0x83, 0xc4, 0x100]                                #  add     esp,0Ch
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+4],eax
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+8],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!PopTransitionSystemPowerStateEx (8173f5b3)
+                - [0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100]     #  mov     ecx,dword ptr [esp+144h]
+                - [0x33, 0xcc]                                       #  xor     ecx,esp
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!__security_check_cookie (815b85a0)
+                - [0x8b, 0xe5]                                       #  mov     esp,ebp
+                - [0x5d]                                             #  pop     ebp
+                - [0xc2, 0x100, 0x100]                               #  ret     0Ch

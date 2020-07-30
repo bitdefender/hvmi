@@ -1,0 +1,80 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: KeBugCheck2
+guest64: False
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x00, 0x00]             #  sub     esp,3C4h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+18h]
+                - [0x8b, 0x55, 0x100]                                #  mov     edx,dword ptr [ebp+0Ch]
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+14h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+8]
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+60h],eax
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+1Ch]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+4Ch],edx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],ebx
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!IoInitializeBugCheckProgress (82224110)
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x41]                                             #  inc     ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!IoSaveBugCheckProgress (8222419d)
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x39, 0x0d, 0x100, 0x100, 0x100, 0x100]           #  cmp     dword ptr [nt!IopAutoReboot (822c17c0)],ecx
+                - [0x88, 0x4c, 0x24, 0x100]                          #  mov     byte ptr [esp+20h],cl
+                - [0x88, 0x4c, 0x24, 0x100]                          #  mov     byte ptr [esp+1Bh],cl
+                - [0x0f, 0x95, 0x44, 0x24, 0x100]                    #  setne   byte ptr [esp+1Ah]
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+3Ch],ecx
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],ecx
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x00, 0x00]             #  sub     esp,3C4h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],eax
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+18h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+44h],eax
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+1Ch]
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+14h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],eax
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x39, 0x0d, 0x100, 0x100, 0x100, 0x100]           #  cmp     dword ptr [nt!IopAutoReboot (81c24040)],ecx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],ebx
+                - [0x0f, 0x95, 0x44, 0x24, 0x100]                    #  setne   byte ptr [esp+1Eh]
+                - [0x88, 0x4c, 0x24, 0x100]                          #  mov     byte ptr [esp+24h],cl
+                - [0x88, 0x4c, 0x24, 0x100]                          #  mov     byte ptr [esp+1Fh],cl
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],ecx
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],ecx
+                - [0x88, 0x8c, 0x24, 0x100, 0x100, 0x00, 0x00]       #  mov     byte ptr [esp+350h],cl
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],eax
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+44h],offset nt!KiBugCheckProgress (81b9c372)

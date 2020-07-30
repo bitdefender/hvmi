@@ -1,0 +1,519 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiProtectVirtualMemory
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RDX           # Destination Eprocess
+            - DET_ARG_STACK1        # Pointer to Base GVA
+            - DET_ARG_STACK2        # Pointer to Length
+            - DET_ARG_STACK3        # New Rights
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 8000
+        args:
+            - DET_ARG_STACK1        # Destination Eprocess
+            - DET_ARG_STACK2        # Pointer to Base GVA
+            - DET_ARG_STACK3        # Pointer to Length
+            - DET_ARG_STACK4        # New Rights
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,34h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0x83, 0x64, 0x24, 0x100, 0x100]                   #  and     dword ptr [esp+14h],0
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x100, 0x100, 0x100, 0x100]     #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x38]                                       #  mov     edi,dword ptr [eax]
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+14h]
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+38h],esi
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiMakeProtectionMask (82c83468)
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],eax
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,0FFFFFFFFh
+                - [0x75, 0x100]                                      #  jne     nt!MiProtectVirtualMemory+0x47 (82e481d2)
+                - [0xb8, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,0C0000045h
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]                 #  jmp     nt!MiProtectVirtualMemory+0x4e6 (82e48671)
+                - [0x8d, 0x7c, 0x37, 0x100]                          #  lea     edi,[edi+esi-1]
+                - [0x81, 0xe6, 0x100, 0x100, 0x100, 0x100]           #  and     esi,0FFFFF000h
+                - [0x81, 0xcf, 0x100, 0x100, 0x100, 0x100]           #  or      edi,0FFFh
+                - [0x66, 0xff, 0x8b, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [ebx+86h]
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],esi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,34h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0x83, 0x64, 0x24, 0x100, 0x100]                   #  and     dword ptr [esp+14h],0
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x38]                                       #  mov     edi,dword ptr [eax]
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+14h]
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],esi
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiMakeProtectionMask (82e8c1d2)
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+0Ch],eax
+                - [0x83, 0xf8, 0xff]                                 #  cmp     eax,0FFFFFFFFh
+                - [0x75, 0x100]                                      #  jne     nt!MiProtectVirtualMemory+0x47 (83058997)
+                - [0xb8, 0x45, 0x00, 0x00, 0xc0]                     #  mov     eax,0C0000045h
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]                 #  jmp     nt!MiProtectVirtualMemory+0x510 (83058e60)
+                - [0x8d, 0x7c, 0x3e, 0x100]                          #  lea     edi,[esi+edi-1]
+                - [0x81, 0xe6, 0x100, 0x100, 0x100, 0x100]           #  and     esi,0FFFFF000h
+                - [0x81, 0xcf, 0x100, 0x100, 0x100, 0x100]           #  or      edi,0FFFh
+                - [0x66, 0xff, 0x8b, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [ebx+86h]
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],esi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,34h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+18h]
+                - [0x83, 0x64, 0x24, 0x100, 0x100]                   #  and     dword ptr [esp+14h],0
+                - [0x53]                                             #  push    ebx
+                - [0xc7, 0x00, 0x100, 0x100, 0x00, 0x00]             #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x8b, 0x18]                                       #  mov     ebx,dword ptr [eax]
+                - [0x57]                                             #  push    edi
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+14h]
+                - [0x64, 0x8b, 0x3d, 0x24, 0x01, 0x00, 0x00]         #  mov     edi,dword ptr fs:[124h]
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],esi
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiMakeProtectionMask (828d17d6)
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+0Ch],eax
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,0FFFFFFFFh
+                - [0x75, 0x100]                                      #  jne     nt!MiProtectVirtualMemory+0x50 (82aa39c8)
+                - [0xb8, 0x100, 0x100, 0x00, 0xc0]                   #  mov     eax,0C0000045h
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]                 #  jmp     nt!MiProtectVirtualMemory+0x519 (82aa3e91)
+                - [0x8d, 0x5c, 0x33, 0x100]                          #  lea     ebx,[ebx+esi-1]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                      # mov     edi,edi
+                - [0x55]                                            # push    ebp
+                - [0x8b, 0xec]                                      # mov     ebp,esp
+                - [0x83, 0xec, 0x100]                               # sub     esp,30h
+                - [0x8b, 0x45, 0x100]                               # mov     eax,dword ptr [ebp+0Ch]
+                - [0x83, 0x65, 0x100, 0x100]                        # and     dword ptr [ebp-14h],0
+                - [0x53]                                            # push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]        # mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                            # push    esi
+                - [0x8b, 0x30]                                      # mov     esi,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                               # mov     eax,dword ptr [ebp+10h]
+                - [0x57]                                            # push    edi
+                - [0x8b, 0x38]                                      # mov     edi,dword ptr [eax]
+                - [0xff, 0x75, 0x100]                               # push    dword ptr [ebp+14h]
+                - [0x89, 0x75, 0x100]                               # mov     dword ptr [ebp-28h],esi
+                - [0x89, 0x7d, 0x100]                               # mov     dword ptr [ebp-24h],edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                # call    nt!MiMakeProtectionMask (828c4994)
+                - [0x89, 0x45, 0x100]                               # mov     dword ptr [ebp-4],eax
+                - [0x83, 0xf8, 0x100]                               # cmp     eax,0FFFFFFFFh
+                - [0x75, 0x100]                                     # jne     nt!MiProtectVirtualMemory+0x40 (82a8f6ee)
+                - [0xb8, 0x100, 0x100, 0x100, 0x100]                # mov     eax,0C0000045h
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]                # jmp     nt!MiProtectVirtualMemory+0x4a1 (82a8fb4f)
+                - [0x8d, 0x7c, 0x37, 0x100]                         # lea     edi,[edi+esi-1]
+                - [0x81, 0xe6, 0x100, 0x100, 0x100, 0x100]          # and     esi,0FFFFF000h
+                - [0x81, 0xcf, 0x100, 0x100, 0x100, 0x100]          # or      edi,0FFFh
+                - [0x66, 0xff, 0x8b, 0x100, 0x100, 0x100, 0x100]    # dec     word ptr [ebx+86h]
+                - [0x89, 0x75, 0x100]                               # mov     dword ptr [ebp-8],esi
+                - [0x8b, 0x75, 0x100]                               # mov     esi,dword ptr [ebp+8]
+                - [0x8d, 0x8e, 0x100, 0x100, 0x100, 0x100]          # lea     ecx,[esi+100h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,34h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-28h],edx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+10h]
+                - [0xc7, 0x00, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-2Ch],ecx
+                - [0xc7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebp-14h],0
+                - [0xc7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebp-10h],0
+                - [0x8b, 0x10]                                       #  mov     edx,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0xc7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebp-18h],1
+                - [0x89, 0x55, 0xdc]                                 #  mov     dword ptr [ebp-24h],edx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x89, 0x75, 0x100]                                #  mov     dword ptr [ebp-20h],esi
+                - [0x57]                                             #  push    edi
+                - [0x85, 0xdb]                                       #  test    ebx,ebx
+                - [0x0f, 0x88, 0x100, 0x100, 0x100, 0x100]           #  js      nt!MiProtectVirtualMemory+0x28c (82339b8c)
+                - [0xf7, 0xc3, 0x100, 0x100, 0x100, 0x100]           #  test    ebx,40000000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiProtectVirtualMemory+0x250 (82339b50)
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiMakeProtectionMask (82105ee0)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,44h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],edx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+10h]
+                - [0xc7, 0x00, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],ecx
+                - [0x8b, 0x10]                                       #  mov     edx,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+24h],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+1Ch],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+20h],1
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x8b, 0xc3]                                       #  mov     eax,ebx
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,20000000h
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],edx
+                - [0x33, 0xd8]                                       #  xor     ebx,eax
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],esi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],eax
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp+10h],ebx
+                - [0x0f, 0x88, 0x100, 0x100, 0x100, 0x100]           #  js      nt!MiProtectVirtualMemory+0x3d3 (81cdcb63)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,44h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],edx
+                - [0x53]                                             #  push    ebx
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],ecx
+                - [0xc7, 0x00, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+20h],0
+                - [0x8b, 0x10]                                       #  mov     edx,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+14h],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+1Ch],1
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],edx
+                - [0x8b, 0x18]                                       #  mov     ebx,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x8b, 0xc8]                                       #  mov     ecx,eax
+                - [0x81, 0xe1, 0x100, 0x100, 0x100, 0x100]           #  and     ecx,20000000h
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],ebx
+                - [0x33, 0xc1]                                       #  xor     eax,ecx
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],ecx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp+10h],eax
+                - [0x79, 0x100]                                      #  jns     nt!MiProtectVirtualMemory+0x6f (812e78af)
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,7FFFFFFFh
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,3Ch
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],ecx
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x41]                                             #  inc     ecx
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],edx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+10h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x89, 0x08]                                       #  mov     dword ptr [eax],ecx
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],edx
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+1Ch],edx
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],ecx
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],esi
+                - [0x8b, 0x38]                                       #  mov     edi,dword ptr [eax]
+                - [0x8b, 0xc3]                                       #  mov     eax,ebx
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,20000000h
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],edi
+                - [0x33, 0xd8]                                       #  xor     ebx,eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+44h],eax
+                - [0x0f, 0x8c, 0x100, 0x100, 0x100, 0x100]           #  jl      nt!MmProtectVirtualMemory+0x2a2 (818ae550)
+                - [0xf7, 0xc3, 0x100, 0x100, 0x100, 0x100]           #  test    ebx,40000000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MmProtectVirtualMemory+0x269 (818ae517)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,3Ch
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],edx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+10h]
+                - [0xc7, 0x00, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],ecx
+                - [0x8b, 0x10]                                       #  mov     edx,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+20h],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+1Ch],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+24h],1
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x8b, 0xc3]                                       #  mov     eax,ebx
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,20000000h
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],edx
+                - [0x33, 0xd8]                                       #  xor     ebx,eax
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],esi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],eax
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp+10h],ebx
+                - [0x0f, 0x8c, 0x100, 0x100, 0x100, 0x100]           #  jl      nt!MmProtectVirtualMemory+0x3a9 (81cce949)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,44h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+10h]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],edx
+                - [0xc7, 0x00, 0x01, 0x00, 0x00, 0x00]               #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+3Ch],ecx
+                - [0x8b, 0x10]                                       #  mov     edx,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0xc7, 0x44, 0x24, 0x100, 0x00, 0x00, 0x00, 0x00]  #  mov     dword ptr [esp+28h],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x00, 0x00, 0x00, 0x00]  #  mov     dword ptr [esp+20h],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x01, 0x00, 0x00, 0x00]  #  mov     dword ptr [esp+24h],1
+                - [0x8b, 0x38]                                       #  mov     edi,dword ptr [eax]
+                - [0x8b, 0xc3]                                       #  mov     eax,ebx
+                - [0x25, 0x00, 0x00, 0x00, 0x20]                     #  and     eax,20000000h
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],edx
+                - [0x33, 0xd8]                                       #  xor     ebx,eax
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],edi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],eax
+                - [0x79, 0x0e]                                       #  jns     nt!MiProtectVirtualMemory+0x69 (81d255a9)
+                - [0x81, 0xe3, 0xff, 0xff, 0xff, 0x7f]               #  and     ebx,7FFFFFFFh
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,3Ch
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],edx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+10h]
+                - [0xc7, 0x00, 0x01, 0x00, 0x00, 0x00]               #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+38h],ecx
+                - [0x8b, 0x10]                                       #  mov     edx,dword ptr [eax]
+                - [0x8b, 0x45, 0x0c]                                 #  mov     eax,dword ptr [ebp+0Ch]
+                - [0xc7, 0x44, 0x24, 0x100, 0x00, 0x00, 0x00, 0x00]  #  mov     dword ptr [esp+24h],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x00, 0x00, 0x00, 0x00]  #  mov     dword ptr [esp+1Ch],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x01, 0x00, 0x00, 0x00]  #  mov     dword ptr [esp+20h],1
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x8b, 0xc3]                                       #  mov     eax,ebx
+                - [0x25, 0x00, 0x00, 0x00, 0x20]                     #  and     eax,20000000h
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],edx
+                - [0x33, 0xd8]                                       #  xor     ebx,eax
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],esi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+3Ch],eax
+                - [0x7d, 0x100]                                      #  jge     nt!MmProtectVirtualMemory+0x69 (816eef29)
+                - [0x81, 0xe3, 0xff, 0xff, 0xff, 0x7f]               #  and     ebx,7FFFFFFFh
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,3Ch
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],edx
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0xc7, 0x00, 0x01, 0x00, 0x00, 0x00]               #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+38h],ecx
+                - [0xc7, 0x44, 0x24, 0x100, 0x00, 0x00, 0x00, 0x00]  #  mov     dword ptr [esp+20h],0
+                - [0x8b, 0x10]                                       #  mov     edx,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0xc7, 0x44, 0x24, 0x100, 0x00, 0x00, 0x00, 0x00]  #  mov     dword ptr [esp+1Ch],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x01, 0x00, 0x00, 0x00]  #  mov     dword ptr [esp+18h],1
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],edx
+                - [0x8b, 0x38]                                       #  mov     edi,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x8b, 0xf0]                                       #  mov     esi,eax
+                - [0x81, 0xe6, 0x00, 0x00, 0x00, 0x20]               #  and     esi,20000000h
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],edi
+                - [0x33, 0xc6]                                       #  xor     eax,esi
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],esi
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp+10h],eax
+                - [0x7d, 0x100]                                      #  jge     nt!MmProtectVirtualMemory+0x6f (81fc0acf)
+                - [0x25, 0xff, 0xff, 0xff, 0x7f]                     #  and     eax,7FFFFFFFh
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,44h
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],edx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+10h]
+                - [0xc7, 0x00, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],ecx
+                - [0x8b, 0x10]                                       #  mov     edx,dword ptr [eax]
+                - [0x8b, 0x45, 0x0c]                                 #  mov     eax,dword ptr [ebp+0Ch]
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+24h],0
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+28h],1
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+38h],edx
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x8b, 0xc3]                                       #  mov     eax,ebx
+                - [0xc1, 0xe8, 0x100]                                #  shr     eax,1Fh
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],eax
+                - [0x8b, 0xc3]                                       #  mov     eax,ebx
+                - [0x81, 0xe3, 0x100, 0x100, 0x100, 0x100]           #  and     ebx,4FFFFFFFh
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],esi
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,0B0000000h
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp+10h],ebx
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],eax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,4Ch
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],edx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+10h]
+                - [0xc7, 0x00, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [eax],1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],ecx
+                - [0x8b, 0x10]                                       #  mov     edx,dword ptr [eax]
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0xc7, 0x44, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+24h],0
+                - [0xc7, 0x44, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+1Ch],1
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],edx
+                - [0x8b, 0x30]                                       #  mov     esi,dword ptr [eax]
+                - [0x8b, 0xc3]                                       #  mov     eax,ebx
+                - [0xc1, 0xe8, 0x100]                                #  shr     eax,1Fh
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],eax

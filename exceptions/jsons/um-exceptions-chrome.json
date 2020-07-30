@@ -1,0 +1,88 @@
+{
+    "Type": "user",
+    "Exceptions": [
+        {
+            "originator": "explorer.exe",
+            "victim": "chrome.exe",
+            "object_type": "process"
+        },
+
+        {
+            "flags": "child",
+            "originator": "chrome.exe",
+            "victim": "chrome.exe",
+            "object_type": "process"
+        },
+
+        {
+            "flags": "child",
+            "originator": "chrome.exe",
+            "victim": "chrome.exe",
+            "object_type": "process",
+            "signatures": [
+                "chrome-injection-exports",
+                "chrome-self-injection-exports"
+            ]
+        },
+        
+        {
+            "process": "chrome.exe",
+            "originator": "chrome.exe",
+            "victim": "kernel32.dll",
+            "object_type": "module exports",
+            "signatures": [
+                "chrome-export-codeblocks"
+            ]
+        },
+        
+        {
+            "process": "chrome.exe",
+            "originator": "ntdll.dll",
+            "victim": "kernel32.dll",
+            "object_type": "module",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "chrome.exe",
+            "originator": "ntdll.dll",
+            "victim": "kernelbase.dll",
+            "object_type": "module",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "chrome.exe",
+            "originator": "ntdll.dll",
+            "victim": "user32.dll",
+            "object_type": "module",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "chrome.exe",
+            "originator": "ntdll.dll",
+            "victim": "ws2_32.dll",
+            "object_type": "module",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        },
+
+        {
+            "process": "chrome.exe",
+            "originator": "ntdll.dll",
+            "victim": "wininet.dll",
+            "object_type": "module",
+            "signatures": [
+                "browsers-init-codeblocks"
+            ]
+        }
+    ]
+}

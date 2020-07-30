@@ -1,0 +1,14 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        {
+            "originator": "-",
+            "object_type": "hal-heap",
+            "signatures": [
+                "hal-heap-code-val-offset-0",
+                "hal-heap-code-val-offset-5",
+                "hal-heap-code-val-offset-8"
+            ]
+        }
+    ]
+}

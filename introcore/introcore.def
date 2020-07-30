@@ -1,0 +1,6 @@
+LIBRARY introcore
+EXPORTS
+       IntPreinit
+       IntInit
+       IntUninit
+       IntHviVersion

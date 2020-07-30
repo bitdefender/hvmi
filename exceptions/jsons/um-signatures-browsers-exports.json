@@ -1,0 +1,71 @@
+{
+    "Type": "user",
+    "Signatures": [
+        {
+            "sig_type": "export",
+            "sig_id": "browsers-common-inj-exports",
+            "library": "ntdll.dll",
+            "hashes": [
+                {
+                    "name": "NtCreateFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtQueryAttributesFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtQueryFullAttributesFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtSetInformationFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtSetInformationThread",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenThread",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenProcess",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenProcessToken",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenThreadToken",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenProcessTokenEx",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenThreadTokenEx",
+                    "delta": 16
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,640 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiUnloadSystemImage
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX   # Ldr Address
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 8000
+        args:
+            - DET_ARG_STACK1    # Ldr Address
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,24h
+                - [0x83, 0x65, 0x100, 0x100]                         #  and     dword ptr [ebp-0Ch],0
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+8]
+                - [0x83, 0x7f, 0x100, 0x100]                         #  cmp     dword ptr [edi+4Ch],0
+                - [0x8b, 0x77, 0x100]                                #  mov     esi,dword ptr [edi+18h]
+                - [0x89, 0x75, 0x100]                                #  mov     dword ptr [ebp-4],esi
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MiUnloadSystemImage+0x4bf (82dd9633)
+                - [0xbb, 0x100, 0x100, 0x100, 0x100]                 #  mov     ebx,40000000h
+                - [0x3b, 0x35, 0x100, 0x100, 0x100, 0x100]           #  cmp     esi,dword ptr [nt!MiSystemRangeStart (82d92284)]
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jb      nt!MiUnloadSystemImage+0x1a5 (82dd9317)
+                - [0x8b, 0x0d, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [nt!MmSystemRangeStart (82db0718)]
+                - [0xb8, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,3FF8h
+                - [0x8b, 0xd6]                                       #  mov     edx,esi
+                - [0xc1, 0xea, 0x100]                                #  shr     edx,12h
+                - [0xc1, 0xe9, 0x100]                                #  shr     ecx,12h
+                - [0x23, 0xd0]                                       #  and     edx,eax
+                - [0x23, 0xc8]                                       #  and     ecx,eax
+                - [0x2b, 0xd1]                                       #  sub     edx,ecx
+                - [0xc1, 0xfa, 0x100]                                #  sar     edx,3
+                - [0x8a, 0x82, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr nt!MiSystemVaType (82d90160)[edx]
+                - [0x3c, 0x100]                                      #  cmp     al,1
+                - [0x100, 0x100]                                     #  je      nt!MiUnloadSystemImage+0x61 (82dd91d3)
+                - [0x3c, 0x100]                                      #  cmp     al,0Bh
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt!MiUnloadSystemImage+0x1a5 (82dd9317)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,24h
+                - [0x83, 0x65, 0x100, 0x00]                          #  and     dword ptr [ebp-0Ch],0
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+8]
+                - [0x83, 0x7e, 0x100, 0x00]                          #  cmp     dword ptr [esi+4Ch],0
+                - [0x8b, 0x4e, 0x100]                                #  mov     ecx,dword ptr [esi+18h]
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-4],ecx
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MiUnloadSystemImage+0x5e3 (831b2f38)
+                - [0xb8, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,3FF8h
+                - [0xbb, 0x00, 0x01, 0x00, 0x00]                     #  mov     ebx,100h
+                - [0xbf, 0x00, 0x00, 0x00, 0x40]                     #  mov     edi,40000000h
+                - [0x3b, 0x0d, 0x100, 0x100, 0x100, 0x100]           #  cmp     ecx,dword ptr [nt!MiSystemRangeStart (8316f85c)]
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jb      nt!MiUnloadSystemImage+0x20d (831b2b60)
+                - [0x8b, 0x15, 0x100, 0x100, 0x100, 0x100]           #  mov     edx,dword ptr [nt!MmSystemRangeStart (8316f84c)]
+                - [0xc1, 0xe9, 0x100]                                #  shr     ecx,12h
+                - [0xc1, 0xea, 0x100]                                #  shr     edx,12h
+                - [0x23, 0xc8]                                       #  and     ecx,eax
+                - [0x23, 0xd0]                                       #  and     edx,eax
+                - [0x2b, 0xca]                                       #  sub     ecx,edx
+                - [0xc1, 0xf9, 0x100]                                #  sar     ecx,3
+                - [0x8a, 0x81, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr nt!MiSystemVaType (8314ef00)[ecx]
+                - [0x3c, 0x01]                                       #  cmp     al,1
+                - [0x100, 0x100]                                     #  je      nt!MiUnloadSystemImage+0x64 (831b29b7)
+                - [0x3c, 0x0b]                                       #  cmp     al,0Bh
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt!MiUnloadSystemImage+0x20d (831b2b60)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,1Ch
+                - [0x83, 0x65, 0x100, 0x100]                         #  and     dword ptr [ebp-0Ch],0
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+8]
+                - [0x83, 0x7e, 0x100, 0x100]                         #  cmp     dword ptr [esi+4Ch],0
+                - [0x8b, 0x4e, 0x100]                                #  mov     ecx,dword ptr [esi+18h]
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-4],ecx
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0x5fe (82fc10f0)
+                - [0xb8, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,3FF8h
+                - [0xbb, 0x100, 0x100, 0x100, 0x100]                 #  mov     ebx,100h
+                - [0xbf, 0x100, 0x100, 0x100, 0x100]                 #  mov     edi,40000000h
+                - [0x3b, 0x0d, 0x100, 0x100, 0x100, 0x100]           #  cmp     ecx,dword ptr [nt!MiSystemRangeStart (82f7d860)]
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiUnloadSystemImage+0x20d (82fc0cfd)
+                - [0x8b, 0x15, 0x100, 0x100, 0x100, 0x100]           #  mov     edx,dword ptr [nt!MmSystemRangeStart (82f7d850)]
+                - [0xc1, 0xe9, 0x100]                                #  shr     ecx,12h
+                - [0xc1, 0xea, 0x100]                                #  shr     edx,12h
+                - [0x23, 0xc8]                                       #  and     ecx,eax
+                - [0x23, 0xd0]                                       #  and     edx,eax
+                - [0x2b, 0xca]                                       #  sub     ecx,edx
+                - [0xc1, 0xf9, 0x100]                                #  sar     ecx,3
+                - [0x8a, 0x81, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr nt!MiSystemVaType (82f5d0a0)[ecx]
+                - [0x3c, 0x100]                                      #  cmp     al,1
+                - [0x74, 0x100]                                      #  je      nt!MiUnloadSystemImage+0x64 (82fc0b54)
+                - [0x3c, 0x100]                                      #  cmp     al,0Bh
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiUnloadSystemImage+0x20d (82fc0cfd)
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #
+                - [0x55]                                             #
+                - [0x8b, 0xec]                                       #
+                - [0x83, 0xe4, 0x100]                                #
+                - [0x83, 0xec, 0x100]                                #
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xf1]                                       #  mov     esi,ecx
+                - [0x89, 0x54, 0x24, 0x0c]                           #  mov     dword ptr [esp+0Ch],edx
+                - [0x57]                                             #  push    edi
+                - [0x83, 0x7e, 0x4c, 0x01]                           #  cmp     dword ptr [esi+4Ch],1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0x27a (819c89fa)
+                - [0x8b, 0x5e, 0x20]                                 #  mov     ebx,dword ptr [esi+20h]
+                - [0x8b, 0x7e, 0x18]                                 #  mov     edi,dword ptr [esi+18h]
+                - [0x8b, 0x46, 0x3c]                                 #  mov     eax,dword ptr [esi+3Ch]
+                - [0xc1, 0xeb, 0x0c]                                 #  shr     ebx,0Ch
+                - [0x89, 0x44, 0x24, 0x14]                           #  mov     dword ptr [esp+14h],eax
+                - [0x3b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  cmp     edi,dword ptr [nt!MiSystemRangeStart (818aed18)]
+                - [0x72, 0x100]                                      #  jb      nt!MiUnloadSystemImage+0x53 (819c87d3)
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #
+                - [0x55]                                             #
+                - [0x8b, 0xec]                                       #
+                - [0x83, 0xe4, 0x100]                                #
+                - [0x83, 0xec, 0x100]                                #
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+0Ch],edx
+                - [0x33, 0xc0]                                       #  xor     eax, eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],eax
+                - [0x83, 0x7f, 0x4c, 0x100]                          #  cmp     dword ptr [edi+4Ch],1
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],eax
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0x3ce (81b72720)
+                - [0x8b, 0x77, 0x20]                                 #  mov     esi,dword ptr [edi+20h]
+                - [0x8b, 0x5f, 0x18]                                 #  mov     ebx,dword ptr [edi+18h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #
+                - [0x55]                                             #
+                - [0x8b, 0xec]                                       #
+                - [0x83, 0xe4, 0xf8]                                 #
+                - [0x83, 0xec, 0x100]                                #
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi, ecx
+                - [0x8b, 0xc2]                                       #  mov     eax, edx
+                - [0x33, 0xc9]                                       #  xor     ecx, ecx
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],eax
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],ecx
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],ecx
+                - [0x83, 0x7f, 0x4c, 0x01]                           #  cmp     dword ptr [edi+4Ch],1
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],eax
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0x3ce (81b72720)
+                - [0xa8, 0x04]                                       #  test al, 4
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #
+                - [0x55]                                             #
+                - [0x8b, 0xec]                                       #
+                - [0x83, 0xec, 0x100]                                #  sub     esp,???
+                - [0x83, 0x65, 0xfc, 0x00]                           #  and     dword ptr [ebp-4],0
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0x89, 0x5d, 0xf0]                                 #  mov     dword ptr [ebp-10h],ebx
+                - [0x83, 0x7f, 0x4c, 0x00]                           #  cmp     dword ptr [edi+4Ch],0
+                - [0x8b, 0x77, 0x18]                                 #  mov     esi,dword ptr [edi+18h]
+                - [0x89, 0x75, 0xe8]                                 #  mov     dword ptr [ebp-18h],esi
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0x1f7 (81ba5a27)
+                - [0x3b, 0x35, 0x100, 0x100, 0x100, 0x100]           #  cmp     esi,dword ptr [nt!MiSystemRangeStart (81a8b950)]
+                - [0x72, 0x100]                                      #  jb      nt!MiUnloadSystemImage+0x56 (81ba5886)
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8]                                             #  call    nt!MiGetSystemRegionIndex (819792aa)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x00, 0x00, 0x00]              #  sub     esp,84h
+                - [0x83, 0x64, 0x24, 0x100, 0x00]                    #  and     dword ptr [esp+2Ch],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+3Ch]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],edx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x83, 0x7b, 0x100, 0x01]                          #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MiUnloadSystemImage+0x3da (81e00c42)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x561ab (81e9dea1)
+                - [0x8d, 0x43, 0x100]                                #  lea     eax,[ebx+5Ch]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],eax
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+20h]
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+18h]
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+3Ch]
+                - [0xc1, 0xee, 0x0c]                                 #  shr     esi,0Ch
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],eax
+                - [0x3b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  cmp     edi,dword ptr [nt!MiState+0x2d54 (81c9c394)]
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jb      nt!MiUnloadSystemImage+0x3e1 (81e00c49)
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetSystemRegionIndex (81b06252)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x00, 0x00, 0x00]              #  sub     esp,84h
+                - [0x83, 0x64, 0x24, 0x100, 0x00]                    #  and     dword ptr [esp+2Ch],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+3Ch]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],edx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x83, 0x7b, 0x100, 0x01]                          #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x100, 0x100]                                     #  je      nt!MiUnloadSystemImage+0x92 (8219f7d0)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x7fe44 (82290074)
+                - [0x8d, 0x43, 0x100]                                #  lea     eax,[ebx+5Ch]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],eax
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+20h]
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+18h]
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+3Ch]
+                - [0xc1, 0xee, 0x0c]                                 #  shr     esi,0Ch
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],eax
+                - [0x3b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  cmp     edi,dword ptr [nt!MiState+0x2bc8 (8206d388)]
+                - [0x100, 0x100]                                     #  jb      nt!MiUnloadSystemImage+0x7b (8219f7b9)
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetSystemRegionIndex (81f0117e)
+                - [0x80, 0xb8, 0xc8, 0x100, 0x100, 0x100, 0x100]     #  cmp     byte ptr nt!MiState+0x3708 (8206dec8)[eax],1
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x00, 0x00, 0x00]              #  sub     esp,84h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],edx
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+3Ch]
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+38h],ecx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x83, 0x7b, 0x100, 0x01]                          #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x100, 0x100]                                     #  je      nt!MiUnloadSystemImage+0x92 (81ddc174)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x53b0b (81ecee93)
+                - [0x8d, 0x43, 0x100]                                #  lea     eax,[ebx+5Ch]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],eax
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+20h]
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+18h]
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+3Ch]
+                - [0xc1, 0xee, 0x0c]                                 #  shr     esi,0Ch
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],eax
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],ecx
+                - [0x3b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  cmp     edi,dword ptr [nt!MiState+0x1818 (81cc8558)]
+                - [0x100, 0x100]                                     #  jb      nt!MiUnloadSystemImage+0x80 (81ddc162)
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetSystemRegionIndex (81b4ecce)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x00, 0x00, 0x00]              #  sub     esp,0A4h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],edx
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+4Ch]
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+48h],ecx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x83, 0x7b, 0x4c, 0x01]                           #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x100, 0x100]                                     #  je      nt!MiUnloadSystemImage+0x9a (81cc1de2)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x6c49 (81e0a339)
+                - [0x8d, 0x43, 0x100]                                #  lea     eax,[ebx+5Ch]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],eax
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+20h]
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+18h]
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+3Ch]
+                - [0xc1, 0xef, 0x0c]                                 #  shr     edi,0Ch
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],esi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],eax
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],ecx
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],edi
+                - [0x3b, 0x35, 0x100, 0x100, 0x100, 0x100]           #  cmp     esi,dword ptr [nt!MiState+0x1818 (81c66bd8)]
+                - [0x100, 0x100]                                     #  jb      nt!MiUnloadSystemImage+0x88 (81cc1dd0)
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8]                                             #  call    nt!MiGetSystemRegionIndex (81a8c2c2)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x00, 0x00]             #  sub     esp,0A4h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],edx
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+4Ch]
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+48h],ecx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x83, 0x7b, 0x100, 0x01]                          #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x74, 0x100]                                      #  je      nt!MiUnloadSystemImage+0x9a (825b5f00)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x61920 (8267a3f0)
+                - [0x8d, 0x43, 0x100]                                #  lea     eax,[ebx+5Ch]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],eax
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+20h]
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+18h]
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+3Ch]
+                - [0xc1, 0xee, 0x0c]                                 #  shr     esi,0Ch
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],edi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],eax
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+44h],ecx
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+1Ch],esi
+                - [0x3b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  cmp     edi,dword ptr [nt!MiState+0x1818 (82485cd8)]
+                - [0x72, 0x100]                                      #  jb      nt!MiUnloadSystemImage+0x88 (825b5eee)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,9Ch
+                - [0x83, 0x64, 0x24, 0x100, 0x100]                   #  and     dword ptr [esp+34h],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+44h]
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+1Ch],edx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x83, 0x7b, 0x100, 0x100]                         #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0x767 (81d6cbbf)
+                - [0xf6, 0xc2, 0x100]                                #  test    dl,4
+                - [0x74, 0x100]                                      #  je      nt!MiUnloadSystemImage+0x3d (81d6c495)
+                - [0x8d, 0x4b, 0x5c]                                 #  lea     ecx,[ebx+5Ch]
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],ecx
+                - [0xeb, 0x100]                                      #  jmp     nt!MiUnloadSystemImage+0x42 (81d6c49a)
+                - [0x83, 0x64, 0x24, 0x100, 0x100]                   #  and     dword ptr [esp+2Ch],0
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+20h]
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+18h]
+                - [0x83, 0x64, 0x24, 0x100, 0x100]                   #  and     dword ptr [esp+20h],0
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+3Ch]
+                - [0xc1, 0xee, 0x100]                                #  shr     esi,0Ch
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],edi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],eax
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],esi
+                - [0x3b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  cmp     edi,dword ptr [nt!MiState+0x1854 (81c8e254)]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,0B4h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],edx
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+58h]
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+54h],ebx
+                - [0x83, 0x7b, 0x100, 0x100]                         #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x74, 0x75]                                       #  je      nt!MiUnloadSystemImage+0xa0 (81b2d308)
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+18h]
+                - [0x8d, 0x4b, 0x100]                                #  lea     ecx,[ebx+5Ch]
+                - [0x80, 0xe2, 0x100]                                #  and     dl,4
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],esi
+                - [0x0f, 0xb6, 0xc2]                                 #  movzx   eax,dl
+                - [0xf7, 0xd8]                                       #  neg     eax
+                - [0x1b, 0xc0]                                       #  sbb     eax,eax
+                - [0x23, 0xc1]                                       #  and     eax,ecx
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+34h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetPteAddress (818c9824)
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+20h]
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],eax
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+3Ch]
+                - [0xc1, 0xef, 0x0c]                                 #  shr     edi,0Ch
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],eax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,0A4h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],edx
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+48h]
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x83, 0x7b, 0x100, 0x100]                         #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x74, 0x100]                                      #  je      nt!MiUnloadSystemImage+0xa4 (821585d0)
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+18h]
+                - [0x8d, 0x4b, 0x100]                                #  lea     ecx,[ebx+5Ch]
+                - [0x80, 0xe2, 0x04]                                 #  and     dl,4
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],edi
+                - [0x0f, 0xb6, 0xc2]                                 #  movzx   eax,dl
+                - [0xf7, 0xd8]                                       #  neg     eax
+                - [0x1b, 0xc0]                                       #  sbb     eax,eax
+                - [0x23, 0xc1]                                       #  and     eax,ecx
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+30h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetPteAddress (81eaaada)
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+3Ch]
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],eax
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+20h]
+                - [0xc1, 0xe8, 0x100]                                #  shr     eax,0Ch
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+28h],esi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+44h],eax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,0A4h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],edx
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+48h]
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x83, 0x7b, 0x100, 0x100]                         #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0xbd (81770b7d)
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+18h]
+                - [0x8d, 0x4b, 0x100]                                #  lea     ecx,[ebx+5Ch]
+                - [0x80, 0xe2, 0x100]                                #  and     dl,4
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],esi
+                - [0x0f, 0xb6, 0xc2]                                 #  movzx   eax,dl
+                - [0xf7, 0xd8]                                       #  neg     eax
+                - [0x1b, 0xc0]                                       #  sbb     eax,eax
+                - [0x23, 0xc1]                                       #  and     eax,ecx
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+2Ch],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetPteAddress (81475c46)
+                - [0x8b, 0x0d, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [nt!MmRegistryState+0x4c (816721d4)]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+20h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+40h],eax
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+3Ch]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+24h],eax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x00, 0x00]             #  sub     esp,0C4h
+                - [0x53]                                             #  push    ebx
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],edx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8d, 0x7c, 0x24, 0x100]                          #  lea     edi,[esp+54h]
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x83, 0x7b, 0x100, 0x01]                          #  cmp     dword ptr [ebx+4Ch],1
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0xab]                                             #  stos    dword ptr es:[edi]
+                - [0x0f, 0x84, 0x100, 0x100, 0x00, 0x00]             #  je      nt!MiUnloadSystemImage+0xc0 (82417b9a)
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+18h]
+                - [0x8d, 0x4b, 0x100]                                #  lea     ecx,[ebx+5Ch]
+                - [0x80, 0xe2, 0x04]                                 #  and     dl,4
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],esi
+                - [0x0f, 0xb6, 0xc2]                                 #  movzx   eax,dl
+                - [0xf7, 0xd8]                                       #  neg     eax
+                - [0x1b, 0xc0]                                       #  sbb     eax,eax
+                - [0x23, 0xc1]                                       #  and     eax,ecx

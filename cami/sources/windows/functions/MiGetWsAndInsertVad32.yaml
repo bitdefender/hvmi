@@ -1,0 +1,435 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiGetWsAndInsertVad
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX           # Vad
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 7602
+        args:
+            - DET_ARG_RDI           # Vad
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x66, 0xff, 0x8b, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [ebx+86h]
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x73, 0x100]                                #  mov     esi,dword ptr [ebx+50h]
+                - [0x8d, 0x8e, 0x100, 0x100, 0x100, 0x100]           #  lea     ecx,[esi+1F0h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-8],ecx
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xf0, 0x0f, 0xba, 0x28, 0x00]                     #  lock bts dword ptr [eax],0
+                - [0x73, 0x100]                                      #  jae     nt!MiGetWsAndInsertVad+0x31 (82c97c22)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExfAcquirePushLockExclusive (82ccb0aa)
+                - [0x80, 0x8b, 0x100, 0x100, 0x100, 0x100, 0x08]     #  or      byte ptr [ebx+288h],8
+                - [0x8d, 0x86, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[esi+278h]
+                - [0x50]                                             #  push    eax
+                - [0x8b, 0xc7]                                       #  mov     eax,edi
+                - [0x89, 0xbe, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [esi+290h],edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiInsertNode (82cd43a1)
+                - [0xf7, 0x47, 0x100, 0x00, 0x00, 0x00, 0x80]        #  test    dword ptr [edi+14h],80000000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiGetWsAndInsertVad+0xec (82c97cdd)
+                - [0x8b, 0x47, 0x100]                                #  mov     eax,dword ptr [edi+24h]
+                - [0x83, 0xce, 0x100]                                #  or      esi,1
+                - [0x89, 0x77, 0x100]                                #  mov     dword ptr [edi+38h],esi
+
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,8
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x98, 0x100, 0x100, 0x100, 0x100]           #  mov     ebx,dword ptr [eax+80h]
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0x89, 0x7d, 0x100]                                #  mov     dword ptr [ebp-8],edi
+                - [0x8d, 0xb3, 0x100, 0x100, 0x100, 0x100]           #  lea     esi,[ebx+1F4h]
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (816700e8)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (816808c6)],21h
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::FNODOBFM::`string'+0xe3c5 (8155c121)
+                - [0x33, 0xff]                                       #  xor     edi,edi
+                - [0xf0, 0x0f, 0xba, 0x2e, 0x100]                    #  lock bts dword ptr [esi],1Fh
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiGetWsAndInsertVad+0x115 (8144b665)
+                - [0x8b, 0x16]                                       #  mov     edx,dword ptr [esi]
+                - [0x8b, 0xca]                                       #  mov     ecx,edx
+                - [0x81, 0xe1, 0x100, 0x100, 0x100, 0x100]           #  and     ecx,0BFFFFFFFh
+                - [0x81, 0xf9, 0x100, 0x100, 0x100, 0x100]           #  cmp     ecx,80000000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiGetWsAndInsertVad+0x123 (8144b673)
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp-8]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,0Ch
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x98, 0x100, 0x100, 0x100, 0x100]           #  mov     ebx,dword ptr [eax+80h]
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0x8d, 0xb3, 0x100, 0x100, 0x100, 0x100]           #  lea     esi,[ebx+1F4h]
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (8223c0e8)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (8224c906)],21h
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::FNODOBFM::`string'+0xf868 (8215417a)
+                - [0xc7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebp-8],0
+                - [0xf0, 0x0f, 0xba, 0x2e, 0x100]                    #  lock bts dword ptr [esi],1Fh
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiGetWsAndInsertVad+0x112 (82066c42)
+                - [0x8b, 0x16]                                       #  mov     edx,dword ptr [esi]
+                - [0x8b, 0xc2]                                       #  mov     eax,edx
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,0BFFFFFFFh
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]                 #  cmp     eax,80000000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiGetWsAndInsertVad+0x123 (82066c53)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,0Ch
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xb8, 0x100, 0x100, 0x100, 0x100]           #  mov     edi,dword ptr [eax+80h]
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0x8d, 0x87, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[edi+1F4h]
+                - [0x8d, 0x70, 0x100]                                #  lea     esi,[eax+64h]
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (8183c0ec)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (8184e906)],21h
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x74, 0x100]                                      #  je      nt!MiGetWsAndInsertVad+0x41 (8165c2d1)
+                - [0x8a, 0xd0]                                       #  mov     dl,al
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExpAcquireSpinLockExclusiveAtDpcLevelInstrumented (817f34a8)
+                - [0xeb, 0x100]                                      #  jmp     nt!MiGetWsAndInsertVad+0xa2 (8165c332)
+                - [0xc7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebp-8],0
+                - [0xf0, 0x0f, 0xba, 0x2e, 0x100]                    #  lock bts dword ptr [esi],1Fh
+                - [0x73, 0x100]                                      #  jae     nt!MiGetWsAndInsertVad+0x5b (8165c2eb)
+                - [0x8a, 0xd0]                                       #  mov     dl,al
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExpWaitForSpinLockExclusiveAndAcquire (81697ca0)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0x8b, 0x16]                                       #  mov     edx,dword ptr [esi]
+                - [0x8b, 0xc2]                                       #  mov     eax,edx
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,0BFFFFFFFh
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,0Ch
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xb0, 0x100, 0x100, 0x100, 0x100]           #  mov     esi,dword ptr [eax+80h]
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0x8d, 0x86, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[esi+1F4h]
+                - [0x8d, 0x58, 0x100]                                #  lea     ebx,[eax+64h]
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (820ad0ec)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (820bf906)],21h
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::FNODOBFM::`string'+0xb51a (81fbe386)
+                - [0xc7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebp-8],0
+                - [0xf0, 0x0f, 0xba, 0x2b, 0x100]                    #  lock bts dword ptr [ebx],1Fh
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiGetWsAndInsertVad+0x1d7 (81eb7687)
+                - [0x8b, 0x13]                                       #  mov     edx,dword ptr [ebx]
+                - [0x8b, 0xc2]                                       #  mov     eax,edx
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,0BFFFFFFFh
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]                 #  cmp     eax,80000000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiGetWsAndInsertVad+0x1e8 (81eb7698)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x83, 0xec, 0x100]                                #  sub     esp,0Ch
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xb8, 0x100, 0x100, 0x100, 0x100]           #  mov     edi,dword ptr [eax+80h]
+                - [0x8b, 0xf1]                                       #  mov     esi,ecx
+                - [0x8d, 0x9f, 0x100, 0x100, 0x100, 0x100]           #  lea     ebx,[edi+1FCh]
+                - [0x8a, 0x43, 0x100]                                #  mov     al,byte ptr [ebx+64h]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0xb8, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,offset nt!MiState+0x3540 (81c88740)
+                - [0x74, 0x100]                                      #  je      nt!MiGetWsAndInsertVad+0x33 (81ae471d)
+                - [0x8d, 0x43, 0x100]                                #  lea     eax,[ebx+68h]
+                - [0x50]                                             #  push    eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireSpinLockExclusive (81ad85c6)
+                - [0x8b, 0x4c, 0x24, 0x100]                          #  mov     ecx,dword ptr [esp+14h]
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x88, 0x44, 0x24, 0x100]                          #  mov     byte ptr [esp+13h],al
+                - [0x83, 0x61, 0x100, 0x100]                         #  and     dword ptr [ecx+20h],0
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiInsertVad (81ae3158)
+                - [0x8a, 0x54, 0x24, 0x100]                          #  mov     dl,byte ptr [esp+13h]
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiPreUnlockWorkingSetExclusive (81acd58a)
+                - [0x8a, 0x4b, 0x100]                                #  mov     cl,byte ptr [ebx+64h]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,28h
+                - [0x64, 0xa1, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr fs:[00000124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x8b, 0xb0, 0x100, 0x100, 0x100, 0x100]           #  mov     esi,dword ptr [eax+80h]
+                - [0x8a, 0x86, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr [esi+260h]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x89, 0x7c, 0x24, 0x100]                          #  mov     dword ptr [esp+20h],edi
+                - [0x8d, 0x8e, 0x100, 0x100, 0x100, 0x100]           #  lea     ecx,[esi+1FCh]
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiGetWsAndInsertVad+0x107dc0 (8197b660)
+                - [0x8d, 0x41, 0x100]                                #  lea     eax,[ecx+68h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+10h],eax
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (81a7c0e8)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (81a8c906)],21h
+                - [0x8a, 0xc8]                                       #  mov     cl,al
+                - [0x88, 0x4c, 0x24, 0x100]                          #  mov     byte ptr [esp+0Fh],cl
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiGetWsAndInsertVad+0x107dcd (8197b66d)
+                - [0x8b, 0x44, 0x24, 0x100]                          #  mov     eax,dword ptr [esp+10h]
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [esp+1Ch],0
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,18h
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x98, 0x100, 0x100, 0x100, 0x100]           #  mov     ebx,dword ptr [eax+80h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-10h],ecx
+                - [0x8a, 0x83, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr [ebx+25Ch]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiGetWsAndInsertVad+0xf628d (81600e7d)
+                - [0x8d, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  lea     edi,[ebx+260h]
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (817120e4)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (81722ac6)],21h
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiGetWsAndInsertVad+0xf6297 (81600e87)
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0xf0, 0x0f, 0xba, 0x2f, 0x100]                    #  lock bts dword ptr [edi],1Fh
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiGetWsAndInsertVad+0x3fc (8150afec)
+                - [0x8b, 0x17]                                       #  mov     edx,dword ptr [edi]
+                - [0x8b, 0xca]                                       #  mov     ecx,edx
+                - [0x81, 0xe1, 0x100, 0x100, 0x100, 0x100]           #  and     ecx,0BFFFFFFFh
+                - [0x81, 0xf9, 0x100, 0x100, 0x100, 0x100]           #  cmp     ecx,80000000h
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,18h
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x98, 0x100, 0x100, 0x100, 0x100]           #  mov     ebx,dword ptr [eax+80h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-10h],ecx
+                - [0x8a, 0x83, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr [ebx+25Ch]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiGetWsAndInsertVad+0x11c81d (81b8709d)
+                - [0x8d, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  lea     edi,[ebx+260h]
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (81cab0e4)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (81cbbb46)],21h
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiGetWsAndInsertVad+0x11c827 (81b870a7)
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0xf0, 0x0f, 0xba, 0x2f, 0x100]                    #  lock bts dword ptr [edi],1Fh
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiGetWsAndInsertVad+0x3fc (81a6ac7c)
+                - [0x8b, 0x17]                                       #  mov     edx,dword ptr [edi]
+                - [0x8b, 0xca]                                       #  mov     ecx,edx
+                - [0x81, 0xe1, 0x100, 0x100, 0x100, 0x100]           #  and     ecx,0BFFFFFFFh
+                - [0x81, 0xf9, 0x100, 0x100, 0x100, 0x100]           #  cmp     ecx,80000000h
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,18h
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x98, 0x100, 0x100, 0x100, 0x100]           #  mov     ebx,dword ptr [eax+80h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-10h],ecx
+                - [0x8a, 0x83, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr [ebx+25Ch]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiGetWsAndInsertVad+0x11c81d (81b8709d)
+                - [0x8d, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  lea     edi,[ebx+260h]
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (81cab0e4)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (81cbbb46)],21h
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiGetWsAndInsertVad+0x11c827 (81b870a7)
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0xf0, 0x0f, 0xba, 0x2f, 0x100]                    #  lock bts dword ptr [edi],1Fh
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiGetWsAndInsertVad+0x3fc (81a6ac7c)
+                - [0x8b, 0x17]                                       #  mov     edx,dword ptr [edi]
+                - [0x8b, 0xca]                                       #  mov     ecx,edx
+                - [0x81, 0xe1, 0x100, 0x100, 0x100, 0x100]           #  and     ecx,0BFFFFFFFh
+                - [0x81, 0xf9, 0x100, 0x100, 0x100, 0x100]           #  cmp     ecx,80000000h
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0xdc]                                       #  mov     ebx,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,8
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xc4, 0x100]                                #  add     esp,4
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0x6b, 0x100]                                #  mov     ebp,dword ptr [ebx+4]
+                - [0x89, 0x6c, 0x24, 0x100]                          #  mov     dword ptr [esp+4],ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,20h
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs[00000124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x8b, 0xb0, 0x100, 0x100, 0x100, 0x100]           #  mov     esi,dword ptr [eax+80h]
+                - [0x8b, 0x47, 0x100]                                #  mov     eax,dword ptr [edi+10h]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-14h],eax
+                - [0x8b, 0x47, 0x100]                                #  mov     eax,dword ptr [edi+0Ch]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-0Ch],eax
+                - [0x8a, 0x86, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr [esi+25Ch]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiGetWsAndInsertVad+0x1167f1 (81615801)
+                - [0x8d, 0x86, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[esi+260h]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0xdc]                                       #  mov     ebx,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,8
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xc4, 0x100]                                #  add     esp,4
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0x6b, 0x100]                                #  mov     ebp,dword ptr [ebx+4]
+                - [0x89, 0x6c, 0x24, 0x100]                          #  mov     dword ptr [esp+4],ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,20h
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x8b, 0xb0, 0x100, 0x100, 0x100, 0x100]           #  mov     esi,dword ptr [eax+80h]
+                - [0x8b, 0x47, 0x100]                                #  mov     eax,dword ptr [edi+10h]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-14h],eax
+                - [0x8b, 0x47, 0x100]                                #  mov     eax,dword ptr [edi+0Ch]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-0Ch],eax
+                - [0x8a, 0x86, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr [esi+25Ch]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiGetWsAndInsertVad+0x11c53e (82214bae)
+                - [0x8d, 0x86, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[esi+260h]
+                - [0x50]                                             #  push    eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-10h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireSpinLockExclusive (82149100)
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp-10h]
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp-14h]
+                - [0xc7, 0x41, 0x04, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [ecx+4],0

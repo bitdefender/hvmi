@@ -1,0 +1,141 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_supported_os
+build_number: 17763
+version_string: !intro_update_win_version_string
+    version_string: "Windows 10 RS5 x64 kpti"
+    server_version_string: "Windows Server 2019 x64 kpti"
+kpti_installed: True
+is_64: True
+
+km_fields: !opaque_structures
+    type: win_km_fields
+    os_structs:
+
+        Process: !opaque_fields
+            Cr3: 0x28
+            UserCr3: 0x278
+            KexecOptions: 0x1bf
+            ListEntry: 0x2e8
+            Name: 0x450
+            SectionBase: 0x3c0
+            Id: 0x2e0
+            ParentPid: 0x3e0
+            VadRoot: 0x628
+            CreateTime: 0x308
+            ExitStatus: 0x624
+            Token: 0x358
+            ObjectTable: 0x418
+            Peb: 0x3f8
+            ThreadListHead: 0x30
+            WoW64: 0x428
+            Flags: 0x304
+            Flags3: 0x6cc
+            MitigationFlags: 0x820
+            MitigationFlags2: 0x824
+            DebugPort: 0x420
+            Spare: 0x23a
+            VirtualSize: 0x338
+
+        Thread: !opaque_fields
+            Process: 0x220
+            ThreadListEntry: 0x2f8
+            KernelStack: 0x58
+            StackBase: 0x38
+            StackLimit: 0x30
+            State: 0x184
+            WaitReason: 0x283
+            AttachedProcess: 0xb8
+            Teb: 0xf0
+            Id: 0x640
+            ClientSecurity: 0x668
+            TrapFrame: 0x90
+            Win32StartAddress: 0x690
+
+        DrvObj: !opaque_fields
+            Size: 0x150
+            FiodispSize: 0xe0
+            AllocationGap: 0x50
+            Fiodisp: 0x50
+            Start: 0x18
+
+        Pcr: !opaque_fields
+            CurrentThread: 0x188
+            UserTime: 0x5d08
+
+        PoolDescriptor: !opaque_fields
+            TotalBytes: 0x58
+            NppSize: 0x80000000
+
+        Mmpfn: !opaque_fields
+            Size: 0x30
+            Pte: 0x8
+            RefCount: 0x20
+            Flags: 0x22
+            PaeSize: 0x0
+            PaePte: 0x0
+            PaeRefCount: 0x0
+            PaeFlags: 0x0
+
+        Token: !opaque_fields
+            Privs: 0x40
+            UserCount: 0x7c
+            RestrictedCount: 0x80
+            Users: 0x98
+            RestrictedSids: 0xa0
+
+        Ungrouped: !opaque_fields
+            CtlAreaFile: 0x40
+            HandleTableTableCode: 0x8
+            HalIntCtrlType: 0xc8
+            WmiGetClockOffset: 0x28
+            EtwDbgDataSiloOffset: 0x10
+            # We want to treat it as "-2" so we send the unsigned int value which will be correctly treated by introcore
+            EtwSignatureOffset: 0xFFFFFFFE
+            SubsectionCtlArea: 0
+            HalPerfCntFunctionOffset: 0x70
+
+        EprocessFlags: !opaque_fields
+            NoDebugInherit: 0x2
+            Exiting: 0x4
+            Delete: 0x8
+            3Crashed: 0x4
+            VmDeleted: 0x20
+            HasAddrSpace: 0x40000
+
+        VadShort: !opaque_fields
+            Parent: 0x10
+            Left: 0x0
+            Right: 0x8
+            StartingVpn: 0x18
+            StartingVpnHigh: 0x20
+            EndingVpn: 0x1c
+            EndingVpnHigh: 0x21
+            Flags: 0x30
+            FlagsSize: 0x4
+            VpnSize: 0x4
+            Size: 0x34
+
+        VadLong: !opaque_fields
+            Subsection: 0x48
+
+        VadFlags: !opaque_fields
+            TypeShift: 0x0
+            TypeMask: 0x7
+            ProtectionShift: 0x3
+            ProtectionMask: 0x1F
+            NoChangeBit: 27
+            PrivateFixup: 0x8000
+            DeleteInProgress: 0x20000000
+
+        SyscallNumbers: !opaque_fields
+            NtWriteVirtualMemory: 0x3a
+            NtProtectVirtualMemory: 0x50
+            NtCreateThreadEx: 0xbc
+
+        FileObject: !opaque_fields
+            NameBuffer: 0x60
+            NameLength: 0x58

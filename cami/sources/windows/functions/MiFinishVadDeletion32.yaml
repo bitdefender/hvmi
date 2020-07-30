@@ -1,0 +1,118 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiFinishVadDeletion
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RDX       # Start Page
+            - DET_ARG_STACK1    # End Page
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,44h
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-10h],eax
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xb0, 0x100, 0x100, 0x100, 0x100]           #  mov     esi,dword ptr [eax+80h]
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+1Ch]
+                - [0xf7, 0xc7, 0x100, 0x100, 0x100, 0x100]           #  test    edi,20000000h
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiFinishVadDeletion+0x797 (81ecf447)
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0xc7, 0x45, 0xfc, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [ebp-4],1
+                - [0xf7, 0xc7, 0x100, 0x100, 0x100, 0x100]           #  test    edi,4000h
+                - [0x75, 0x100]                                      #  jne     nt!MiFinishVadDeletion+0x50 (81eced00)
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+20h]
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,7FFFFFFFh
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]                 #  cmp     eax,0FFFFDh
+                - [0x73, 0x100]                                      #  jae     nt!MiFinishVadDeletion+0x50 (81eced00)
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0x29, 0x55, 0x100]                                #  sub     dword ptr [ebp-8],edx
+                - [0x8b, 0x55, 0x100]                                #  mov     edx,dword ptr [ebp-8]
+                - [0x42]                                             #  inc     edx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-8],edx
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,38h
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-20h],edx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xb0, 0x100, 0x100, 0x00, 0x00]             #  mov     esi,dword ptr [eax+80h]
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+1Ch]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+                - [0xf7, 0xc7, 0x100, 0x100, 0x100, 0x100]           #  test    edi,20000000h
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiFinishVadDeletion+0x708 (816db8b8)
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xc7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebp-8],1
+                - [0xf7, 0xc7, 0x100, 0x100, 0x100, 0x100]           #  test    edi,4000h
+                - [0x75, 0x100]                                      #  jne     nt!MiFinishVadDeletion+0x53 (816db203)
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+20h]
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,7FFFFFFFh
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]                 #  cmp     eax,0FFFFDh
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,38h
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         #  mov     ecx,dword ptr fs:[124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+                - [0x8b, 0x70, 0x100]                                #  mov     esi,dword ptr [eax+1Ch]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-8],ecx
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xb9, 0x100, 0x100, 0x100, 0x100]           #  mov     edi,dword ptr [ecx+80h]
+                - [0xf7, 0xc6, 0x100, 0x100, 0x100, 0x100]           #  test    esi,20000000h
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiFinishVadDeletion+0x703 (8171d7c3)
+                - [0xc7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebp-10h],1
+                - [0xf7, 0xc6, 0x100, 0x100, 0x100, 0x100]           #  test    esi,4000h
+                - [0x75, 0x100]                                      #  jne     nt!MiFinishVadDeletion+0x56 (8171d116)
+                - [0x8b, 0x40, 0x100]                                #  mov     eax,dword ptr [eax+20h]
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,7FFFFFFFh
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]                 #  cmp     eax,0FFFFDh
+                - [0x73, 0x100]                                      #  jae     nt!MiFinishVadDeletion+0x56 (8171d116)
+                - [0xba, 0x100, 0x100, 0x100, 0x100]                 #  mov     edx,1
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x8b, 0xc8]                                       #  mov     ecx,eax
+                - [0x2b, 0xcb]                                       #  sub     ecx,ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp-4]

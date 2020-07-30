@@ -1,0 +1,216 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3EE5C9BB-8ED9-4732-B862-04FD670A0A7F}</ProjectGuid>
+    <TemplateGuid>{1bc93793-694f-48fe-9372-81e2b05556fd}</TemplateGuid>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
+    <Configuration>Debug</Configuration>
+    <Platform Condition="'$(Platform)' == ''">Win32</Platform>
+    <RootNamespace>introvecore</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup>
+    <STAMPINF_VERSION Condition=" '$(STAMPINF_VERSION)' =='' ">*</STAMPINF_VERSION>
+  </PropertyGroup>
+  <PropertyGroup>
+    <STAMPINF_DATE Condition=" '$(STAMPINF_DATE)' =='' ">*</STAMPINF_DATE>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <TargetVersion>Windows7</TargetVersion>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
+    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
+    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <TargetVersion>Windows7</TargetVersion>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
+    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
+    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="..\..\packages\nasm2.2.13.3.1\build\native\nasm.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)_intdir\$(ProjectName)\$(PlatformName)\$(ConfigurationName)\</IntDir>
+    <TargetExt>.sys</TargetExt>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <EmbedManifest>false</EmbedManifest>
+    <GenerateManifest>false</GenerateManifest>
+    <LinkIncremental>false</LinkIncremental>
+    <IgnoreImportLibrary>true</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)_intdir\$(ProjectName)\$(PlatformName)\$(ConfigurationName)\</IntDir>
+    <TargetExt>.sys</TargetExt>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <EmbedManifest>false</EmbedManifest>
+    <GenerateManifest>false</GenerateManifest>
+    <LinkIncremental>false</LinkIncremental>
+    <IgnoreImportLibrary>true</IgnoreImportLibrary>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Link>
+      <AdditionalDependencies>bddisasm.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\bddisasm\bin\$(Platform)\$(Configuration)\;$(SolutionDir)bin\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <ModuleDefinitionFile>introvecore.def</ModuleDefinitionFile>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
+      <NoEntryPoint>true</NoEntryPoint>
+      <Driver>Driver</Driver>
+      <AdditionalOptions />
+      <SpecifySectionAttributes />
+      <FullProgramDatabaseFile>false</FullProgramDatabaseFile>
+      <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
+      <SubSystem>Native</SubSystem>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\public;$(ProjectDir)include;$(SolutionDir)\bddisasm\inc;$(SolutionDir)include\public;$(SolutionDir)include;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <AdditionalOptions />
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <CompileAsManaged>false</CompileAsManaged>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <SupportJustMyCode>false</SupportJustMyCode>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)introcore\agents\windows\scripts\genagent_ve.bat $(SolutionDir) $(Platform) $(Configuration)</Command>
+    </PostBuildEvent>
+    <Inf>
+      <TimeStamp>$(STAMPINF_VERSION)</TimeStamp>
+    </Inf>
+    <Inf>
+      <EnableVerbose>false</EnableVerbose>
+      <DateStamp>$(STAMPINF_DATE)</DateStamp>
+      <CatalogFileName>
+      </CatalogFileName>
+    </Inf>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Link>
+      <AdditionalDependencies>bddisasm.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\bddisasm\bin\$(Platform)\$(Configuration)\;$(SolutionDir)bin\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalOptions>
+      </AdditionalOptions>
+      <ModuleDefinitionFile>introvecore.def</ModuleDefinitionFile>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
+      <NoEntryPoint>true</NoEntryPoint>
+      <Driver>Driver</Driver>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <SpecifySectionAttributes />
+      <FullProgramDatabaseFile>false</FullProgramDatabaseFile>
+      <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
+      <SubSystem>Native</SubSystem>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\public;$(ProjectDir)include;$(SolutionDir)\bddisasm\inc;$(SolutionDir)include\public;$(SolutionDir)include;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;RELEASE;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <CompileAsManaged>false</CompileAsManaged>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <AdditionalOptions />
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)introcore\agents\windows\scripts\genagent_ve.bat $(SolutionDir) $(Platform) $(Configuration)</Command>
+    </PostBuildEvent>
+    <Inf>
+      <TimeStamp>$(STAMPINF_VERSION)</TimeStamp>
+    </Inf>
+    <Inf>
+      <EnableVerbose>false</EnableVerbose>
+      <DateStamp>$(STAMPINF_DATE)</DateStamp>
+      <CatalogFileName>
+      </CatalogFileName>
+    </Inf>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <FilesToPackage Include="$(ProjectDir)$(ProjectName).cdf" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      <PackageRelativeDirectory>
+      </PackageRelativeDirectory>
+    </FilesToPackage>
+    <FilesToPackage Include="$(ProjectDir)$(ProjectName).cdf" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      <PackageRelativeDirectory>
+      </PackageRelativeDirectory>
+    </FilesToPackage>
+    <FilesToPackage Include="$(TargetPath)">
+      <PackageRelativeDirectory>
+      </PackageRelativeDirectory>
+    </FilesToPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="cache.c" />
+    <ClCompile Include="emu.c" />
+    <ClCompile Include="handler.c" />
+    <ClCompile Include="hviface.c" />
+    <ClCompile Include="introvecore.c" />
+    <ClCompile Include="spinlock.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\asmlib.h" />
+    <ClInclude Include="include\cache.h" />
+    <ClInclude Include="include\cpu.h" />
+    <ClInclude Include="include\emu.h" />
+    <ClInclude Include="include\handler.h" />
+    <ClInclude Include="include\hviface.h" />
+    <ClInclude Include="include\spinlock.h" />
+    <ClInclude Include="include\vetypes.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <NASM Include="asmlib.asm">
+      <FileType>Document</FileType>
+    </NASM>
+    <None Include="introvecore.def" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
+    <ResourceCompile Include="introvecore.rc" />
+    <NASM Include="handlers.asm">
+      <FileType>Document</FileType>
+    </NASM>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\packages\nasm2.2.13.3.1\build\native\nasm.targets" />
+  </ImportGroup>
+</Project>

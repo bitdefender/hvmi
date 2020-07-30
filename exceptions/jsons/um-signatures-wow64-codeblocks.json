@@ -1,0 +1,45 @@
+{
+    "Type": "user",
+    "Signatures": [
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "wow64-self",
+            "flags": "medium 32",
+            "score": 3,
+            "hashes": [
+                ["0x5c645e4d", "0x7ab7db81", "0x47850fa3", "0xbaf8712c"],
+                ["0x73558aa9", "0x3d2a252a", "0x45f2533b", "0xb633fa05"],
+                ["0x27dfb7f9", "0x85f0e556", "0x65250c48", "0x9fcae4c2"],
+                ["0xb5578893", "0x85518227", "0xdc437926", "0xd5ac27f6"],
+                ["0xea07a656", "0xbc46cc41", "0xb126e2ef", "0xbfca8c15"],
+                ["0x47850fa3", "0xbaf8712c", "0x42184576", "0x5c709736"],
+                ["0xeebe7115", "0x6a4ebbe8", "0x3233c72f", "0xa24567de"],
+                ["0xcda44285", "0x7ab7db81", "0xa750e6bd", "0x59021e52"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "wow64-self-ret",
+            "flags": "medium 32 64",
+            "score": 3,
+            "hashes": [
+                ["0x7fd23376", "0x5eb10e56", "0xfb9ad800", "0xbc74031a"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "wow64-reverse-imports",
+            "flags": "medium 32 64",
+            "score": 3,
+            "hashes": [
+                ["0x4ae286fb", "0xff03db92", "0x198310c1", "0xeb079044"],
+                ["0x4ae286fb", "0xe618ead3", "0x18417af6", "0x53bbf721"],
+                ["0x0507b2e1", "0x4ae286fb", "0xdd6b7ec1", "0x7eedf2b4"],
+                ["0x4ae286fb", "0x911fda45", "0x765d7b21", "0x3c659cc1"]
+
+            ]
+        }
+    ]
+}

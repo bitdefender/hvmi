@@ -1,0 +1,30 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_um_fields
+is64: False
+min_ver: 7600
+max_ver: 7602
+fields: !opaque_structures
+    type: win_um_fields
+    os_structs:
+
+        Dll: !opaque_fields
+            BaseOffsetInModule64: 0
+            BaseOffsetInModule32: 0x18
+            SizeOffsetInModule64: 0
+            SizeOffsetInModule32: 0x20
+            NameOffsetInModule64: 0
+            NameOffsetInModule32: 0x24
+
+        Peb: !opaque_fields
+            64Size: 0
+            32Size: 0x250
+
+        Teb: !opaque_fields
+            64Size: 0
+            32Size: 0x20
+            Wow64SaveArea: 0
+            Wow64StackInSaveArea: 0

@@ -1,0 +1,297 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: PspSetContextThreadInternal
+guest64: True
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX   # Vitctim Thread
+            - DET_ARG_RDX   # Destination Address
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0xff, 0xf5]                                       #  push    rbp
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff800`02a049b0)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+190h],rax
+                - [0x45, 0x8a, 0xe9]                                 #  mov     r13b,r9b
+                - [0x41, 0x8a, 0xf0]                                 #  mov     sil,r8b
+                - [0x48, 0x8b, 0xfa]                                 #  mov     rdi,rdx
+                - [0x4c, 0x8b, 0xe1]                                 #  mov     r12,rcx
+                - [0x65, 0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rbx,qword ptr gs:[188h]
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0xa460 (fffff800`02ae8bd1)
+                - [0x8b, 0x42, 0x100]                                #  mov     eax,dword ptr [rdx+30h]
+                - [0x89, 0x45, 0x00]                                 #  mov     dword ptr [rbp],eax
+                - [0x40, 0x8a, 0xd6]                                 #  mov     dl,sil
+                - [0x48, 0x8d, 0x4d, 0x00]                           #  lea     rcx,[rbp]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff800`03249a60)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+190h],rax
+                - [0x45, 0x8a, 0xe9]                                 #  mov     r13b,r9b
+                - [0x41, 0x8a, 0xf0]                                 #  mov     sil,r8b
+                - [0x48, 0x8b, 0xfa]                                 #  mov     rdi,rdx
+                - [0x4c, 0x8b, 0xe1]                                 #  mov     r12,rcx
+                - [0x65, 0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rbx,qword ptr gs:[188h]
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x96f0 (fffff800`033cc3c0)
+                - [0x8b, 0x42, 0x100]                                #  mov     eax,dword ptr [rdx+30h]
+                - [0x89, 0x45, 0x00]                                 #  mov     dword ptr [rbp],eax
+                - [0x40, 0x8a, 0xd6]                                 #  mov     dl,sil
+                - [0x48, 0x8d, 0x4d, 0x00]                           #  lea     rcx,[rbp]
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x4c, 0x89, 0xa5, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1D8h],r12
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff803`a2da4098)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+190h],rax
+                - [0x45, 0x8a, 0xf9]                                 #  mov     r15b,r9b
+                - [0x45, 0x8a, 0xf0]                                 #  mov     r14b,r8b
+                - [0x48, 0x8b, 0xf2]                                 #  mov     rsi,rdx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x65, 0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rbx,qword ptr gs:[188h]
+                - [0x45, 0x33, 0xe4]                                 #  xor     r12d,r12d
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x4d86e (fffff803`a308f3ee)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff803`c7eee108)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+190h],rax
+                - [0x45, 0x8a, 0xf9]                                 #  mov     r15b,r9b
+                - [0x45, 0x8a, 0xf0]                                 #  mov     r14b,r8b
+                - [0x48, 0x8b, 0xf2]                                 #  mov     rsi,rdx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x65, 0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rbx,qword ptr gs:[188h]
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x4cfda (fffff803`c81c31fa)
+                - [0x8b, 0x42, 0x100]                                #  mov     eax,dword ptr [rdx+30h]
+                - [0x89, 0x45, 0x00]                                 #  mov     dword ptr [rbp],eax
+                - [0x41, 0x8a, 0xd6]                                 #  mov     dl,r14b
+                - [0x48, 0x8d, 0x4d, 0x00]                           #  lea     rcx,[rbp]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff803`b6fcb5d0)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+190h],rax
+                - [0x45, 0x0f, 0xb6, 0xf1]                           #  movzx   r14d,r9b
+                - [0x45, 0x0f, 0xb6, 0xd0]                           #  movzx   r10d,r8b
+                - [0x4c, 0x8b, 0xfa]                                 #  mov     r15,rdx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x170f42 (fffff803`b7286ce2)
+                - [0x8b, 0x5a, 0x100]                                #  mov     ebx,dword ptr [rdx+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!RtlpValidateContextFlags (fffff803`b6ccbfc0)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff801`ae3ebba0)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rbp+190h],rax
+                - [0x45, 0x0f, 0xb6, 0xf1]                           #  movzx   r14d,r9b
+                - [0x41, 0x0f, 0xb6, 0xf8]                           #  movzx   edi,r8b
+                - [0x4c, 0x8b, 0xfa]                                 #  mov     r15,rdx
+                - [0x48, 0x8b, 0xf1]                                 #  mov     rsi,rcx
+                - [0x65, 0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rbx,qword ptr gs:[188h]
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x144458 (fffff801`ae6c90b8)
+                - [0x8b, 0x42, 0x100]                                #  mov     eax,dword ptr [rdx+30h]
+                - [0x89, 0x45, 0x00]                                 #  mov     dword ptr [rbp],eax
+                - [0x40, 0x0f, 0xb6, 0xd7]                           #  movzx   edx,dil
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x81, 0xec, 0xe0, 0x100, 0x100, 0x100]      #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff800`61bfb5f0)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+190h],rax
+                - [0x45, 0x0f, 0xb6, 0xf1]                           #  movzx   r14d,r9b
+                - [0x45, 0x0f, 0xb6, 0xd0]                           #  movzx   r10d,r8b
+                - [0x4c, 0x8b, 0xfa]                                 #  mov     r15,rdx
+                - [0x48, 0x8b, 0xf1]                                 #  mov     rsi,rcx
+                - [0x65, 0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rbx,qword ptr gs:[188h]
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x1c1c62 (fffff800`61eccaf2)
+                - [0x8b, 0x7a, 0x100]                                #  mov     edi,dword ptr [rdx+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!RtlpValidateContextFlags (fffff800`618bd340)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff802`4f204a20)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+190h],rax
+                - [0x45, 0x0f, 0xb6, 0xf9]                           #  movzx   r15d,r9b
+                - [0x41, 0x0f, 0xb6, 0xd8]                           #  movzx   ebx,r8b
+                - [0x4c, 0x8b, 0xf2]                                 #  mov     r14,rdx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff801`1e3cba80)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+190h],rax
+                - [0x45, 0x8a, 0xf9]                                 #  mov     r15b,r9b
+                - [0x41, 0x8a, 0xf0]                                 #  mov     sil,r8b
+                - [0x48, 0x8b, 0xda]                                 #  mov     rbx,rdx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x65, 0x4c, 0x8b, 0x34, 0x25, 0x100, 0x100, 0x100, 0x100] #  mov   r14,qword ptr gs:[188h]
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x14f (fffff801`1e51e15f)
+                - [0x8b, 0x42, 0x100]                                #  mov     eax,dword ptr [rdx+30h]
+                - [0x89, 0x45, 0x00]                                 #  mov     dword ptr [rbp],eax
+                - [0x40, 0x8a, 0xd6]                                 #  mov     dl,sil
+                - [0x48, 0x8d, 0x4d, 0x00]                           #  lea     rcx,[rbp]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,1E0h
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp+40h]
+                - [0x48, 0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C0h],rbx
+                - [0x48, 0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1C8h],rsi
+                - [0x48, 0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+1D0h],rdi
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff800`924829b0)]
+                - [0x48, 0x33, 0xc5]                                 #  xor     rax,rbp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+190h],rax
+                - [0x41, 0x8a, 0xf1]                                 #  mov     sil,r9b
+                - [0x45, 0x8a, 0xf0]                                 #  mov     r14b,r8b
+                - [0x48, 0x8b, 0xda]                                 #  mov     rbx,rdx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x65, 0x4c, 0x8b, 0x24, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   r12,qword ptr gs:[188h]
+                - [0x45, 0x84, 0xc0]                                 #  test    r8b,r8b
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x1fa (fffff800`925ae0da)
+                - [0x8b, 0x42, 0x100]                                #  mov     eax,dword ptr [rdx+30h]
+                - [0x89, 0x45, 0x00]                                 #  mov     dword ptr [rbp],eax
+                - [0x41, 0x8a, 0xd6]                                 #  mov     dl,r14b
+                - [0x48, 0x8d, 0x4d, 0x00]                           #  lea     rcx,[rbp]

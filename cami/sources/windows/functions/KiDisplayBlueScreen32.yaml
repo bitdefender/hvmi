@@ -1,0 +1,135 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: KiDisplayBlueScreen
+guest64: False
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x68]                                 #  sub     esp,68h
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (82776a9c)]
+                - [0x33, 0xc5]                                       #  xor     eax,ebp
+                - [0x89, 0x45, 0xfc]                                 #  mov     dword ptr [ebp-4],eax
+                - [0x8b, 0x45, 0x10]                                 #  mov     eax,dword ptr [ebp+10h]
+                - [0x53]                                             #  push    ebx
+                - [0x57]                                             #  push    edi
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x53]                                             #  push    ebx
+                - [0x53]                                             #  push    ebx
+                - [0x89, 0x45, 0xa0]                                 #  mov     dword ptr [ebp-60h],eax
+                - [0x8b, 0x45, 0x14]                                 #  mov     eax,dword ptr [ebp+14h]
+                - [0x53]                                             #  push    ebx
+                - [0x89, 0x45, 0x9c]                                 #  mov     dword ptr [ebp-64h],eax
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!KiBugCheckData (827ae020)]
+                - [0x53]                                             #  push    ebx
+                - [0x6a, 0x0e]                                       #  push    0Eh
+                - [0x89, 0x45, 0x98]                                 #  mov     dword ptr [ebp-68h],eax
+                - [0xc6, 0x45, 0xa7, 0x01]                           #  mov     byte ptr [ebp-59h],1
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!HeadlessDispatch (8264a5a7)
+                - [0x53]                                             #  push    ebx
+                - [0x53]                                             #  push    ebx
+                - [0x6a, 0x01]                                       #  push    1
+                - [0x8d, 0x45, 0xa7]                                 #  lea     eax,[ebp-59h]
+                - [0x50]                                             #  push    eax
+                - [0x6a, 0x01]                                       #  push    1
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!HeadlessDispatch (8264a5a7)
+                - [0x53]                                             #  push    ebx
+                - [0x53]                                             #  push    ebx
+                - [0x6a, 0x04]                                       #  push    4
+                - [0x8d, 0x45, 0x98]                                 #  lea     eax,[ebp-68h]
+                - [0x50]                                             #  push    eax
+                - [0x6a, 0x14]                                       #  push    14h
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!HeadlessDispatch (8264a5a7)
+                - [0x38, 0x100, 0x100, 0x100, 0x100, 0x100]          #  cmp     byte ptr [nt!InbvBootDriverInstalled (82783c3e)],bl
+                - [0x74, 0x100]                                      #  je      nt!KiDisplayBlueScreen+0x9e (827287e3)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!InbvAcquireDisplayOwnership (82721c6a)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x81, 0xec, 0xac, 0x01, 0x00, 0x00]               #  sub     esp,1ACh
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (82238b94)]
+                - [0x33, 0xc5]                                       #  xor     eax,ebp
+                - [0x89, 0x45, 0xfc]                                 #  mov     dword ptr [ebp-4],eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x8d, 0x58, 0xfe, 0xff, 0xff]               #  mov     dword ptr [ebp-1A8h],ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KiEnableHeadlessBlueScreen (821cd174)
+                - [0x8b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  mov     edi,dword ptr [nt!KiBugCheckDriver (82260160)]
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0x85, 0xff]                                       #  test    edi,edi
+                - [0x75, 0x100]                                      #  jne     nt!KiDisplayBlueScreen+0x48 (821cce25)
+                - [0x56]                                             #  push    esi
+                - [0x6a, 0x04]                                       #  push    4
+                - [0xba, 0x100, 0x100, 0x100, 0x100]                 #  mov     edx,offset nt!KiBugCheckData+0x4 (8224e124)
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KiDumpParameterImages (821cd02d)
+                - [0x8b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  mov     edi,dword ptr [nt!KiBugCheckDriver (82260160)]
+                - [0x85, 0xff]                                       #  test    edi,edi
+                - [0x74, 0x100]                                      #  je      nt!KiDisplayBlueScreen+0x67 (821cce44)
+                - [0x6a, 0x1e]                                       #  push    1Eh
+                - [0x58]                                             #  pop     eax
+                - [0x66, 0x39, 0x07]                                 #  cmp     word ptr [edi],ax
+                - [0x75, 0x100]                                      #  jne     nt!KiDisplayBlueScreen+0x67 (821cce44)
+                - [0x50]                                             #  push    eax
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!`string' (820208d8)
+                - [0xff, 0x77, 0x04]                                 #  push    dword ptr [edi+4]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!memcmp (82132932)
+                - [0x83, 0xc4, 0x0c]                                 #  add     esp,0Ch
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x81, 0xec, 0xac, 0x01, 0x00, 0x00]               #  sub     esp,1ACh
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (810ca5f8)]
+                - [0x33, 0xc5]                                       #  xor     eax,ebp
+                - [0x89, 0x45, 0xfc]                                 #  mov     dword ptr [ebp-4],eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x8d, 0x58, 0xfe, 0xff, 0xff]               #  mov     dword ptr [ebp-1A8h],ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KiEnableHeadlessBlueScreen (81056734)
+                - [0xb9, 0x81, 0x00, 0x00, 0x00]                     #  mov     ecx,81h
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!IoSaveBugCheckProgress (81047784)
+                - [0x8b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  mov     edi,dword ptr [nt!KiBugCheckDriver (810e9468)]
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0x85, 0xff]                                       #  test    edi,edi
+                - [0x75, 0x100]                                      #  jne     nt!KiDisplayBlueScreen+0x52 (810563f3)
+                - [0x56]                                             #  push    esi
+                - [0x6a, 0x04]                                       #  push    4
+                - [0xba, 0x100, 0x100, 0x100, 0x100]                 #  mov     edx,offset nt!KiBugCheckData+0x4 (810d8ba4)
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KiDumpParameterImages (81056600)
+                - [0x8b, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  mov     edi,dword ptr [nt!KiBugCheckDriver (810e9468)]
+                - [0x85, 0xff]                                       #  test    edi,edi
+                - [0x74, 0x100]                                      #  je      nt!KiDisplayBlueScreen+0x71 (81056412)
+                - [0x6a, 0x1e]                                       #  push    1Eh
+                - [0x58]                                             #  pop     eax
+                - [0x66, 0x39, 0x07]                                 #  cmp     word ptr [edi],ax
+                - [0x75, 0x100]                                      #  jne     nt!KiDisplayBlueScreen+0x71 (81056412)
+                - [0x50]                                             #  push    eax
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!`string' (80ea1960)

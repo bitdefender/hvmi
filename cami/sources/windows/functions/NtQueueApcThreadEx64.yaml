@@ -1,0 +1,180 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: NtQueueApcThreadEx
+guest64: True
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 17763
+
+        args:
+            - DET_ARG_RCX           # Vitctim Thread
+            - DET_ARG_R8            # Function Address
+            - DET_ARG_R9            # Function Parameter
+            - DET_ARG_RAX           # Originator Thread
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x8b, 0xdc]                                 #  mov     r11,rsp
+                - [0x49, 0x89, 0x5b, 0x100]                          #  mov     qword ptr [r11+8],rbx
+                - [0x49, 0x89, 0x6b, 0x100]                          #  mov     qword ptr [r11+10h],rbp
+                - [0x49, 0x89, 0x73, 0x100]                          #  mov     qword ptr [r11+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x100, 0x100, 0x00, 0x00] #  mov   rax,qword ptr gs:[188h]
+                - [0x49, 0x83, 0x63, 0x100, 0x100]                   #  and     qword ptr [r11-38h],0
+                - [0x49, 0x8b, 0xe8]                                 #  mov     rbp,r8
+                - [0x40, 0x8a, 0xb0, 0x100, 0x100, 0x00, 0x00]       #  mov     sil,byte ptr [rax+1F6h]
+                - [0x4c, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     r8,qword ptr [nt!PsThreadType (fffff800`028bd058)]
+                - [0x49, 0x8d, 0x43, 0x100]                          #  lea     rax,[r11-28h]
+                - [0x4d, 0x8b, 0xe1]                                 #  mov     r12,r9
+                - [0x48, 0x8b, 0xda]                                 #  mov     rbx,rdx
+                - [0x49, 0x89, 0x43, 0x100]                          #  mov     qword ptr [r11-40h],rax
+                - [0x44, 0x8a, 0xce]                                 #  mov     r9b,sil
+                - [0xba, 0x100, 0x00, 0x00, 0x00]                    #  mov     edx,10h
+                - [0xc7, 0x44, 0x24, 0x100, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [rsp+20h],746C6644h
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ObReferenceObjectByHandleWithTag (fffff800`0291c740)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x00, 0x00, 0x00]              #  js      nt!NtQueueApcThreadEx+0x11a (fffff800`028e00da)
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x8b, 0xdc]                                 #  mov     r11,rsp
+                - [0x49, 0x89, 0x5b, 0x100]                          #  mov     qword ptr [r11+8],rbx
+                - [0x49, 0x89, 0x6b, 0x100]                          #  mov     qword ptr [r11+10h],rbp
+                - [0x49, 0x89, 0x73, 0x100]                          #  mov     qword ptr [r11+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rax,qword ptr gs:[188h]
+                - [0x4d, 0x8b, 0xf1]                                 #  mov     r14,r9
+                - [0x49, 0x83, 0x63, 0x100, 0x00]                    #  and     qword ptr [r11-40h],0
+                - [0x49, 0x8b, 0xe8]                                 #  mov     rbp,r8
+                - [0x4c, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     r8,qword ptr [nt!PsThreadType (fffff800`7f3b7230)]
+                - [0x48, 0x8b, 0xda]                                 #  mov     rbx,rdx
+                - [0xba, 0x100, 0x00, 0x00, 0x00]                    #  mov     edx,10h
+                - [0x40, 0x8a, 0xb0, 0x100, 0x100, 0x100, 0x100]     #  mov     sil,byte ptr [rax+232h]
+                - [0x49, 0x8d, 0x43, 0x100]                          #  lea     rax,[r11-28h]
+                - [0x44, 0x8a, 0xce]                                 #  mov     r9b,sil
+                - [0x49, 0x89, 0x43, 0x100]                          #  mov     qword ptr [r11-48h],rax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ObReferenceObjectByHandle (fffff800`7f43c090)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x00, 0x00, 0x00]              #  js      nt!NtQueueApcThreadEx+0x118 (fffff800`7f49b604)
+                - [0x48, 0x8b, 0x7c, 0x24, 0x100]                    #  mov     rdi,qword ptr [rsp+40h]
+                - [0xf7, 0x47, 0x100, 0x100, 0x100, 0x00, 0x00]      #  test    dword ptr [rdi+74h],400h
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x8b, 0xdc]                                 #  mov     r11,rsp
+                - [0x49, 0x89, 0x5b, 0x100]                          #  mov     qword ptr [r11+8],rbx
+                - [0x49, 0x89, 0x6b, 0x100]                          #  mov     qword ptr [r11+10h],rbp
+                - [0x49, 0x89, 0x73, 0x100]                          #  mov     qword ptr [r11+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x100, 0x100, 0x00, 0x00] #  mov   rax,qword ptr gs:[188h]
+                - [0x4d, 0x8b, 0xe1]                                 #  mov     r12,r9
+                - [0x49, 0x83, 0x63, 0x100, 0x100]                   #  and     qword ptr [r11-50h],0
+                - [0x49, 0x8b, 0xe8]                                 #  mov     rbp,r8
+                - [0x4c, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     r8,qword ptr [nt!PsThreadType (fffff803`7f070fb0)]
+                - [0x48, 0x8b, 0xda]                                 #  mov     rbx,rdx
+                - [0xba, 0x100, 0x00, 0x00, 0x00]                    #  mov     edx,10h
+                - [0x40, 0x8a, 0xb0, 0x100, 0x100, 0x00, 0x00]       #  mov     sil,byte ptr [rax+232h]
+                - [0x49, 0x8d, 0x43, 0x100]                          #  lea     rax,[r11-38h]
+                - [0x44, 0x8a, 0xce]                                 #  mov     r9b,sil
+                - [0x49, 0x89, 0x43, 0x100]                          #  mov     qword ptr [r11-58h],rax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ObReferenceObjectByHandle (fffff803`7f15f660)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x00, 0x00, 0x00]              #  js      nt!NtQueueApcThreadEx+0x142 (fffff803`7f0bb04a)
+                - [0x48, 0x8b, 0x7c, 0x24, 0x100]                    #  mov     rdi,qword ptr [rsp+40h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x8b, 0xdc]                                 #  mov     r11,rsp
+                - [0x49, 0x89, 0x5b, 0x100]                          #  mov     qword ptr [r11+8],rbx
+                - [0x49, 0x89, 0x6b, 0x100]                          #  mov     qword ptr [r11+18h],rbp
+                - [0x49, 0x89, 0x73, 0x100]                          #  mov     qword ptr [r11+20h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rax,qword ptr gs:[188h]
+                - [0x41, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     r13d,1
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x4d, 0x8b, 0xe1]                                 #  mov     r12,r9
+                - [0x49, 0x3b, 0xd5]                                 #  cmp     rdx,r13
+                - [0x4d, 0x8b, 0xf8]                                 #  mov     r15,r8
+                - [0x4c, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     r8,qword ptr [nt!PsThreadType (fffff800`925392f8)]
+                - [0x48, 0x8b, 0xea]                                 #  mov     rbp,rdx
+                - [0x40, 0x8a, 0xb0, 0x100, 0x100, 0x100, 0x100]     #  mov     sil,byte ptr [rax+232h]
+                - [0x48, 0x0f, 0x45, 0xda]                           #  cmovne  rbx,rdx
+                - [0x49, 0x83, 0x63, 0x100, 0x100]                   #  and     qword ptr [r11-50h],0
+                - [0x49, 0x8d, 0x43, 0x10]                           #  lea     rax,[r11+10h]
+                - [0x44, 0x8a, 0xce]                                 #  mov     r9b,sil
+                - [0x49, 0x89, 0x43, 0x100]                          #  mov     qword ptr [r11-58h],rax
+                - [0x41, 0x8d, 0x55, 0x100]                          #  lea     edx,[r13+0Fh]
+                - [0x45, 0x8a, 0xf5]                                 #  mov     r14b,r13b
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x8b, 0xdc]                                              # mov     r11,rsp
+                - [0x49, 0x89, 0x5b, 0x100]                                       # mov     qword ptr [r11+8],rbx
+                - [0x49, 0x89, 0x6b, 0x100]                                       # mov     qword ptr [r11+18h],rbp
+                - [0x56]                                                          # push    rsi
+                - [0x57]                                                          # push    rdi
+                - [0x41, 0x54]                                                    # push    r12
+                - [0x41, 0x56]                                                    # push    r14
+                - [0x41, 0x57]                                                    # push    r15
+                - [0x48, 0x83, 0xec, 0x100]                                       # sub     rsp,50h
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x88, 0x01, 0x00, 0x00]          # mov   rax,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xea]                                              # mov     rbp,rdx
+                - [0xba, 0x100, 0x100, 0x100, 0x100]                              # mov     edx,1
+                - [0x33, 0xdb]                                                    # xor     ebx,ebx
+                - [0x48, 0x3b, 0xea]                                              # cmp     rbp,rdx
+                - [0x4d, 0x8b, 0xe1]                                              # mov     r12,r9
+                - [0x4d, 0x8b, 0xf8]                                              # mov     r15,r8
+                - [0x44, 0x8a, 0xf2]                                              # mov     r14b,dl
+                - [0x40, 0x8a, 0xb0, 0x100, 0x100, 0x100, 0x100]                  # mov     sil,byte ptr [rax+232h]
+                - [0x48, 0x0f, 0x45, 0xdd]                                        # cmovne  rbx,rbp
+                - [0x49, 0x83, 0x63, 0x100, 0x100]                                # and     qword ptr [r11-50h],0
+                - [0x49, 0x8d, 0x43, 0x100]                                       # lea     rax,[r11+10h]
+                - [0x4c, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]                  # mov     r8,qword ptr [nt!PsThreadType (fffff803`1a8fb400)]
+                - [0x44, 0x8a, 0xce]                                              # mov     r9b,sil
+                - [0x49, 0x83, 0x63, 0x100, 0x100]                                # and     qword ptr [r11+10h],0
+                - [0xba, 0x100, 0x100, 0x100, 0x100]                              # mov     edx,10h
+                - [0x49, 0x89, 0x43, 0x100]                                       # mov     qword ptr [r11-58h],rax

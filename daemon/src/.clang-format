@@ -1,0 +1,29 @@
+# clang-format 10.0
+
+# general
+BasedOnStyle: WebKit
+Standard: Cpp11
+ColumnLimit: 120
+SortIncludes: false
+AllowShortFunctionsOnASingleLine: None
+IndentGotoLabels: false
+BreakBeforeBinaryOperators: None
+AccessModifierOffset: -8
+
+# indentation
+IndentWidth: 8
+TabWidth: 8
+UseTab: ForIndentation
+IndentCaseLabels: true
+
+# alignment
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: true
+PointerAlignment: Right
+AlignAfterOpenBracket: Align
+
+# whitespace management
+SpacesInParentheses: true
+SpacesInCStyleCastParentheses: true
+SpaceBeforeCpp11BracedList: false

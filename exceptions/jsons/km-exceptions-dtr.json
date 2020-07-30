@@ -1,0 +1,26 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        {
+            "originator": "-",
+            "object_type": "idt-reg",
+            "signatures": [
+                "patchguard-idtr-value-pattern-1",
+                "patchguard-idtr-value-pattern-2",
+                "patchguard-idtr-value-pattern-3",
+                "patchguard-idtr-value-pattern-4",
+                "patchguard-idtr-value-pattern-5",
+                "patchguard-idtr-value-pattern-6",
+                "patchguard-idtr-value-pattern-7"
+            ]
+        },
+
+        {
+            "originator": "-",
+            "object_type": "idt-reg",
+            "signatures": [
+                "patchguard-idtr-codeblocks"
+            ]
+        }
+    ]
+}

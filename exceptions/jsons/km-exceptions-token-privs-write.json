@@ -1,0 +1,20 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        {
+            "flags": "integrity feedback",
+            "victim": "*",
+            "object_type": "token-privs"
+        },
+        
+        {
+            "originator": "[kernel]",
+            "victim": "*",
+            "object_type": "token-privs",
+            "signatures": [
+                "kernel-token-privs-writes-32",
+                "kernel-token-privs-writes-64"
+            ]
+        }
+    ]
+}

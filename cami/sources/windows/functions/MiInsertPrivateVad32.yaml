@@ -1,0 +1,430 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiInsertPrivateVad
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX   # Vad
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 7602
+        args:
+            - DET_ARG_RDI   # Vad
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x64, 0x8b, 0x35, 0x24, 0x01, 0x00, 0x00]         #  mov     esi,dword ptr fs:[124h]
+                - [0x8b, 0x5e, 0x100]                                #  mov     ebx,dword ptr [esi+50h]
+                - [0x66, 0xff, 0x8e, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [esi+86h]
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp-4],ebx
+                - [0x8d, 0x8b, 0x100, 0x100, 0x100, 0x100]           #  lea     ecx,[ebx+1F0h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-8],ecx
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xf0, 0x0f, 0xba, 0x28, 0x00]                     #  lock bts dword ptr [eax],0
+                - [0x73, 0x100]                                      #  jae     nt!MiInsertPrivateVad+0x34 (82cc436e)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExfAcquirePushLockExclusive (82ce40aa)
+                - [0x80, 0x8e, 0x100, 0x100, 0x100, 0x100, 0x08]     #  or      byte ptr [esi+288h],8
+                - [0x8d, 0x83, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[ebx+278h]
+                - [0x50]                                             #  push    eax
+                - [0x8b, 0xc7]                                       #  mov     eax,edi
+                - [0x89, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebx+290h],edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiInsertNode (82ced3a1)
+                - [0xf7, 0x45, 0x08, 0x100, 0x100, 0x100, 0x100]     #  test    dword ptr [ebp+8],800000h
+                - [0x74, 0x46]                                       #  je      nt!MiInsertPrivateVad+0x9e (82cc43d8)
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x6a, 0x02]                                       #  push    2
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!MiKernelStackPteInfo (82d9b620)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x64, 0x8b, 0x35, 0x24, 0x01, 0x00, 0x00]         #  mov     esi,dword ptr fs:[124h]
+                - [0x8b, 0x5e, 0x100]                                #  mov     ebx,dword ptr [esi+50h]
+                - [0x66, 0xff, 0x8e, 0x100, 0x100, 0x00, 0x00]       #  dec     word ptr [esi+86h]
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf8]                                       #  mov     edi,eax
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp-4],ebx
+                - [0x8d, 0x8b, 0x100, 0x100, 0x00, 0x00]             #  lea     ecx,[ebx+1F0h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-8],ecx
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xf0, 0x0f, 0xba, 0x28, 0x100]                    #  lock bts dword ptr [eax],0
+                - [0x73, 0x100]                                      #  jae     nt!MiInsertPrivateVad+0x37 (82e860f7)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExfAcquirePushLockExclusive (82e9c7ed)
+                - [0x80, 0x8e, 0x100, 0x100, 0x100, 0x100, 0x100]    #  or      byte ptr [esi+288h],8
+                - [0x8d, 0x83, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[ebx+278h]
+                - [0x50]                                             #  push    eax
+                - [0x8b, 0xc7]                                       #  mov     eax,edi
+                - [0x89, 0xbb, 0x100, 0x100, 0x00, 0x00]             #  mov     dword ptr [ebx+290h],edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiInsertNode (82ea60fc)
+                - [0xf7, 0x45, 0x100, 0x100, 0x00, 0x100, 0x100]     #  test    dword ptr [ebp+8],800000h
+                - [0x74, 0x46]                                       #  je      nt!MiInsertPrivateVad+0xa1 (82e86161)
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x6a, 0x02]                                       #  push    2
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!MiKernelStackPteInfo (82f5aec0)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                      # mov     edi,edi
+                - [0x55]                                            # push    ebp
+                - [0x8b, 0xec]                                      # mov     ebp,esp
+                - [0x51]                                            # push    ecx
+                - [0x53]                                            # push    ebx
+                - [0x8b, 0x5d, 0x100]                               # mov     ebx,dword ptr [ebp+8]
+                - [0x56]                                            # push    esi
+                - [0x64, 0x8b, 0x35, 0x24, 0x01, 0x00, 0x00]        # mov     esi,dword ptr fs:[124h]
+                - [0x66, 0xff, 0x8e, 0x100, 0x100, 0x100, 0x100]    # dec     word ptr [esi+86h]
+                - [0x57]                                            # push    edi
+                - [0x8b, 0x7e, 0x100]                               # mov     edi,dword ptr [esi+50h]
+                - [0x89, 0x7d, 0x100]                               # mov     dword ptr [ebp+8],edi
+                - [0x8d, 0x8f, 0x100, 0x100, 0x100, 0x100]          # lea     ecx,[edi+1F0h]
+                - [0x89, 0x4d, 0x100]                               # mov     dword ptr [ebp-4],ecx
+                - [0x8b, 0xc1]                                      # mov     eax,ecx
+                - [0xf0, 0x0f, 0xba, 0x28, 0x100]                   # lock bts dword ptr [eax],0
+                - [0x73, 0x100]                                     # jae     nt!MiInsertPrivateVad+0x37 (828e1a2b)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                # call    nt!ExfAcquirePushLockExclusive (828c5b05)
+                - [0x80, 0x8e, 0x100, 0x100, 0x100, 0x100, 0x100]   # or      byte ptr [esi+288h],8
+                - [0x8d, 0x87, 0x100, 0x100, 0x100, 0x100]          # lea     eax,[edi+278h]
+                - [0x50]                                            # push    eax
+                - [0x8b, 0xc3]                                      # mov     eax,ebx
+                - [0x89, 0x9f, 0x100, 0x100, 0x100, 0x100]          # mov     dword ptr [edi+290h],ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                # call    nt!MiInsertNode (828c4510)
+                - [0xf7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]   # test    dword ptr [ebp+0Ch],800000h
+                - [0x74, 0x100]                                     # je      nt!MiInsertPrivateVad+0xae (828e1aa2)
+                - [0x6a, 0x100]                                     # push    0
+                - [0x6a, 0x100]                                     # push    2
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                # push    offset nt!MiKernelStackPteInfo (8298e5e0)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,10h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xf1]                                       #  mov     esi,ecx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-8],edx
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         #  mov     ecx,dword ptr fs:[124h]
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-0Ch],ecx
+                - [0x8b, 0x46, 0x100]                                #  mov     eax,dword ptr [esi+1Ch]
+                - [0x83, 0xe0, 0x100]                                #  and     eax,7
+                - [0x3c, 0x100]                                      #  cmp     al,3
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt! ?? ::FNODOBFM::`string'+0x8cdc (81556a38)
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0x8d, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  lea     edi,[ebx+1F4h]
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (816700e8)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (816808c6)],21h
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::FNODOBFM::`string'+0x8ce8 (81556a44)
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0xf0, 0x0f, 0xba, 0x2f, 0x100]                    #  lock bts dword ptr [edi],1Fh
+                - [0x72, 0x100]                                      #  jb      nt!MiInsertPrivateVad+0x9f (8143c98f)
+                - [0x8b, 0x17]                                       #  mov     edx,dword ptr [edi]
+                - [0x8b, 0xca]                                       #  mov     ecx,edx
+                - [0x81, 0xe1, 0x100, 0x100, 0x100, 0x100]           #  and     ecx,0BFFFFFFFh
+                - [0x81, 0xf9, 0x100, 0x100, 0x100, 0x100]           #  cmp     ecx,80000000h
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,8
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xf1]                                       #  mov     esi,ecx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-4],edx
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         #  mov     ecx,dword ptr fs:[124h]
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-8],ecx
+                - [0x8b, 0x46, 0x100]                                #  mov     eax,dword ptr [esi+1Ch]
+                - [0x83, 0xe0, 0x100]                                #  and     eax,7
+                - [0x3c, 0x100]                                      #  cmp     al,3
+                - [0x74, 0x100]                                      #  je      nt!MiInsertPrivateVad+0x71 (818f2291)
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x8d, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  lea     edi,[ebx+1F4h]
+                - [0x57]                                             #  push    edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireSpinLockExclusive (8191f600)
+                - [0x8b, 0xd3]                                       #  mov     edx,ebx
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp+0Bh],al
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiInsertVad (8190c510)
+                - [0x8b, 0x56, 0x100]                                #  mov     edx,dword ptr [esi+1Ch]
+                - [0x83, 0xe2, 0x100]                                #  and     edx,7
+                - [0x80, 0xfa, 0x100]                                #  cmp     dl,3
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt! ?? ::FNODOBFM::`string'+0x1983e (819c2150)
+                - [0x8a, 0x55, 0x100]                                #  mov     dl,byte ptr [ebp+0Bh]
+                - [0x8b, 0xcf]                                       #  mov     ecx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiUnlockWorkingSetExclusive (818b91a0)
+                - [0x8b, 0x56, 0x100]                                #  mov     edx,dword ptr [esi+1Ch]
+                - [0x8b, 0xc2]                                       #  mov     eax,edx
+                - [0x83, 0xe0, 0x100]                                #  and     eax,7
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,10h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-8],edx
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         #  mov     ecx,dword ptr fs:[124h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-0Ch],ecx
+                - [0xf7, 0x47, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    dword ptr [edi+1Ch],100000h
+                - [0x74, 0x100]                                      #  je      nt!MiInsertPrivateVad+0x2e (8190a66e)
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr ds:[C0802074h]
+                - [0x40]                                             #  inc     eax
+                - [0xa3, 0x100, 0x100, 0x100, 0x100]                 #  mov     dword ptr ds:[C0802074h],eax
+                - [0x8b, 0x47, 0x100]                                #  mov     eax,dword ptr [edi+1Ch]
+                - [0x83, 0xe0, 0x100]                                #  and     eax,7
+                - [0x3c, 0x100]                                      #  cmp     al,3
+                - [0x75, 0x100]                                      #  jne     nt!MiInsertPrivateVad+0x3f (8190a67f)
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiLockVad (818fd620)
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+8]
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0x81, 0xc6, 0x100, 0x100, 0x100, 0x100]           #  add     esi,258h
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (81a9e0ec)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (81ab0906)],21h
+                - [0x8a, 0xd8]                                       #  mov     bl,al
+                - [0x74, 0x100]                                      #  je      nt!MiInsertPrivateVad+0x66 (8190a6a6)
+                - [0x8a, 0xd3]                                       #  mov     dl,bl
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExpAcquireSpinLockExclusiveAtDpcLevelInstrumented (81a554a8)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,10h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xf1]                                       #  mov     esi,ecx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-8],edx
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         #  mov     ecx,dword ptr fs:[124h]
+                - [0x57]                                             #  push    edi
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-0Ch],ecx
+                - [0xf7, 0x46, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    dword ptr [esi+1Ch],100000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::FNODOBFM::`string'+0x200ed (81fd2f59)
+                - [0x8b, 0x46, 0x100]                                #  mov     eax,dword ptr [esi+1Ch]
+                - [0x83, 0xe0, 0x100]                                #  and     eax,7
+                - [0x3c, 0x100]                                      #  cmp     al,3
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt! ?? ::FNODOBFM::`string'+0x200fd (81fd2f69)
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0xb1, 0x100]                                      #  mov     cl,2
+                - [0x8d, 0x83, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[ebx+1F4h]
+                - [0x8d, 0x78, 0x100]                                #  lea     edi,[eax+64h]
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (820ad0ec)]
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (820bf906)],21h
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp+0Bh],al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::FNODOBFM::`string'+0x20109 (81fd2f75)
+                - [0xc7, 0x45, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebp-4],0
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xf1]                                       #  mov     esi,ecx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-8],edx
+                - [0x57]                                             #  push    edi
+                - [0x64, 0x8b, 0x3d, 0x24, 0x01, 0x00, 0x00]         #  mov     edi,dword ptr fs:[124h]
+                - [0xf7, 0x46, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    dword ptr [esi+1Ch],100000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiInsertPrivateVad+0x922e7 (81fc2e91)
+                - [0x8b, 0x46, 0x100]                                #  mov     eax,dword ptr [esi+1Ch]
+                - [0x83, 0xe0, 0x100]                                #  and     eax,7
+                - [0x3c, 0x100]                                      #  cmp     al,3
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiInsertPrivateVad+0x922f8 (81fc2ea2)
+                - [0x8d, 0x8b, 0x100, 0x100, 0x100, 0x100]           #  lea     ecx,[ebx+1FCh]
+                - [0x8a, 0x41, 0x100]                                #  mov     al,byte ptr [ecx+64h]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0xb8, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,offset nt!MiState+0x3540 (8207a740)
+                - [0x74, 0x100]                                      #  je      nt!MiInsertPrivateVad+0x4b (81f30bf5)
+                - [0x8d, 0x41, 0x100]                                #  lea     eax,[ecx+68h]
+                - [0x50]                                             #  push    eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireSpinLockExclusive (81eca5c6)
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp-4]
+                - [0x8b, 0xd3]                                       #  mov     edx,ebx
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp+0Bh],al
+                - [0x83, 0x61, 0x100, 0x100]                         #  and     dword ptr [ecx+20h],0
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0xdc]                                       #  mov     ebx,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,8
+                - [0x83, 0xe4, 0x100]                                #  and     esp,0FFFFFFF8h
+                - [0x83, 0xc4, 0x100]                                #  add     esp,4
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0x6b, 0x100]                                #  mov     ebp,dword ptr [ebx+4]
+                - [0x89, 0x6c, 0x24, 0x100]                          #  mov     dword ptr [esp+4],ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,28h
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xf1]                                       #  mov     esi,ecx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-8],edx
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         #  mov     ecx,dword ptr fs:[124h]
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7b, 0x100]                                #  mov     edi,dword ptr [ebx+8]
+                - [0xf7, 0x46, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    dword ptr [esi+1Ch],100000h
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-0Ch],ecx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiInsertPrivateVad+0xcae59 (81407c49)
+                - [0x8b, 0x46, 0x100]                                #  mov     eax,dword ptr [esi+1Ch]
+                - [0x83, 0xe0, 0x100]                                #  and     eax,7
+                - [0x3c, 0x100]                                      #  cmp     al,3
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiInsertPrivateVad+0xcae6a (81407c5a)
+                - [0x8a, 0x87, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr [edi+260h]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0x74, 0x100]                                      #  je      nt!MiInsertPrivateVad+0xb4 (8133cea4)
+                - [0x8d, 0x87, 0x100, 0x100, 0x100, 0x100]           #  lea     eax,[edi+264h]
+                - [0x50]                                             #  push    eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-10h],eax
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0xf1]                                       #  mov     esi,ecx
+                - [0x89, 0x55, 0xfc]                                 #  mov     dword ptr [ebp-4],edx
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+8]
+                - [0xf7, 0x46, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    dword ptr [esi+1Ch],20000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiInsertPrivateVad+0xd5e3b (8160cfbd)
+                - [0x8d, 0x8f, 0x100, 0x100, 0x100, 0x100]           #  lea     ecx,[edi+1FCh]
+                - [0x8a, 0x41, 0x100]                                #  mov     al,byte ptr [ecx+60h]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0xb8, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,offset nt!MiState+0x4a40 (81703900)
+                - [0x74, 0x100]                                      #  je      nt!MiInsertPrivateVad+0x36 (815371b8)
+                - [0x8d, 0x41, 0x100]                                #  lea     eax,[ecx+64h]
+                - [0x50]                                             #  push    eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp+8],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireSpinLockExclusive (814f60b0)
+                - [0x8a, 0xd8]                                       #  mov     bl,al
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x83, 0x60, 0x100, 0x100]                         #  and     dword ptr [eax+4],0
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiInsertVad (815370c0)
+                - [0x8a, 0xd3]                                       #  mov     dl,bl
+                - [0x8d, 0x8f, 0x100, 0x100, 0x100, 0x100]           #  lea     ecx,[edi+1FCh]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiUnlockWorkingSetExclusive (81537490)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,10h
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-0Ch],edx
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+8]
+                - [0xf7, 0x47, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    dword ptr [edi+1Ch],40000h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiInsertPrivateVad+0x10d4db (8179de3b)
+                - [0x8b, 0x47, 0x100]                                #  mov     eax,dword ptr [edi+0Ch]
+                - [0x8b, 0x77, 0x100]                                #  mov     esi,dword ptr [edi+10h]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0x8a, 0x81, 0x100, 0x100, 0x100, 0x100]           #  mov     al,byte ptr [ecx+25Ch]
+                - [0x24, 0x100]                                      #  and     al,7
+                - [0x3c, 0x100]                                      #  cmp     al,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiInsertPrivateVad+0x10d4ec (8179de4c)
+                - [0x8d, 0x99, 0x100, 0x100, 0x100, 0x100]           #  lea     ebx,[ecx+260h]
+                - [0x53]                                             #  push    ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireSpinLockExclusive (81655e50)
+                - [0xc7, 0x43, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     dword ptr [ebx+4],0
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-1],al
+                - [0x8b, 0x8b, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [ebx+19Ch]
+                - [0xff, 0x83, 0x100, 0x100, 0x100, 0x100]           #  inc     dword ptr [ebx+2A4h]
+                - [0xc1, 0xe9, 0x100]                                #  shr     ecx,0Ch

@@ -1,0 +1,16 @@
+{
+    "Type": "user-apc",
+    "Exceptions": [
+
+        {
+            "flags": "64 32 system-process",
+            "originator": "services.exe",
+            "victim": "*",
+            "object_type": "apc-thread",
+            "signatures": [
+                "um-apc-services-exports"
+            ]
+        }
+    ]
+}
+

@@ -1,0 +1,15 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        
+        {
+            "originator": "-",
+            "victim": "[kernel]",
+            "object_type": "driver exports",
+            "flags": "read",
+            "signatures": [
+                "patchguard-nt-eat-read"
+            ]
+        }
+    ]
+}

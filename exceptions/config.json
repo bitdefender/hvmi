@@ -1,0 +1,215 @@
+{
+    "Type": "config",
+
+    "Version": {
+        "Major": 2,
+        "Minor": 2
+    },
+
+    "Predefined": {
+        "kernel-mode": {
+            "*": 0,
+            "[own]": 1,
+            "[kernel]": 2,
+            "[hal]": 3,
+            "-": 4
+        },
+
+        "user-mode": {
+            "*": 0,
+            "[own]": 1,
+            "[vdso]": 2,
+            "[vsyscall]": 3,
+            "-": 4
+        },
+
+        "signature": {
+            "*": 0,
+            "-": 4
+        }
+    },
+
+    "SignatureType":
+    {
+        "version-os": 50,
+        "version-intro" : 51,
+        "process-creation" : 70,
+        "export": 100,
+        "value" : 200,
+        "idt" : 300,
+        "value-code" : 500,
+        "codeblocks" : 600
+    },
+
+    "ProcessCreationFlags":
+    {
+        "debug"         : "0x00000001",
+        "pivoted-stack" : "0x00000002",
+        "stolen-token"  : "0x00000004",
+        "heap-spray"    : "0x00000008",
+        "token-privs"   : "0x00000010",
+        "thread-start"  : "0x00000020"
+    },
+
+    "Groups": {
+        "[office apps]": [
+            "winword.exe",
+            "excel.exe",
+            "powerpnt.exe",
+            "outlook.exe"
+        ],
+
+        "[init-parents]": [
+            "svchost.exe",
+            "openwith.exe"
+        ],
+
+        "[firefox-processes]": [
+            "firefox.exe",
+            "plugin-container.exe"
+        ],
+
+        "[edge-family]": [
+            "microsoftedge.exe",
+            "microsoftedgecp.exe",
+            "microsoftedgesh.exe",
+            "microsoftedgedevtools.exe"
+        ],
+
+        "[iexplore-wininet]": [
+            "ieshims.dll",
+            "shcore.dll",
+            "iertutil.dll",
+            "ieframe.dll"
+        ],
+
+        "[python]": [
+            "python.exe",
+            "python2.7.exe",
+            "python3.2.exe"
+        ],
+
+        "[trufos-drvobjs]": [
+            "\\driver\\atapi",
+            "\\driver\\storahci",
+            "\\driver\\iastorv",
+            "\\driver\\iastorav"
+        ],
+
+        "[sptd-drvobjs]": [
+            "\\driver\\atapi",
+            "\\driver\\disk",
+            "\\driver\\iastor",
+            "\\driver\\iastorv",
+            "\\driver\\ntfs"
+        ],
+
+        "[sptd-drivers]": [
+            "atapi.sys",
+            "ataport.sys",
+            "iastorv.sys",
+            "iastor.sys"
+        ],
+
+        "[wow64-dlls]": [
+            "wow64.dll",
+            "wow64win.dll",
+            "wow64cpu.dll"
+        ]
+    },
+
+    "Flags": {
+        "common": {
+            "feedback": "0x00000001",
+            "32": "0x00000002",
+            "64": "0x00000004",
+            "init": "0x00000008",
+            "return": "0x00000010",
+            "linux": "0x00000080",
+            "read": "0x10000000",
+            "write": "0x20000000",
+            "exec": "0x40000000",
+            "ignore": "0x80000000"
+        },
+
+        "kernel-mode": {
+            "non-driver": "0x00000100",
+            "return-drv": "0x00000200",
+            "smap": "0x00000400",
+            "smep": "0x00000800",
+            "integrity": "0x00001000"
+        },
+
+        "user-mode": {
+            "system-process": "0x00000100",
+            "child": "0x00000200",
+            "one-time": "0x00000800",
+            "like-apphelp": "0x00001000",
+
+            "debug": "0x00002000",
+            "reserved": "0x00002000",
+
+            "module-load": "0x00004000"
+        },
+
+        "signatures": {
+            "32": "0x00000001",
+            "64": "0x00000002",
+            "medium": "0x00000004",
+            "linux": "0x00000080",
+            "cli": "0x00010000"
+        }
+    },
+
+    "Types": {
+        "kernel-mode": {
+            "none": 0,
+            "any": 1,
+            "driver": 2,
+            "driver imports": 3,
+            "driver code": 4,
+            "driver data": 5,
+            "driver resources": 6,
+            "ssdt": 7,
+            "drvobj": 8,
+            "fastio": 9,
+            "msr": 10,
+            "cr4": 11,
+            "hal-heap": 12,
+            "idt": 14,
+            "idt-reg": 15,
+            "gdt-reg": 16,
+            "infinity-hook": 17,
+            "driver exports": 18,
+            "token-privs": 19,
+            "sud-exec": 20,
+            "hal-perf-counter": 21
+        },
+
+        "kernel-user-mode" : {
+            "none" : 0,
+            "any" : 1,
+            "module": 2,
+            "module imports": 3,
+            "module exports": 4
+        },
+
+        "user-mode": {
+            "none": 0,
+            "any": 1,
+            "process": 2,
+            "module": 3,
+            "module imports": 4,
+            "nx_zone": 5,
+            "module exports": 6,
+            "thread-context": 7,
+            "peb32": 8,
+            "peb64": 9,
+            "apc-thread": 10,
+            "process-creation" : 11,
+            "double-agent": 12,
+            "process-creation-dpi": 13,
+            "sud-exec": 14
+        }
+    }
+}

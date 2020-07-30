@@ -1,0 +1,125 @@
+{
+    "Type": "user",
+    "Signatures": [
+       {
+            "sig_type": "export",
+            "sig_id": "km-um-browsers-common-export-sig",
+            "library": "ntdll.dll",
+            "hashes": [
+                {
+                    "name": "NtCreateFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtQueryAttributesFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtQueryFullAttributesFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtSetInformationFile",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtSetInformationThread",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenThread",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenProcess",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenProcessToken",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenThreadToken",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenProcessTokenEx",
+                    "delta": 16
+                },
+
+                {
+                    "name": "NtOpenThreadTokenEx",
+                    "delta": 16
+                }
+            ]
+        },
+        
+        {
+            "sig_type": "export",
+            "sig_id": "km-um-chromium-exports",
+            "library": "ntdll.dll",
+            "hashes": [
+                {
+                    "name": "NtMapViewOfSection",
+                    "delta": 16
+                },
+
+                {
+                    "name": "ZwMapViewOfSection",
+                    "delta": 16
+                },
+                
+                {
+                    "name": "NtUnmapViewOfSection",
+                    "delta": 16
+                },
+
+                {
+                    "name": "ZwUnmapViewOfSection",
+                    "delta": 16
+                },
+                
+                {
+                    "name": "NtCreateSection",
+                    "delta": 16
+                },
+                
+                {
+                    "name": "ZwCreateSection",
+                    "delta": 16
+                }
+            ]
+        },
+        
+        {
+            "sig_type": "export",
+            "sig_id": "km-um-firefox-exports",
+            "library": "ntdll.dll",
+            "hashes": [
+                {
+                    "name": "LdrLoadDll",
+                    "delta": 13
+                },
+                
+                {
+                    "name": "NtMapViewOfSection",
+                    "delta": 16
+                }
+            ]
+        }
+   ]
+}

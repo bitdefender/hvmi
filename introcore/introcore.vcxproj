@@ -1,0 +1,500 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{AD618606-60DC-4234-9F35-22072839F0E1}</ProjectGuid>
+    <RootNamespace>introcore</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)_intdir\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <ExtensionsToDeleteOnClean>*.obj%3b*.ilk%3b*.tlb%3b*.tli%3b*.tlh%3b*.tmp%3b*.rsp%3b*.pgc%3b*.pgd%3b*.meta%3b$(TargetPath)</ExtensionsToDeleteOnClean>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+    <LinkDelaySign>false</LinkDelaySign>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)_intdir\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <ExtensionsToDeleteOnClean>*.obj%3b*.ilk%3b*.tlb%3b*.tli%3b*.tlh%3b*.tmp%3b*.rsp%3b*.pgc%3b*.pgd%3b*.meta%3b$(TargetPath)</ExtensionsToDeleteOnClean>
+    <LinkDelaySign>false</LinkDelaySign>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)\bddisasm\inc\bdshemu;$(SolutionDir)\bddisasm\inc;$(SolutionDir)include\public;$(ProjectDir)src\guests\linux\detours;$(ProjectDir)agents;$(ProjectDir)autogen</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>CX_USE_SSE2;WIN32;_DEBUG;_LIB;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <PrecompiledHeader />
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ShowIncludes>false</ShowIncludes>
+      <DisableSpecificWarnings>4201;4152;4200;4214;4204</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>bddisasm.lib;bdshemu.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>$(SolutionDir)\bddisasm\bin\$(Platform)\$(Configuration);$(SolutionDir)bin\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <ModuleDefinitionFile>introcore.def</ModuleDefinitionFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EntryPointSymbol />
+      <NoEntryPoint>true</NoEntryPoint>
+      <BaseAddress>0x000001000000000</BaseAddress>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <FixedBaseAddress>true</FixedBaseAddress>
+      <TargetMachine />
+      <CLRUnmanagedCodeCheck>false</CLRUnmanagedCodeCheck>
+      <AdditionalOptions>/ALIGN:0x200</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>py -3 $(SolutionDir)windows_build\generate_ver_info.py --meta-file $(SolutionDir)project-meta-info.in --out $(SolutionDir)windows_build\info.json --overwrite &amp;&amp; py -3 $(SolutionDir)windows_build\generate_verh.py --ver-path $(SolutionDir)autogen\ver.h --in-file $(SolutionDir)windows_build\info.json --overwrite</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)\bddisasm\inc\bdshemu;$(SolutionDir)\bddisasm\inc;$(SolutionDir)include\public;$(ProjectDir)src\guests\linux\detours;$(ProjectDir)agents;$(ProjectDir)autogen</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>CX_USE_SSE2;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <PrecompiledHeader />
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ShowIncludes>false</ShowIncludes>
+      <DisableSpecificWarnings>4201;4152;4200;4214;4204</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>bddisasm.lib;bdshemu.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\bddisasm\bin\$(Platform)\$(Configuration);$(SolutionDir)bin\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <ModuleDefinitionFile>introcore.def</ModuleDefinitionFile>
+      <NoEntryPoint>true</NoEntryPoint>
+      <ForceSymbolReferences>_vsnprintf</ForceSymbolReferences>
+      <BaseAddress>0x000001000000000</BaseAddress>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <FixedBaseAddress>true</FixedBaseAddress>
+      <TargetMachine />
+      <CLRUnmanagedCodeCheck>false</CLRUnmanagedCodeCheck>
+      <AdditionalOptions>/ALIGN:0x200</AdditionalOptions>
+      <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
+    </Link>
+    <PreBuildEvent>
+      <Command>py -3 $(SolutionDir)windows_build\generate_ver_info.py --meta-file $(SolutionDir)project-meta-info.in --out $(SolutionDir)windows_build\info.json --overwrite &amp;&amp; py -3 $(SolutionDir)windows_build\generate_verh.py --ver-path $(SolutionDir)autogen\ver.h --in-file $(SolutionDir)windows_build\info.json --overwrite</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="agents\agent64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="agents\trampoline32.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="agents\trampoline64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <None Include="introcore.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\disasm\inc\constants.h" />
+    <ClInclude Include="..\disasm\inc\disasm.h" />
+    <ClInclude Include="..\disasm\inc\disasmstatus.h" />
+    <ClInclude Include="..\disasm\inc\disasmtypes.h" />
+    <ClInclude Include="..\disasm\inc\registers.h" />
+    <ClInclude Include="..\include\public\env.h" />
+    <ClInclude Include="..\include\public\intro_sal.h" />
+    <ClInclude Include="..\include\public\glueiface.h" />
+    <ClInclude Include="..\include\public\introstatus.h" />
+    <ClInclude Include="..\include\public\intro_types.h" />
+    <ClInclude Include="..\include\public\upperiface.h" />
+    <ClInclude Include="..\include\public\vecommon.h" />
+    <ClInclude Include="include\agent.h" />
+    <ClInclude Include="include\aghcall.h" />
+    <ClInclude Include="include\alerts.h" />
+    <ClInclude Include="include\alert_exceptions.h" />
+    <ClInclude Include="include\bitmask.h" />
+    <ClInclude Include="include\callbacks.h" />
+    <ClInclude Include="include\codeblocks.h" />
+    <ClInclude Include="include\compiler-gnu.h" />
+    <ClInclude Include="include\compiler-msvc.h" />
+    <ClInclude Include="include\crc32.h" />
+    <ClInclude Include="include\cr_protection.h" />
+    <ClInclude Include="include\debugger.h" />
+    <ClInclude Include="include\decoder.h" />
+    <ClInclude Include="include\detours.h" />
+    <ClInclude Include="include\drivers.h" />
+    <ClInclude Include="include\dtr_protection.h" />
+    <ClInclude Include="include\dumper.h" />
+    <ClInclude Include="include\glue.h" />
+    <ClInclude Include="include\gpacache.h" />
+    <ClInclude Include="include\guests.h" />
+    <ClInclude Include="include\introtypes.h" />
+    <ClInclude Include="include\lixagent.h" />
+    <ClInclude Include="include\lixagent_ondemand.h" />
+    <ClInclude Include="include\lixcred.h" />
+    <ClInclude Include="include\lixdeployer.h" />
+    <ClInclude Include="include\lixhnd.h" />
+    <ClInclude Include="include\lixidt.h" />
+    <ClInclude Include="include\pgtable.h" />
+    <ClInclude Include="include\serializers.h" />
+    <ClInclude Include="include\swapgs.h" />
+    <ClInclude Include="include\introdefs.h" />
+    <ClInclude Include="include\udlist.h" />
+    <ClInclude Include="include\update_guests.h" />
+    <ClInclude Include="include\guest_stack.h" />
+    <ClInclude Include="include\hnd_loggather.h" />
+    <ClInclude Include="include\hnd_remediation.h" />
+    <ClInclude Include="include\hook.h" />
+    <ClInclude Include="include\hook_cr.h" />
+    <ClInclude Include="include\hook_gpa.h" />
+    <ClInclude Include="include\hook_dtr.h" />
+    <ClInclude Include="include\hook_msr.h" />
+    <ClInclude Include="include\hook_object.h" />
+    <ClInclude Include="include\hook_gva.h" />
+    <ClInclude Include="include\hook_ptm.h" />
+    <ClInclude Include="include\hook_pts.h" />
+    <ClInclude Include="include\hook_ptwh.h" />
+    <ClInclude Include="include\hook_xcr.h" />
+    <ClInclude Include="include\icache.h" />
+    <ClInclude Include="include\integrity.h" />
+    <ClInclude Include="include\introapi.h" />
+    <ClInclude Include="include\introcore.h" />
+    <ClInclude Include="include\introcpu.h" />
+    <ClInclude Include="include\structs.h" />
+    <ClInclude Include="include\introcrt.h" />
+    <ClInclude Include="include\intronet.h" />
+    <ClInclude Include="include\kernvm.h" />
+    <ClInclude Include="include\lixapi.h" />
+    <ClInclude Include="include\lixcrash.h" />
+    <ClInclude Include="include\lixddefs.h" />
+    <ClInclude Include="include\lixfastread.h" />
+    <ClInclude Include="include\lixfiles.h" />
+    <ClInclude Include="include\lixguest.h" />
+    <ClInclude Include="include\lixkernel.h" />
+    <ClInclude Include="include\lixksym.h" />
+    <ClInclude Include="include\lixmm.h" />
+    <ClInclude Include="include\lixmodule.h" />
+    <ClInclude Include="include\lixnet.h" />
+    <ClInclude Include="include\lixprocess.h" />
+    <ClInclude Include="include\lixstack.h" />
+    <ClInclude Include="include\lixvdso.h" />
+    <ClInclude Include="include\loader.h" />
+    <ClInclude Include="include\memcloak.h" />
+    <ClInclude Include="include\memtables.h" />
+    <ClInclude Include="include\memtags.h" />
+    <ClInclude Include="include\msr_protection.h" />
+    <ClInclude Include="include\exceptions.h" />
+    <ClInclude Include="include\ptfilter.h" />
+    <ClInclude Include="include\queue.h" />
+    <ClInclude Include="include\rtlpvirtualunwind.h" />
+    <ClInclude Include="include\scan_engines.h" />
+    <ClInclude Include="include\stats.h" />
+    <ClInclude Include="include\thread_safeness.h" />
+    <ClInclude Include="include\update_exceptions.h" />
+    <ClInclude Include="include\patsig.h" />
+    <ClInclude Include="include\deployer.h" />
+    <ClInclude Include="include\rbtree.h" />
+    <ClInclude Include="include\vecore.h" />
+    <ClInclude Include="include\winagent.h" />
+    <ClInclude Include="include\shellcode.h" />
+    <ClInclude Include="include\slack.h" />
+    <ClInclude Include="include\swapmem.h" />
+    <ClInclude Include="include\unpacker.h" />
+    <ClInclude Include="include\utils.h" />
+    <ClInclude Include="include\vasmonitor.h" />
+    <ClInclude Include="include\visibility.h" />
+    <ClInclude Include="include\wddefs.h" />
+    <ClInclude Include="include\winagent_dummy_Win32.h" />
+    <ClInclude Include="include\winagent_dummy_x64.h" />
+    <ClInclude Include="include\winagent_gather_Win32.h" />
+    <ClInclude Include="include\winagent_gather_x64.h" />
+    <ClInclude Include="include\winagent_killer_Win32.h" />
+    <ClInclude Include="include\winagent_killer_x64.h" />
+    <ClInclude Include="include\winagent_ptdriver_x64.h" />
+    <ClInclude Include="include\winagent_ve_x64.h" />
+    <ClInclude Include="include\winbootdrv_Win32.h" />
+    <ClInclude Include="include\winbootdrv_x64.h" />
+    <ClInclude Include="include\windeployer.h" />
+    <ClInclude Include="include\windpi.h" />
+    <ClInclude Include="include\windrv_protected.h" />
+    <ClInclude Include="include\winhal.h" />
+    <ClInclude Include="include\winnet.h" />
+    <ClInclude Include="include\wincmdline.h" />
+    <ClInclude Include="include\winstubs.h" />
+    <ClInclude Include="include\winbugcheck.h" />
+    <ClInclude Include="include\windrvobj.h" />
+    <ClInclude Include="include\winguest.h" />
+    <ClInclude Include="include\winguest_supported.h" />
+    <ClInclude Include="include\winhkhnd.h" />
+    <ClInclude Include="include\winapi.h" />
+    <ClInclude Include="include\winidt.h" />
+    <ClInclude Include="include\windriver.h" />
+    <ClInclude Include="include\winobj.h" />
+    <ClInclude Include="include\winpe.h" />
+    <ClInclude Include="include\winpfn.h" />
+    <ClInclude Include="include\winpool.h" />
+    <ClInclude Include="include\winprocess.h" />
+    <ClInclude Include="include\winprocesshp.h" />
+    <ClInclude Include="include\winstack.h" />
+    <ClInclude Include="include\winthread.h" />
+    <ClInclude Include="include\wintoken.h" />
+    <ClInclude Include="include\winumcache.h" />
+    <ClInclude Include="include\winumcrash.h" />
+    <ClInclude Include="include\winumdoubleagent.h" />
+    <ClInclude Include="include\winummoduleblock.h" />
+    <ClInclude Include="include\winumpath.h" />
+    <ClInclude Include="include\winummodule.h" />
+    <ClInclude Include="include\winuser_checks.h" />
+    <ClInclude Include="include\winvad.h" />
+    <ClInclude Include="include\winpower.h" />
+    <ClInclude Include="include\winselfmap.h" />
+    <ClInclude Include="include\wininfinityhook.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\debugger.c" />
+    <ClCompile Include="src\decoder.c" />
+    <ClCompile Include="src\dumper.c" />
+    <ClCompile Include="src\glue.c" />
+    <ClCompile Include="src\guests\agents\agent.c" />
+    <ClCompile Include="src\guests\agents\deployer.c" />
+    <ClCompile Include="src\guests\agents\handlers\hnd_loggather.c" />
+    <ClCompile Include="src\guests\agents\handlers\hnd_remediation.c" />
+    <ClCompile Include="src\guests\agents\loader.c" />
+    <ClCompile Include="src\guests\alerts.c" />
+    <ClCompile Include="src\guests\cache\gpacache.c" />
+    <ClCompile Include="src\guests\cache\icache.c" />
+    <ClCompile Include="src\guests\callbacks.c" />
+    <ClCompile Include="src\guests\cr_protection.c" />
+    <ClCompile Include="src\guests\detours.c" />
+    <ClCompile Include="src\guests\drivers.c" />
+    <ClCompile Include="src\guests\dtr_protection.c" />
+    <ClCompile Include="src\guests\exceptions\alert_exceptions.c" />
+    <ClCompile Include="src\guests\exceptions\codeblocks.c" />
+    <ClCompile Include="src\guests\exceptions\exceptions.c" />
+    <ClCompile Include="src\guests\exceptions\exceptions_kern.c" />
+    <ClCompile Include="src\guests\exceptions\exceptions_krnusr.c" />
+    <ClCompile Include="src\guests\exceptions\exceptions_user.c" />
+    <ClCompile Include="src\guests\exceptions\serializers.c" />
+    <ClCompile Include="src\guests\guests.c" />
+    <ClCompile Include="src\guests\hooks\mem\hook.c" />
+    <ClCompile Include="src\guests\hooks\mem\hook_gpa.c" />
+    <ClCompile Include="src\guests\hooks\mem\hook_gva.c" />
+    <ClCompile Include="src\guests\hooks\mem\hook_object.c" />
+    <ClCompile Include="src\guests\hooks\mem\hook_ptm.c" />
+    <ClCompile Include="src\guests\hooks\mem\hook_pts.c" />
+    <ClCompile Include="src\guests\hooks\mem\hook_ptwh.c" />
+    <ClCompile Include="src\guests\hooks\reg\hook_cr.c" />
+    <ClCompile Include="src\guests\hooks\reg\hook_dtr.c" />
+    <ClCompile Include="src\guests\hooks\reg\hook_msr.c" />
+    <ClCompile Include="src\guests\hooks\reg\hook_xcr.c" />
+    <ClCompile Include="src\guests\instrument\memtables.c" />
+    <ClCompile Include="src\guests\instrument\ptfilter.c" />
+    <ClCompile Include="src\guests\instrument\rtlpvirtualunwind.c" />
+    <ClCompile Include="src\guests\instrument\swapgs.c" />
+    <ClCompile Include="src\guests\instrument\vecore.c" />
+    <ClCompile Include="src\guests\integrity.c" />
+    <ClCompile Include="src\guests\introapi.c" />
+    <ClCompile Include="src\guests\intronet.c" />
+    <ClCompile Include="src\guests\linux\lixagent.c" />
+    <ClCompile Include="src\guests\linux\lixagent_ondemand.c" />
+    <ClCompile Include="src\guests\linux\lixaghnd.c" />
+    <ClCompile Include="src\guests\linux\lixapi.c" />
+    <ClCompile Include="src\guests\linux\lixcrash.c" />
+    <ClCompile Include="src\guests\linux\lixcred.c" />
+    <ClCompile Include="src\guests\linux\lixdeployer.c" />
+    <ClCompile Include="src\guests\linux\lixfastread.c" />
+    <ClCompile Include="src\guests\linux\lixfiles.c" />
+    <ClCompile Include="src\guests\linux\lixguest.c" />
+    <ClCompile Include="src\guests\linux\lixidt.c" />
+    <ClCompile Include="src\guests\linux\lixkernel.c" />
+    <ClCompile Include="src\guests\linux\lixksym.c" />
+    <ClCompile Include="src\guests\linux\lixmm.c" />
+    <ClCompile Include="src\guests\linux\lixmodule.c" />
+    <ClCompile Include="src\guests\linux\lixnet.c" />
+    <ClCompile Include="src\guests\linux\lixprocess.c" />
+    <ClCompile Include="src\guests\linux\lixstack.c" />
+    <ClCompile Include="src\guests\linux\lixvdso.c" />
+    <ClCompile Include="src\guests\memcloak.c" />
+    <ClCompile Include="src\guests\msr_protection.c" />
+    <ClCompile Include="src\guests\scan_engines.c" />
+    <ClCompile Include="src\guests\shellcode.c" />
+    <ClCompile Include="src\guests\slack.c" />
+    <ClCompile Include="src\guests\swapmem.c" />
+    <ClCompile Include="src\guests\thread_safeness.c" />
+    <ClCompile Include="src\guests\udlist.c" />
+    <ClCompile Include="src\guests\unpacker.c" />
+    <ClCompile Include="src\guests\update\update_exceptions.c" />
+    <ClCompile Include="src\guests\update\update_guests.c" />
+    <ClCompile Include="src\guests\vasmonitor.c" />
+    <ClCompile Include="src\guests\visibility.c" />
+    <ClCompile Include="src\guests\windows\kernel\winapi.c" />
+    <ClCompile Include="src\guests\windows\kernel\winbugcheck.c" />
+    <ClCompile Include="src\guests\windows\kernel\windriver.c" />
+    <ClCompile Include="src\guests\windows\kernel\windrvobj.c" />
+    <ClCompile Include="src\guests\windows\kernel\windrv_protected.c" />
+    <ClCompile Include="src\guests\windows\kernel\winhal.c" />
+    <ClCompile Include="src\guests\windows\kernel\winidt.c" />
+    <ClCompile Include="src\guests\windows\kernel\wininfinityhook.c" />
+    <ClCompile Include="src\guests\windows\kernel\winobj.c" />
+    <ClCompile Include="src\guests\windows\kernel\winpfn.c" />
+    <ClCompile Include="src\guests\windows\kernel\winpool.c" />
+    <ClCompile Include="src\guests\windows\kernel\winpower.c" />
+    <ClCompile Include="src\guests\windows\kernel\winselfmap.c" />
+    <ClCompile Include="src\guests\windows\kernel\wintoken.c" />
+    <ClCompile Include="src\guests\windows\kernel\winvad.c" />
+    <ClCompile Include="src\guests\windows\user\wincmdline.c" />
+    <ClCompile Include="src\guests\windows\user\windpi.c" />
+    <ClCompile Include="src\guests\windows\user\winprocess.c" />
+    <ClCompile Include="src\guests\windows\user\winprocesshp.c" />
+    <ClCompile Include="src\guests\windows\user\winstack.c" />
+    <ClCompile Include="src\guests\windows\user\winthread.c" />
+    <ClCompile Include="src\guests\windows\user\winumcache.c" />
+    <ClCompile Include="src\guests\windows\user\winumcrash.c" />
+    <ClCompile Include="src\guests\windows\user\winumdoubleagent.c" />
+    <ClCompile Include="src\guests\windows\user\winummodule.c" />
+    <ClCompile Include="src\guests\windows\user\winummoduleblock.c" />
+    <ClCompile Include="src\guests\windows\user\winumpath.c" />
+    <ClCompile Include="src\guests\windows\user\winuser_checks.c" />
+    <ClCompile Include="src\guests\windows\winagent.c" />
+    <ClCompile Include="src\guests\windows\windeployer.c" />
+    <ClCompile Include="src\guests\windows\winguest.c" />
+    <ClCompile Include="src\guests\windows\winguest_supported.c" />
+    <ClCompile Include="src\guests\windows\winhkhnd.c" />
+    <ClCompile Include="src\guests\windows\winnet.c" />
+    <ClCompile Include="src\guests\windows\winpe.c" />
+    <ClCompile Include="src\introcore.c" />
+    <ClCompile Include="src\introcpu.c" />
+    <ClCompile Include="src\structs.c" />
+    <ClCompile Include="src\introcrt.c" />
+    <ClCompile Include="src\kernvm.c" />
+    <ClCompile Include="src\patsig.c" />
+    <ClCompile Include="src\stats.c" />
+    <ClCompile Include="src\utils\bitmask.c" />
+    <ClCompile Include="src\utils\conv.c" />
+    <ClCompile Include="src\utils\crc32.c" />
+    <ClCompile Include="src\utils\rbtree.c" />
+    <ClCompile Include="src\utils\snprintf.c" />
+    <ClCompile Include="src\utils\utils.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="agents\agent32.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\hcall32.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\hcall64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\lix_agent.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\lix_thread.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\loadstub32.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\loadstub64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\ptfilter64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\removal32.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\removal64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\startstub32.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\startstub64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\trampoline32_bp.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+    <MASM Include="agents\trampoline64_bp.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </MASM>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
+  </ImportGroup>
+</Project>

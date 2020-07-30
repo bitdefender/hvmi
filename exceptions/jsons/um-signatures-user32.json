@@ -1,0 +1,14 @@
+{
+    "Type": "user",
+    "Signatures": [  
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "user32-export-writes",
+            "flags": "medium 32 64",
+            "score": 3,
+            "hashes": [
+                ["0x65250c48", "0x9fcae4c2", "0x7c530038", "0x21d882de"]
+            ]
+        }
+    ]
+}

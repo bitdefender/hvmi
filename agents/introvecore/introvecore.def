@@ -1,0 +1,18 @@
+LIBRARY "introvecore.sys"
+EXPORTS
+    DllInitialize PRIVATE
+    DllUnload PRIVATE
+    VeCoreVirtualizationExceptionHandlerNoKPTI
+    VeCoreVirtualizationExceptionHandlerKPTI
+    VeCoreVirtualizationExceptionHandler
+    VeCoreProtectedEptIndex
+    VeCoreUntrustedEptIndex
+    VeCoreSelfMapIndex
+    VeCoreMonitoredPtBits
+    VeCoreVePages
+    VeCoreVeStacks
+    VeCoreJumpToKiKernelExit
+    VeCoreJumpToReplacedCode
+    VeCoreReplacedCode
+    VeCoreCache
+    VeCpuMap

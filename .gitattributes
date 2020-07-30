@@ -1,0 +1,17 @@
+* text=auto
+
+*.c text
+*.h text
+*.cpp text
+*.hpp text
+*.py text
+*.pl text
+.gitignore text
+
+*.cfg text eol=lf
+*.sh text eol=lf
+
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.filters text eol=crlf
+*.bat text eol=crlf

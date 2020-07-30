@@ -1,0 +1,6 @@
+Linux log gather agent
+
+
+A tool that received a path, gathers the logs from that path and sends them to
+HVI.
+

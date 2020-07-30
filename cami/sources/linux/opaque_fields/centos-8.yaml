@@ -1,0 +1,281 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+!intro_update_lix_supported_os
+version: 4.18.0-[80-166]*el8*
+
+hooks:
+    - !intro_update_lix_hook
+        name: run_init_process
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: sched_init
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: module_param_sysfs_setup
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: module_param_sysfs_remove
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: flush_old_exec
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: do_exit
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: cgroup_post_fork
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: wake_up_new_task
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: arch_ptrace
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: compat_arch_ptrace
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: process_vm_rw_core*
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: __vma_link_rb
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: change_protection
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: __vma_adjust
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: __vma_rb_erase
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: expand_downwards
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: complete_signal
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: text_poke
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: commit_creds
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: ftrace_write
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: crash_kexec
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: panic
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: arch_jump_label_transform
+        handler: 0
+        skip_on_boot: 0
+
+    - !intro_update_lix_hook
+        name: __access_remote_vm
+        handler: 0
+        skip_on_boot: 0
+
+
+fields: !opaque_structures
+    type: lix_fields
+    os_structs:
+
+        Info: !opaque_fields
+            ThreadSize : 0x4000
+            HasModuleLayout : 0x0001
+            HasVdsoImageStruct : 0x0001
+            HasSmallSlack : 0x0000
+            HasKsymRelative : 0x0001
+            HasKsymAbsolutePercpu : 0x0001
+            HasKsymSize : 0x0000
+            HasAlternateSyscall : 0x0001
+            HasVdsoFixed : 0x0001
+
+        Module: !opaque_fields
+            ListOffset : 0x0008
+            NameOffset : 0x0018
+            SymbolsOffset : 0x00f8
+            NumberOfSymbolsOffset : 0x0108
+            GplSymbolsOffset : 0x0140
+            NumberOfGplSymbolsOffset : 0x013c
+            InitOffset : 0x0178
+            ModuleInitOffset : 0x0000
+            ModuleCoreOffset : 0x0000
+            InitSizeOffset : 0x0000
+            CoreSizeOffset : 0x0000
+            InitTextSizeOffset : 0x0000
+            CoreTextSizeOffset : 0x0000
+            InitRoSizeOffset : 0x0000
+            CoreRoSizeOffset : 0x0000
+            CoreLayoutOffset : 0x0180
+            InitLayoutOffset : 0x01d0
+            StateOffset : 0x0000
+            Sizeof : 0x0380
+
+        Binprm: !opaque_fields
+            MmOffset : 0x0110
+            FileOffset : 0x0128
+            CredOffset : 0x0130
+            FilenameOffset : 0x0148
+            InterpOffset : 0x0150
+            Vma : 0x0100
+            Argc : 0x0140
+            Sizeof : 0x0180
+
+        Vma: !opaque_fields
+            VmaStartOffset : 0x0000
+            VmaEndOffset : 0x0008
+            VmNextOffset : 0x0010
+            VmPrevOffset : 0x0018
+            RbNodeOffset : 0x0020
+            MmOffset : 0x0040
+            FlagsOffset : 0x0050
+            FileOffset : 0x00a0
+
+        Dentry: !opaque_fields
+            ParentOffset : 0x0018
+            NameOffset : 0x0020
+            DinameOffset : 0x0038
+            InodeOffset : 0x0030
+
+        MmStruct: !opaque_fields
+            PgdOffset : 0x0050
+            MmUsersOffset : 0x0058
+            MmListOffset : 0x0098
+            StartCodeOffset : 0x00f8
+            EndCodeOffset : 0x0100
+            StartDataOffset : 0x0108
+            EndDataOffset : 0x0110
+            FlagsOffset : 0x0368
+            ExeFileOffset : 0x0398
+            VmaOffset : 0x0000
+            StartStack: 0x0128
+            RbNodeOffset : 0x0008
+
+        TaskStruct: !opaque_fields
+            StackOffset : 0x0018
+            UsageOffset : 0x0020
+            FlagsOffset : 0x0024
+            TasksOffset : 0x0800
+            PidOffset : 0x0900
+            TgidOffset : 0x0904
+            RealParentOffset : 0x0910
+            ParentOffset : 0x0918
+            MmOffset : 0x0850
+            StartTimeOffset : 0x0a60
+            CommOffset : 0x0ae0
+            SignalOffset : 0x0b30
+            ExitCodeOffset : 0x08a0
+            ThreadNodeOffset : 0x0000
+            ThreadGroupOffset : 0x0000
+            CredOffset : 0x0ad0
+            FsOffset : 0x0b18
+            FilesOffset : 0x0b20
+            NsProxyOffset : 0x0b28
+            GroupLeader: 0x0940
+            InExecve: 0x08c0
+            ExitSignal: 0x08a4
+            ThreadStructSp : 0x0018
+            AltStackSp: 0x0b70
+
+        Fs: !opaque_fields
+            RootOffset : 0x0018
+            PwdOffset : 0x0028
+            Sizeof : 0x0038
+
+        FdTable: !opaque_fields
+            MaxFdsOffset : 0x0000
+            FdOffset : 0x0008
+
+        Files: !opaque_fields
+            FdtOffset : 0x0020
+            Sizeof : 0x02c0
+
+        Inode: !opaque_fields
+            ImodeOffset : 0x0000
+            UidOffset   : 0x0004
+            GidOffset   : 0x0008
+            Sizeof : 0x0288
+
+        Socket: !opaque_fields
+            StateOffset : 0x0000
+            TypeOffset : 0x0004
+            FlagsOffset : 0x0008
+            SkOffset : 0x0020
+
+        Sock: !opaque_fields
+            NumOffset : 0x000e
+            DportOffset : 0x000c
+            DaddrOffset : 0x0000
+            RcvSaddrOffset : 0x0004
+            FamilyOffset : 0x0010
+            StateOffset : 0x0012
+            ProtoOffset : 0x0028
+            V6DaddrOffset : 0x0038
+            V6RcvSaddrOffset : 0x0048
+            Sizeof : 0x0378
+
+        Cred: !opaque_fields
+            UsageOffset : 0x0000
+            RcuOffset : 0x0098
+            Sizeof : 0x00a8
+
+        Ungrouped: !opaque_fields
+            FileDentryOffset : 0x0018
+            ProtoNameOffset : 0x0170
+            SignalListHeadOffset : 0x0010
+            SocketAllocVfsInodeOffset : 0x0030
+            Running : 2
+            FilePathOffset : 0x0010
+            SignalNrThreadsOffset : 0x0008

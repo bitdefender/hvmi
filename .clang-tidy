@@ -1,0 +1,7 @@
+---
+Checks:          '*,bugprone-*,misc-*,performance-*,readability-*,clang-analyzer-*,cert-*,-llvm-header-guard,-llvm-include-order,-clang-diagnostic-missing-braces,-clang-diagnostic-cast-align,-clang-analyzer-security.insecureAPI*,-readability-avoid-const-params-in-decls,-readability-isolate-declaration,-readability-else-after-return,-readability-uppercase-literal-suffix,-readability-magic-numbers,-hicpp*,-cppcoreguidelines*'
+WarningsAsErrors: ''
+HeaderFilterRegex: 'introcore/include/*.h'
+AnalyzeTemporaryDtors: false
+FormatStyle:     file
+...

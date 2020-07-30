@@ -1,0 +1,78 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiFinishVadDeletion
+guest64: True
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RDX   # The base of the deleted VA range
+            - DET_ARG_R8    # he end (last byte) of the deleted VA range
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+20h],r9d
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,88h
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x100, 0x100, 0x100, 0x100] #  mov   rdi,qword ptr gs:[188h]
+                - [0x45, 0x33, 0xff]                                 #  xor     r15d,r15d
+                - [0x44, 0x8b, 0x51, 0x100]                          #  mov     r10d,dword ptr [rcx+30h]
+                - [0x4c, 0x8b, 0xda]                                 #  mov     r11,rdx
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+58h],rdi
+                - [0x4c, 0x8b, 0xe9]                                 #  mov     r13,rcx
+                - [0xbe, 0x100, 0x100, 0x100, 0x100]                 #  mov     esi,1
+                - [0x41, 0x8b, 0xd7]                                 #  mov     edx,r15d
+                - [0x48, 0x8b, 0x9f, 0x100, 0x100, 0x100, 0x100]     #  mov     rbx,qword ptr [rdi+0B8h]
+                - [0x41, 0x0f, 0xba, 0xe2, 0x100]                    #  bt      r10d,1Dh
+                - [0x0f, 0x83, 0x100, 0x100, 0x100, 0x100]           #  jae     nt!MiFinishVadDeletion+0x7b1 (fffff803`b4643891)
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0x89, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [rsp+0D0h],ecx
+                - [0x41, 0x0f, 0xba, 0xe2, 0x100]                    #  bt      r10d,0Eh
+                - [0x72, 0x100]                                      #  jb      nt!MiFinishVadDeletion+0x88 (fffff803`b4643168)
+                - [0x41, 0x8b, 0x45, 0x100]                          #  mov     eax,dword ptr [r13+34h]
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+20h],r9d
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,68h
+                - [0x65, 0x4c, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   r14,qword ptr gs:[188h]
+                - [0x45, 0x33, 0xff]                                 #  xor     r15d,r15d
+                - [0x44, 0x8b, 0x51, 0x100]                          #  mov     r10d,dword ptr [rcx+30h]
+                - [0x4d, 0x8b, 0xd8]                                 #  mov     r11,r8
+                - [0x4c, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],r14
+                - [0x4c, 0x8b, 0xe9]                                 #  mov     r13,rcx
+                - [0xbe, 0x100, 0x100, 0x00, 0x00]                   #  mov     esi,1
+                - [0x45, 0x8b, 0xc7]                                 #  mov     r8d,r15d
+                - [0x49, 0x8b, 0x9e, 0x100, 0x100, 0x00, 0x00]       #  mov     rbx,qword ptr [r14+0B8h]
+                - [0x41, 0x0f, 0xba, 0xe2, 0x100]                    #  bt      r10d,1Dh
+                - [0x0f, 0x83, 0x100, 0x100, 0x100, 0x100]           #  jae     nt!MiFinishVadDeletion+0x74f (fffff802`1a9796ff)

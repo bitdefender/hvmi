@@ -1,0 +1,85 @@
+{
+    "Type": "user",
+    "Signatures": [  
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "ntdll-init-32",
+            "score": 3,
+            "flags": "medium 32",
+            "hashes": [
+                ["0x5fccd2b4", "0x3ec3c5d7", "0x25d166c2", "0x82f1e62c"],
+                ["0x02f6c33e", "0x334ca451", "0x6c25fc22", "0x27232b21"],
+                ["0x50b51008", "0x06e776b1", "0xfb7c7fb7", "0xb256523c"],
+                ["0xc28712d1", "0x79827fdd", "0xf1bd4556", "0x5d4617f1"],
+                ["0x5fccd2b4", "0xdc3dafa1", "0xb91838f9", "0x6d9bbaae"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "ntdll-wow64-init",
+            "score": 3,
+            "flags": "medium 32 64",
+            "hashes": [
+                ["0x8b2b6d64", "0x43f2e76c", "0x433a3ee6", "0x408c1433"],
+                ["0xd6108569", "0x68258854", "0xfb065964", "0xc080b30a"],
+                ["0xd2d80434", "0xeb86517b", "0x85f0e556", "0x65250c48"],
+                ["0x72e36a37", "0xb1692f25", "0xdb1a8592", "0xd332895e"],
+                ["0x00a9377d", "0x29c945c4", "0x9b5d2e9e", "0x0acc704e"],
+                ["0x2ec71484", "0x6eb33a01", "0x584525f8", "0xcaf2a2c4", "0x9bbe1579", "0x3d2a252a",  "0xdcfb0281", "0xea199950"],
+                ["0xfee9cac0", "0x1fb3c0e3", "0xa8ee280b", "0xd2d80434", "0xeb86517b", "0xedd219e8",  "0x07750859", "0x15cd7d2a"],
+                ["0xc6c834d0", "0x0e72bf4f", "0xe110cfcc", "0x9b95f714", "0xada63b8d", "0x94d9b8d4"],
+                ["0xef1163ab", "0x6eb33a01", "0x77ae07eb", "0x30d27485", "0x9a9f44a9", "0xa07e8076"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "ntdll-rdata-64",
+            "score": 3,
+            "flags": "medium 64",
+            "hashes": [
+                ["0x0b3fd293", "0xf9a2c5d6", "0xffe6edde", "0xdc0f5a75"],
+                ["0x72e36a37", "0xb1692f25", "0xdb1a8592", "0xd332895e"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "ntdll-wow-rdata-64",
+            "score": 3,
+            "flags": "medium 64",
+            "hashes": [
+                ["0x72e36a37", "0xb1692f25", "0xdb1a8592", "0xd332895e"],
+                ["0x6b57b024", "0xe7db0d27", "0xdc21f3a9", "0xf57be0e7"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "ntdll-iat-writes",
+            "flags": "medium 32 64",
+            "score": 3,
+            "hashes": [
+                ["0xa03bbc03", "0x0dfb1642", "0x7f77d3c6", "0x0bb48d99"],
+                ["0xd6438dcc", "0x5a4c295c", "0x6a51d37c", "0x5ea48db6"],
+                ["0x6e139105", "0x79a28e5e", "0x850cb73d", "0x514b29e6"],
+                ["0xb580ae97", "0x6778ef09", "0x7ec62139", "0x4044cdb9"],
+                ["0x5a4c295c", "0xf1d6e515", "0x6a51d37c", "0xc976543e"],
+                ["0xc133efc8", "0xd229bd76", "0xd7e5f508", "0x09718cb5"],
+                ["0x866fe0f0", "0x21cd72b9", "0x6a51d37c", "0x5ea48db6"],
+                ["0xb6e401c3", "0x5a4c295c", "0x12223cde", "0x66043c9d"],
+                ["0xd89af900", "0x12223cde", "0x66043c9d", "0x89a50ab7"],
+                ["0xc1cb1f35", "0xbbcd1b30", "0x211f1cc5", "0xec52c851"],
+                ["0x5a4c295c", "0x12223cde", "0x11030c0b", "0xe7b90b60"],
+                ["0xf9a2c5d6", "0x1f3304c0", "0xa052ce9a", "0xecc032af"],
+                ["0x5a4c295c", "0x68dfb4af", "0x367bb029", "0xa52cebb0"],
+                ["0xf8d185af", "0xb6e401c3", "0x5a4c295c", "0x85f0e556"],
+                ["0xa5c297a3", "0x4807d1b7", "0xdaac227c", "0x50cff875"],
+                ["0x7eef0e4a", "0xe60d9664", "0x3a437933", "0x22a5b887"],
+                ["0x417c80bf", "0x2be50379", "0x2e8fcde9", "0xde853463"],
+                ["0x5a4c295c", "0x12223cde", "0x68dfb4af", "0x4fa7088d"]
+            ]
+        }
+    ]
+}

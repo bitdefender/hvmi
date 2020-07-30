@@ -1,0 +1,396 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+
+lix_fields:
+    -
+      Name: Info
+      Members:
+            - ThreadSize
+            - HasModuleLayout
+            - HasVdsoImageStruct
+            - HasSmallSlack
+            - HasKsymRelative
+            - HasKsymAbsolutePercpu
+            - HasKsymSize
+            - HasAlternateSyscall
+            - HasVmaAdjustExpand
+            - HasVdsoFixed
+            - HasKsymReducedSize
+
+    -
+      Name: Module
+      Members:
+            - Sizeof
+            - ListOffset
+            - NameOffset
+            - SymbolsOffset
+            - NumberOfSymbolsOffset
+            - GplSymbolsOffset
+            - NumberOfGplSymbolsOffset
+            - InitOffset
+            - ModuleInitOffset
+            - ModuleCoreOffset
+            - InitSizeOffset
+            - CoreSizeOffset
+            - InitTextSizeOffset
+            - CoreTextSizeOffset
+            - InitRoSizeOffset
+            - CoreRoSizeOffset
+            - CoreLayoutOffset
+            - InitLayoutOffset
+            - StateOffset
+
+    -
+      Name: Binprm
+      Members:
+            - Sizeof
+            - MmOffset
+            - FileOffset
+            - CredOffset
+            - FilenameOffset
+            - InterpOffset
+            - Vma
+            - Argc
+
+    -
+      Name: Vma
+      Members:
+            - VmaStartOffset
+            - VmaEndOffset
+            - VmNextOffset
+            - VmPrevOffset
+            - MmOffset
+            - FlagsOffset
+            - FileOffset
+            - RbNodeOffset
+
+    -
+      Name: Dentry
+      Members:
+            - ParentOffset
+            - NameOffset
+            - DinameOffset
+            - InodeOffset
+
+    -
+      Name: MmStruct
+      Members:
+            - PgdOffset
+            - MmUsersOffset
+            - MmCountOffset
+            - MmListOffset
+            - StartCodeOffset
+            - EndCodeOffset
+            - StartDataOffset
+            - EndDataOffset
+            - FlagsOffset
+            - ExeFileOffset
+            - VmaOffset
+            - StartStack
+            - RbNodeOffset
+            - VdsoAddressOffset
+
+    -
+      Name: TaskStruct
+      Members:
+            - StackOffset
+            - UsageOffset
+            - FlagsOffset
+            - TasksOffset
+            - PidOffset
+            - TgidOffset
+            - RealParentOffset
+            - ParentOffset
+            - MmOffset
+            - StartTimeOffset
+            - CommOffset
+            - SignalOffset
+            - ExitCodeOffset
+            - ThreadNodeOffset
+            - ThreadGroupOffset
+            - CredOffset
+            - FsOffset
+            - FilesOffset
+            - NsProxyOffset
+            - GroupLeader
+            - ExitSignal
+            - InExecve
+            - InExecveBit
+            - ThreadStructSp
+            - AltStackSp
+    -
+      Name: Fs
+      Members:
+            - Sizeof
+            - RootOffset
+            - PwdOffset
+
+    -
+      Name: FdTable
+      Members:
+            - MaxFdsOffset
+            - FdOffset
+
+    -
+      Name: Files
+      Members:
+            - Sizeof
+            - FdtOffset
+
+    -
+      Name: Inode
+      Members:
+            - Sizeof
+            - ImodeOffset
+            - UidOffset
+            - GidOffset
+
+    -
+      Name: Socket
+      Members:
+            - StateOffset
+            - TypeOffset
+            - FlagsOffset
+            - SkOffset
+
+    -
+      Name: Sock
+      Members:
+            - Sizeof
+            - NumOffset
+            - DportOffset
+            - DaddrOffset
+            - RcvSaddrOffset
+            - FamilyOffset
+            - StateOffset
+            - ProtoOffset
+            - V6DaddrOffset
+            - V6RcvSaddrOffset
+
+    -
+      Name: Cred
+      Members:
+            - Sizeof
+            - UsageOffset
+            - RcuOffset
+
+    -
+      Name: NsProxy
+      Members:
+            - CountOffset
+            - UtsOffset
+            - IpcOffset
+            - MntOffset
+            - PidOffset
+            - NetOffset
+
+    -
+      Name: Ungrouped
+      Members:
+            - FileDentryOffset
+            - ProtoNameOffset
+            - SignalListHeadOffset
+            - SocketAllocVfsInodeOffset
+            - Running
+            - FilePathOffset
+            - SignalNrThreadsOffset
+
+
+win_km_fields:
+    -
+      Name: Process
+      Members:
+        - Cr3
+        - UserCr3
+        - KexecOptions
+        - ListEntry
+        - Name
+        - SectionBase
+        - Id
+        - ParentPid
+        - VadRoot
+        - CreateTime
+        - ExitStatus
+        - Token
+        - ObjectTable
+        - Peb
+        - ThreadListHead
+        - WoW64
+        - Flags
+        - Flags3
+        - MitigationFlags
+        - MitigationFlags2
+        - DebugPort
+        - Spare
+
+    -
+      Name: Thread
+      Members:
+        - Process
+        - ThreadListEntry
+        - KernelStack
+        - StackBase
+        - StackLimit
+        - State
+        - WaitReason
+        - AttachedProcess
+        - Teb
+        - Id
+        - ClientSecurity
+        - TrapFrame
+        - Win32StartAddress
+
+    -
+      Name: DrvObj
+      Members:
+        - Size
+        - FiodispSize
+        - AllocationGap
+        - Fiodisp
+        - Start
+
+    -
+      Name: Pcr
+      Members:
+        - CurrentThread
+        - UserTime
+
+    -
+      Name: PoolDescriptor
+      Members:
+        - TotalBytes
+        - NppSize
+
+    -
+      Name: Mmpfn
+      Members:
+        - Size
+        - Pte
+        - RefCount
+        - Flags
+        - PaeSize
+        - PaePte
+        - PaeRefCount
+        - PaeFlags
+
+    -
+      Name: Token
+      Members:
+        - Privs
+        - UserCount
+        - RestrictedCount
+        - Users
+        - RestrictedSids
+
+    -
+      Name: Ungrouped
+      Members:
+        - CtlAreaFile
+        - HandleTableTableCode
+        - HalIntCtrlType
+        - WmiGetClockOffset
+        - EtwDbgDataSiloOffset
+        - EtwSignatureOffset
+        - SubsectionCtlArea
+
+    -
+      Name: EprocessFlags
+      Members:
+        - NoDebugInherit
+        - Exiting
+        - Delete
+        - 3Crashed
+        - VmDeleted
+        - HasAddrSpace
+
+    -
+      Name: VadShort
+      Members:
+        # Parent, Left, and Right point to the other nodes in the VAD tree and are always the
+        # size of the pointer on that guest
+        - Parent
+        - Left
+        - Right
+        # StartingVpn is the page frame number of the first page in the allocation
+        - StartingVpn
+        # Some 64-bit systems use StartingVpnHigh to extend StartingVpn, it is 0 on systems
+        # that do not use it; it is always 1 byte
+        - StartingVpnHigh
+        # EndingVpnHigh is the page frame number of the last page in the allocation
+        - EndingVpn
+        # Some 64-bit systems use StartingVpnHigh to extend StartingVpn, it is 0 on systems
+        # that do not use it
+        - EndingVpnHigh
+        # Various flags that describe the VAD type, protection, etc
+        - Flags
+        # For most systems, Flags has a 32-bit size, but for some it is extended to 64-bit
+        # This is the minimum size required in order to properly parse the Flags field
+        - FlagsSize
+        # The size of StartingVpn and EndingVpn varies with the OS version, use this in order
+        # to know how much to read when using Vpns
+        - VpnSize
+        # The minimum size needed in order to properly parse a _MMVAD_SHORT structure
+        - Size
+
+    -
+      Name: VadLong
+      Members:
+        - Subsection
+
+    -
+      Name: VadFlags
+      Members:
+        # In order to obtain a VadType value from the Flags field, it must be right shifted
+        # with TypeShift, and then masked with TypeMask
+        - TypeShift
+        - TypeMask
+        # In order to obtain a VadProtection value from the Flags field, it must be right shifted
+        # with ProtectionShift, and then masked with ProtectionMask
+        - ProtectionShift
+        - ProtectionMask
+        # NoChange is a always just a bit in the Flags field
+        - NoChangeBit
+        # PrivateFixup is not present on all Windows versions (it will be 0 on those versions)
+        - PrivateFixup
+        # DeleteInProgress is not present on all Windows versions (it will be 0 on those versions)
+        - DeleteInProgress
+    -
+      Name: SyscallNumbers
+      Members:
+        - NtWriteVirtualMemory
+        - NtProtectVirtualMemory
+        - NtCreateThreadEx
+
+    -
+      Name: FileObject
+      Members:
+        # Both NameBuffer and NameLength come from the UNICODE_STRING structure embeded in FILE_OBJECT
+        # but it is easier to use them like this instead of holding an offsrt to the FileName field and
+        # then treat that as an UNICODE_STRING
+        - NameBuffer
+        - NameLength
+
+win_um_fields:
+    -
+      Name: Dll
+      Members:
+        - BaseOffsetInModule64
+        - BaseOffsetInModule32
+        - SizeOffsetInModule64
+        - SizeOffsetInModule32
+        - NameOffsetInModule64
+        - NameOffsetInModule32
+    -
+      Name: Peb
+      Members:
+        - 64Size
+        - 32Size
+    -
+      Name: Teb
+      Members:
+        - 64Size
+        - 32Size
+        - Wow64SaveArea
+        - Wow64StackInSaveArea

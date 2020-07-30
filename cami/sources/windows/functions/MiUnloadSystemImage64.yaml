@@ -1,0 +1,644 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiUnloadSystemImage
+guest64: True
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX   # Ldr Address
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x4c, 0x8b, 0x69, 0x100]                          #  mov     r13,qword ptr [rcx+30h]
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x44, 0x8b, 0xf2]                                 #  mov     r14d,edx
+                - [0x48, 0x8b, 0xe9]                                 #  mov     rbp,rcx
+                - [0x48, 0x39, 0x99, 0x100, 0x00, 0x00, 0x00]        #  cmp     qword ptr [rcx+88h],rbx
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MiUnloadSystemImage+0x693 (fffff800`036ad373)
+                - [0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00] #  mov rax,70000000000h
+                - [0x48, 0xb9, 0xff, 0xff, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x00] #  mov rcx,7FFFFFFFFFh
+                - [0xbf, 0xc0, 0x00, 0x00, 0x00]                     #  mov     edi,0C0h
+                - [0x49, 0x03, 0xc5]                                 #  add     rax,r13
+                - [0xbe, 0xff, 0xff, 0xff, 0xff]                     #  mov     esi,0FFFFFFFFh
+                - [0x44, 0x8d, 0x63, 0x01]                           #  lea     r12d,[rbx+1]
+                - [0x44, 0x8d, 0x7f, 0x100]                          #  lea     r15d,[rdi+40h]
+                - [0x48, 0x3b, 0xc1]                                 #  cmp     rax,rcx
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  ja      nt!MiUnloadSystemImage+0x266 (fffff800`036acf46)
+                - [0x49, 0x8b, 0xcd]                                 #  mov     rcx,r13
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x100]                          #  mov     qword ptr [rax+18h],rbx
+                - [0x48, 0x89, 0x68, 0x100]                          #  mov     qword ptr [rax+20h],rbp
+                - [0x89, 0x50, 0x100]                                #  mov     dword ptr [rax+10h],edx
+                - [0x48, 0x89, 0x48, 0x100]                          #  mov     qword ptr [rax+8],rcx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,40h
+                - [0x45, 0x33, 0xff]                                 #  xor     r15d,r15d
+                - [0x44, 0x39, 0x3d, 0x100, 0x100, 0x100, 0x100]     #  cmp     dword ptr [nt!InitializationPhase (fffff800`03215930)],r15d
+                - [0x74, 0x100]                                      #  je      nt!MiUnloadSystemImage+0x3e (fffff800`034e7fca)
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rax,qword ptr gs:[188h]
+                - [0x48, 0x39, 0x05, 0x100, 0x100, 0x100, 0x100]     #  cmp     qword ptr [nt!MmSystemLoadLock+0x28 (fffff800`031a6e28)],rax
+                - [0x74, 0x100]                                      #  je      nt!MiUnloadSystemImage+0x3e (fffff800`034e7fca)
+                - [0xcd, 0x2c]                                       #  int     2Ch
+                - [0x48, 0x8b, 0x6c, 0x24, 0x100]                    #  mov     rbp,qword ptr [rsp+70h]
+                - [0x41, 0x8b, 0xff]                                 #  mov     edi,r15d
+                - [0x4c, 0x8b, 0x6d, 0x100]                          #  mov     r13,qword ptr [rbp+30h]
+                - [0x4c, 0x39, 0xbd, 0x100, 0x00, 0x00, 0x00]        #  cmp     qword ptr [rbp+88h],r15
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MiUnloadSystemImage+0x878 (fffff800`034e8804)
+                - [0x66, 0x44, 0x39, 0x7d, 0x100]                    #  cmp     word ptr [rbp+6Ch],r15w
+                - [0x75, 0x100]                                      #  jne     nt!MiUnloadSystemImage+0x60 (fffff800`034e7fec)
+                - [0xcd, 0x2c]                                       #  int     2Ch
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x100, 0x24, 0x100, 0x48, 0x89, 0x100] #
+                - [0x24, 0x100, 0x100, 0x100, 0x41, 0x100, 0x41, 0x100] #
+                - [0x41, 0x100, 0x48, 0x83, 0xec, 0x100, 0x4c, 0x8b] #
+                - [0x100, 0x30, 0x33, 0x100, 0x44, 0x8b, 0x100, 0x48] #
+                - [0x8b, 0x100, 0x48, 0x39, 0x100, 0x88, 0x00, 0x00] #
+                - [0x00]                                             #
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x4c, 0x8b, 0x69, 0x100]                          #  mov     r13,qword ptr [rcx+30h]
+                - [0x33, 0xff]                                       #  xor     edi,edi
+                - [0x44, 0x8b, 0xf2]                                 #  mov     r14d,edx
+                - [0x48, 0x8b, 0xe9]                                 #  mov     rbp,rcx
+                - [0x48, 0x39, 0xb9, 0x100, 0x100, 0x100, 0x100]     #  cmp     qword ptr [rcx+88h],rdi
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0x6bd (fffff800`03479eed)
+                - [0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x100, 0x100, 0x100, 0x100] #  mov rax,70000000000h
+                - [0x48, 0xb9, 0xff, 0xff, 0xff, 0xff, 0x100, 0x100, 0x100, 0x100] #  mov rcx,7FFFFFFFFFh
+                - [0xbb, 0x100, 0x100, 0x100, 0x100]                 #  mov     ebx,0C0h
+                - [0x49, 0x03, 0xc5]                                 #  add     rax,r13
+                - [0xbe, 0x100, 0x100, 0x100, 0x100]                 #  mov     esi,0FFFFFFFFh
+                - [0x44, 0x8d, 0x67, 0x100]                          #  lea     r12d,[rdi+1]
+                - [0x44, 0x8d, 0x7b, 0x100]                          #  lea     r15d,[rbx+40h]
+                - [0x48, 0x3b, 0xc1]                                 #  cmp     rax,rcx
+                - [0x0f, 0x87, 0x100, 0x100, 0x100, 0x100]           #  ja      nt!MiUnloadSystemImage+0x26e (fffff800`03479a9e)
+                - [0x49, 0x8b, 0xcd]                                 #  mov     rcx,r13
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x8b, 0xdc]                                 #  mov     r11,rsp
+                - [0x49, 0x89, 0x5b, 0x10]                           #  mov     qword ptr [r11+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0xd0, 0x00, 0x00, 0x00]         #  sub     rsp,0D0h
+                - [0x48, 0x83, 0xb9, 0x88, 0x00, 0x00, 0x00, 0x01]   #  cmp     qword ptr [rcx+88h],1
+                - [0x44, 0x8b, 0xf2]                                 #  mov     r14d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      ???
+                - [0x48, 0x8b, 0x71, 0x30]                           #  mov     rsi,qword ptr [rcx+30h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x89, 0x54, 0x24, 0x10]                           #  mov     dword ptr [rsp+10h],edx
+                - [0x55]                                             #
+                - [0x53]                                             #
+                - [0x56]                                             #
+                - [0x57]                                             #
+                - [0x41, 0x54]                                       #
+                - [0x41, 0x55]                                       #
+                - [0x41, 0x56]                                       #
+                - [0x41, 0x57]                                       #
+                - [0x48, 0x8d, 0x6c, 0x24, 0xe1]                     #  lea     rbp,[rsp-1Fh]
+                - [0x48, 0x81, 0xec, 0xe8, 0x00, 0x00, 0x00]         #  sub     rsp,0E8h
+                - [0x48, 0x83, 0x65, 0x87, 0x00]                     #  and     qword ptr [rbp-79h],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x48, 0x83, 0xb9, 0x88, 0x00, 0x00, 0x00, 0x01]   #  cmp     qword ptr [rcx+88h],1
+                - [0x44, 0x8b, 0xe2]                                 #  mov     r12d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #
+                - [0x56]                                             #
+                - [0x57]                                             #
+                - [0x41, 0x54]                                       #
+                - [0x41, 0x55]                                       #
+                - [0x41, 0x56]                                       #
+                - [0x41, 0x57]                                       #
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-27h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,100h
+                - [0x48, 0x83, 0x64, 0x24, 0x100, 0x00]              #  and     qword ptr [rsp+50h],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x48, 0x83, 0xb9, 0x100, 0x00, 0x00, 0x00, 0x01]  #  cmp     qword ptr [rcx+88h],1
+                - [0x44, 0x8b, 0xfa]                                 #  mov     r15d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+58h],rax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push rbp
+                - [0x56]                                             #  push rsi
+                - [0x57]                                             #  push rdi
+                - [0x41, 0x54]                                       #  push r12
+                - [0x41, 0x55]                                       #  push r13
+                - [0x41, 0x56]                                       #  push r14
+                - [0x41, 0x57]                                       #  push r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0xd9]                     #  lea     rbp,[rsp-27h]
+                - [0x48, 0x81, 0xec, 0xf0, 0x00, 0x00, 0x00]         #  sub     rsp,0F0h
+                - [0x48, 0x83, 0x65, 0x8f, 0x00]                     #  and     qword ptr [rbp-71h],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x48, 0x83, 0xb9, 0x88, 0x00, 0x00, 0x00, 0x01]   #  cmp     qword ptr [rcx+88h],1
+                - [0x44, 0x8b, 0xea]                                 #  mov     r13d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-10h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,110h
+                - [0x48, 0x83, 0x64, 0x24, 0x100, 0x00]              #  and     qword ptr [rsp+58h],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x48, 0x83, 0xb9, 0x100, 0x00, 0x00, 0x00, 0x01]  #  cmp     qword ptr [rcx+88h],1
+                - [0x44, 0x8b, 0xea]                                 #  mov     r13d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+60h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+68h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+70h],rax
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MiUnloadSystemImage+0x35c (fffff803`d7bc3aac)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x73c7c (fffff803`d7c92b5c)
+                - [0x4c, 0x8d, 0xa1, 0x100, 0x00, 0x00, 0x00]        #  lea     r12,[rcx+0A0h]
+                - [0x48, 0x8b, 0x71, 0x100]                          #  mov     rsi,qword ptr [rcx+30h]
+                - [0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00] #  mov rax,70000000000h
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-10h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,110h
+                - [0x48, 0x83, 0x64, 0x24, 0x100, 0x00]              #  and     qword ptr [rsp+58h],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x48, 0x83, 0xb9, 0x100, 0x00, 0x00, 0x00, 0x01]  #  cmp     qword ptr [rcx+88h],1
+                - [0x44, 0x8b, 0x100]                                #  mov     ???,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+60h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+68h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+70h],rax
+                - [0x100, 0x100]                                     #  je      nt!MiUnloadSystemImage+0xa3 (fffff803`d7bc3aac)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x73c7c (fffff803`d7c92b5c)
+                - [0x4c, 0x8d, 0x100, 0x100, 0x00, 0x00, 0x00]       #  lea     ???,[rcx+0A0h]
+                - [0x48, 0x8b, 0x71, 0x100]                          #  mov     rsi,qword ptr [rcx+30h]
+                - [0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00] #  mov rax,70000000000h
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x89, 0x54, 0x24, 0x10]                           #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-10h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,110h
+                - [0x48, 0x83, 0x64, 0x24, 0x100, 0x00]              #  and     qword ptr [rsp+58h],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x48, 0x83, 0xb9, 0x100, 0x00, 0x00, 0x00, 0x01]  #  cmp     qword ptr [rcx+88h],1
+                - [0x44, 0x8b, 0x100]                                #  mov     ???,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+60h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+68h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+70h],rax
+                - [0x100, 0x100]                                     #  je      nt!MiUnloadSystemImage+0xa3 (fffff803`d7bc3aac)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x73c7c (fffff803`d7c92b5c)
+                - [0x4c, 0x8d, 0x100, 0x100, 0x00, 0x00, 0x00]       #  lea     ???,[rcx+0A0h]
+                - [0x48, 0x8b, 0x71, 0x100]                          #  mov     rsi,qword ptr [rcx+30h]
+                - [0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00] #  mov rax,70000000000h
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-10h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,110h
+                - [0x48, 0x83, 0x64, 0x24, 0x100, 0x00]              #  and     qword ptr [rsp+50h],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x48, 0x83, 0xb9, 0x100, 0x00, 0x00, 0x00, 0x01]  #  cmp     qword ptr [rcx+88h],1
+                - [0x44, 0x8b, 0xe2]                                 #  mov     r12d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+58h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+60h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+68h],rax
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MiUnloadSystemImage+0x501 (fffff802`a774c8d5)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x74, 0x100]                                      #  je      nt!MiUnloadSystemImage+0x55 (fffff802`a774c429)
+                - [0x4c, 0x8d, 0xa9, 0x100, 0x00, 0x00, 0x00]        #  lea     r13,[rcx+0A0h]
+                - [0xeb, 0x100]                                      #  jmp     nt!MiUnloadSystemImage+0x58 (fffff802`a774c42c)
+                - [0x45, 0x33, 0xed]                                 #  xor     r13d,r13d
+                - [0x8b, 0x79, 0x100]                                #  mov     edi,dword ptr [rcx+40h]
+                - [0x45, 0x33, 0xf6]                                 #  xor     r14d,r14d
+                - [0x48, 0x8b, 0x71, 0x100]                          #  mov     rsi,qword ptr [rcx+30h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0xf0]                     #  lea     rbp,[rsp-10h]
+                - [0x48, 0x81, 0xec, 0x10, 0x01, 0x00, 0x00]         #  sub     rsp,110h
+                - [0x48, 0x83, 0x64, 0x24, 0x50, 0x00]               #  and     qword ptr [rsp+50h],0
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x48, 0x83, 0xb9, 0x88, 0x00, 0x00, 0x00, 0x01]   #  cmp     qword ptr [rcx+88h],1
+                - [0x44, 0x8b, 0xe2]                                 #  mov     r12d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x48, 0x89, 0x44, 0x24, 0x58]                     #  mov     qword ptr [rsp+58h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x60]                     #  mov     qword ptr [rsp+60h],rax
+                - [0x48, 0x89, 0x44, 0x24, 0x68]                     #  mov     qword ptr [rsp+68h],rax
+                - [0x74, 0x5b]                                       #  je      nt!MiUnloadSystemImage+0x9e (fffff800`55087c0e)
+                - [0xf6, 0xc2, 0x04]                                 #  test    dl,4
+                - [0x0f, 0x84, 0xdc, 0xea, 0x10, 0x00]               #  je      nt! ?? ::NNGAKEGL::`string'+0x2e4a8 (fffff800`55196698)
+                - [0x4c, 0x8d, 0xa9, 0xa0, 0x00, 0x00, 0x00]         #  lea     r13,[rcx+0A0h]
+                - [0x8b, 0x79, 0x40]                                 #  mov     edi,dword ptr [rcx+40h]
+                - [0x45, 0x33, 0xf6]                                 #  xor     r14d,r14d
+                - [0x48, 0x8b, 0x71, 0x30]                           #  mov     rsi,qword ptr [rcx+30h]
+                - [0x48, 0x8b, 0x05, 0x7c, 0x98, 0xe8, 0xff]         #  mov     rax,qword ptr [nt!MiState+0x4d0 (fffff800`54f11450)]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-10h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,110h
+                - [0x44, 0x8b, 0xe2]                                 #  mov     r12d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+58h]
+                - [0x44, 0x8d, 0x42, 0x100]                          #  lea     r8d,[rdx+20h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!memset (fffff802`afff4340)
+                - [0x48, 0x83, 0xbb, 0x100, 0x100, 0x100, 0x100, 0x100] #  cmp     qword ptr [rbx+88h],1
+                - [0x74, 0x100]                                      #  je      nt!MiUnloadSystemImage+0xaa (fffff802`b02c19b6)
+                - [0x4c, 0x8b, 0x73, 0x100]                          #  mov     r14,qword ptr [rbx+30h]
+                - [0x48, 0x8d, 0x83, 0xa0, 0x00, 0x00, 0x100]        #  lea     rax,[rbx+0A0h]
+                - [0x45, 0x8b, 0xc4]                                 #  mov     r8d,r12d
+                - [0x41, 0x80, 0xe0, 0x100]                          #  and     r8b,4
+                - [0x41, 0xf6, 0xd8]                                 #  neg     r8b
+                - [0x48, 0x1b, 0xc9]                                 #  sbb     rcx,rcx
+                - [0x48, 0x23, 0xc8]                                 #  and     rcx,rax
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rcx
+                - [0x49, 0x8b, 0xce]                                 #  mov     rcx,r14
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetPteAddress (fffff802`afedead8)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x100, 0x100, 0x100, 0x100]                 #  lea     rbp,[rsp-20h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,120h
+                - [0x44, 0x8b, 0xfa]                                 #  mov     r15d,edx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+68h]
+                - [0x44, 0x8d, 0x42, 0x100]                          #  lea     r8d,[rdx+20h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!memset (fffff800`34776180)
+                - [0x48, 0x83, 0xbf, 0x100, 0x100, 0x100, 0x100, 0x100] #  cmp     qword ptr [rdi+88h],1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0xcb (fffff800`34b4c3ef)
+                - [0x48, 0x8b, 0x77, 0x100]                          #  mov     rsi,qword ptr [rdi+30h]
+                - [0x48, 0x8d, 0x87, 0x100, 0x100, 0x100, 0x100]     #  lea     rax,[rdi+0A0h]
+                - [0x45, 0x8b, 0xc7]                                 #  mov     r8d,r15d
+                - [0x41, 0x80, 0xe0, 0x100]                          #  and     r8b,4
+                - [0x41, 0xf6, 0xd8]                                 #  neg     r8b
+                - [0x48, 0x1b, 0xc9]                                 #  sbb     rcx,rcx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-40h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,140h
+                - [0x44, 0x8b, 0xfa]                                 #  mov     r15d,edx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+68h]
+                - [0x44, 0x8d, 0x42, 0x100]                          #  lea     r8d,[rdx+20h]
+                - [0xe8, 0x4a, 0x28, 0xce, 0xff]                     #  call    nt!memset (fffff802`4f046cc0)
+                - [0x48, 0x83, 0xbf, 0x100, 0x100, 0x100, 0x100, 0x100] #  cmp     qword ptr [rdi+88h],1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0xcf (fffff802`4f364513)
+                - [0x48, 0x8b, 0x77, 0x100]                          #  mov     rsi,qword ptr [rdi+30h]
+                - [0x48, 0x8d, 0x87, 0x100, 0x100, 0x100, 0x100]     #  lea     rax,[rdi+0A0h]
+                - [0x41, 0x8b, 0xd7]                                 #  mov     edx,r15d
+                - [0x80, 0xe2, 0x100]                                #  and     dl,4
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-10h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,110h
+                - [0x44, 0x8b, 0xf2]                                 #  mov     r14d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+60h]
+                - [0x44, 0x8d, 0x42, 0x100]                          #  lea     r8d,[rdx+20h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!memset (fffff803`1a829640)
+                - [0x48, 0x83, 0xbb, 0x100, 0x100, 0x100, 0x100, 0x100] #  cmp     qword ptr [rbx+88h],1
+                - [0x74, 0x100]                                      #  je      nt!MiUnloadSystemImage+0xa9 (fffff803`1ab2b451)
+                - [0x4c, 0x8b, 0x7b, 0x100]                          #  mov     r15,qword ptr [rbx+30h]
+                - [0x48, 0x8d, 0x83, 0x100, 0x100, 0x100, 0x100]     #  lea     rax,[rbx+0A0h]
+                - [0x45, 0x8b, 0xc6]                                 #  mov     r8d,r14d
+                - [0x49, 0x8b, 0xcf]                                 #  mov     rcx,r15
+                - [0x41, 0x80, 0xe0, 0x100]                          #  and     r8b,4
+                - [0x41, 0xf6, 0xd8]                                 #  neg     r8b
+                - [0x4d, 0x1b, 0xe4]                                 #  sbb     r12,r12
+                - [0x4c, 0x23, 0xe0]                                 #  and     r12,rax
+                - [0x4c, 0x89, 0x65, 0x100]                          #  mov     qword ptr [rbp+68h],r12
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetPteAddress (fffff803`1a78b2a0)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0x100]                    #  lea     rbp,[rsp-40h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,140h
+                - [0x44, 0x8b, 0xfa]                                 #  mov     r15d,edx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+68h]
+                - [0x44, 0x8d, 0x42, 0x100]                          #  lea     r8d,[rdx+20h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!memset (fffff801`74a3c800)
+                - [0x48, 0x83, 0xbf, 0x100, 0x100, 0x100, 0x100, 0x100] #  cmp     qword ptr [rdi+88h],1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0xcf (fffff801`74e11a93)
+                - [0x48, 0x8b, 0x77, 0x100]                          #  mov     rsi,qword ptr [rdi+30h]
+                - [0x48, 0x8d, 0x87, 0x100, 0x100, 0x100, 0x100]     #  lea     rax,[rdi+0A0h]
+                - [0x41, 0x8b, 0xd7]                                 #  mov     edx,r15d
+                - [0x80, 0xe2, 0x100]                                #  and     dl,4
+                - [0xf6, 0xda]                                       #  neg     dl
+                - [0x48, 0x1b, 0xc9]                                 #  sbb     rcx,rcx
+                - [0x48, 0x23, 0xc8]                                 #  and     rcx,rax
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rcx
+                - [0x48, 0x8b, 0xce]                                 #  mov     rcx,rsi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0xac, 0x100, 0x100, 0x100, 0x100, 0x100] #  lea     rbp,[rsp-0E0h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,1E0h
+                - [0x44, 0x8b, 0xe2]                                 #  mov     r12d,edx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+70h]
+                - [0x44, 0x8d, 0x42, 0x100]                          #  lea     r8d,[rdx+28h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!memset (fffff803`4d5e3c80)
+                - [0x48, 0x83, 0xbb, 0x100, 0x100, 0x100, 0x100, 0x100] #  cmp     qword ptr [rbx+88h],1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiUnloadSystemImage+0x5a9 (fffff803`4d8fc61d)
+                - [0x48, 0x8b, 0x73, 0x100]                          #  mov     rsi,qword ptr [rbx+30h]
+                - [0x48, 0x8d, 0x83, 0x100, 0x100, 0x100, 0x100]     #  lea     rax,[rbx+0A0h]
+                - [0x45, 0x8b, 0xc4]                                 #  mov     r8d,r12d
+                - [0x41, 0x80, 0xe0, 0x100]                          #  and     r8b,4
+                - [0x41, 0xf6, 0xd8]                                 #  neg     r8b
+                - [0x48, 0x1b, 0xc9]                                 #  sbb     rcx,rcx
+                - [0x48, 0x23, 0xc8]                                 #  and     rcx,rax
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+60h],rcx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x89, 0x54, 0x24, 0x100]                          # mov     dword ptr [rsp+10h],edx
+                - [0x55]                                             # push    rbp
+                - [0x53]                                             # push    rbx
+                - [0x56]                                             # push    rsi
+                - [0x57]                                             # push    rdi
+                - [0x41, 0x54]                                       # push    r12
+                - [0x41, 0x55]                                       # push    r13
+                - [0x41, 0x56]                                       # push    r14
+                - [0x41, 0x57]                                       # push    r15
+                - [0x48, 0x8d, 0xac, 0x24, 0x100, 0x100, 0x100, 0x100] # lea     rbp,[rsp-0D8h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     # sub     rsp,1D8h
+                - [0x8b, 0xf2]                                       # mov     esi,edx
+                - [0x48, 0x8b, 0xd9]                                 # mov     rbx,rcx
+                - [0x33, 0xd2]                                       # xor     edx,edx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    # lea     rcx,[rsp+68h]
+                - [0x44, 0x8d, 0x42, 0x100]                          # lea     r8d,[rdx+28h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 # call    nt!memset (fffff805`1c071e80)
+                - [0x48, 0x83, 0xbb, 0x100, 0x100, 0x100, 0x100, 0x100] # cmp     qword ptr [rbx+88h],1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           # je      nt!MiUnloadSystemImage+0x62c (fffff805`1c5188c0)
+                - [0x4c, 0x8b, 0x73, 0x100]                          # mov     r14,qword ptr [rbx+30h]
+                - [0x48, 0x8d, 0x83, 0x100, 0x100, 0x100, 0x100]     # lea     rax,[rbx+0A0h]
+                - [0x44, 0x8b, 0xc6]                                 # mov     r8d,esi
+                - [0x41, 0x80, 0xe0, 0x100]                          # and     r8b,4
+                - [0x41, 0xf6, 0xd8]                                 # neg     r8b
+                - [0x48, 0x1b, 0xc9]                                 # sbb     rcx,rcx
+                - [0x48, 0x23, 0xc8]                                 # and     rcx,rax
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    # mov     qword ptr [rsp+60h],rcx
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x89, 0x54, 0x24, 0x100]                          # mov     dword ptr [rsp+10h],edx
+                - [0x55]                                             # push    rbp
+                - [0x53]                                             # push    rbx
+                - [0x56]                                             # push    rsi
+                - [0x57]                                             # push    rdi
+                - [0x41, 0x54]                                       # push    r12
+                - [0x41, 0x55]                                       # push    r13
+                - [0x41, 0x56]                                       # push    r14
+                - [0x41, 0x57]                                       # push    r15
+                - [0x48, 0x8d, 0x6c, 0x24, 0xb8]                     # lea     rbp,[rsp-48h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     # sub     rsp,148h
+                - [0x33, 0xc0]                                       # xor     eax,eax
+                - [0x44, 0x8b, 0xfa]                                 # mov     r15d,edx
+                - [0x48, 0x8b, 0xd9]                                 # mov     rbx,rcx
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    # mov     qword ptr [rsp+60h],rax
+                - [0x33, 0xd2]                                       # xor     edx,edx
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    # mov     qword ptr [rsp+68h],rax
+                - [0x48, 0x8d, 0x4d, 0x100]                          # lea     rcx,[rbp-50h]
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    # mov     qword ptr [rsp+70h],rax
+                - [0x41, 0xb8, 0x100, 0x100, 0x100, 0x100]           # mov     r8d,90h
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 # call    nt!memset (fffff807`4b7d5280)
+                - [0x33, 0xd2]                                       # xor     edx,edx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    # lea     rcx,[rsp+78h]
+                - [0x44, 0x8d, 0x42, 0x100]                          # lea     r8d,[rdx+30h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 # call    nt!memset (fffff807`4b7d5280)
+                - [0x48, 0x83, 0xbb, 0x100, 0x100, 0x100, 0x100, 0x100,] # cmp     qword ptr [rbx+88h],1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           # je      nt!MiUnloadSystemImage+0xe4 (fffff807`4bc19428)

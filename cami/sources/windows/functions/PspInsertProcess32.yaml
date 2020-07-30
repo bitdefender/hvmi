@@ -1,0 +1,311 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: PspInsertProcess
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX       # Eprocess
+            - DET_ARG_RDX       # Parent Eprocess
+            - DET_ARG_STACK3    # Debug Handle
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 7602
+        args:
+            - DET_ARG_RAX       # Eprocess
+            - DET_ARG_STACK1    # Parent Eprocess
+            - DET_ARG_STACK5    # Debug Handle
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,1Ch
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf8]                                       #  mov     edi,eax
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+50h]
+                - [0x8b, 0x8f, 0x100, 0x00, 0x00, 0x00]              #  mov     ecx,dword ptr [edi+0B4h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+1Ch],eax
+                - [0x8b, 0x87, 0x100, 0x00, 0x00, 0x00]              #  mov     eax,dword ptr [edi+0F4h]
+                - [0x89, 0x48, 0x08]                                 #  mov     dword ptr [eax+8],ecx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xb9, 0x81, 0x00, 0x00, 0x00]                     #  mov     ecx,81h
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (82e4d871)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x48 (82e945cf)
+                - [0x8b, 0xc7]                                       #  mov     eax,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditProcessCreation (82e9895a)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!PspInsertProcess+0xd3 (82e9465a)
+                - [0x8b, 0x80, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr [eax+124h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],eax
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0xd3 (82e9465a)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                #  sub     esp,1Ch
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf8]                                       #  mov     edi,eax
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+50h]
+                - [0x8b, 0x8f, 0x100, 0x00, 0x00, 0x00]              #  mov     ecx,dword ptr [edi+0B4h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+1Ch],eax
+                - [0x8b, 0x87, 0x100, 0x00, 0x00, 0x00]              #  mov     eax,dword ptr [edi+0F4h]
+                - [0x89, 0x48, 0x08]                                 #  mov     dword ptr [eax+8],ecx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xb9, 0x81, 0x00, 0x00, 0x00]                     #  mov     ecx,81h
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (82e4d871)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x48 (82e945cf)
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+20h]
+                - [0x8b, 0xc7]                                       #  mov     eax,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditProcessCreation (82e9895a)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!PspInsertProcess+0xd3 (82e9465a)
+                - [0x8b, 0x80, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr [eax+124h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],eax
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0xd3 (82e9465a)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xe4, 0xf8]                                 #  and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x1c]                                 #  sub     esp,1Ch
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf8]                                       #  mov     edi,eax
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [ebx+50h]
+                - [0x8b, 0x8f, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [edi+0B4h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+1Ch],eax
+                - [0x8b, 0x87, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [edi+0F4h]
+                - [0x89, 0x48, 0x100]                                #  mov     dword ptr [eax+8],ecx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,81h
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [esp+18h],ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (83081277)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x74, 0x100]                                      #  je      nt!PspInsertProcess+0x4b (83081d2a)
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+20h]
+                - [0x8b, 0xc7]                                       #  mov     eax,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditProcessCreation (83091e24)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!PspInsertProcess+0xd6 (83081db5)
+                - [0x8b, 0x80, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [eax+124h]
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [esp+14h],eax
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #
+                - [0x55]                                             #
+                - [0x8b, 0xec]                                       #
+                - [0x83, 0xec, 0x14]                                 #
+                - [0x53]                                             #
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #
+                - [0x56]                                             #
+                - [0x57]                                             #
+                - [0x8b, 0xf9]                                       #
+                - [0x89, 0x55, 0x100]                                #
+                - [0x8b, 0x83, 0x80, 0x00, 0x00, 0x00]               #
+                - [0x33, 0xd2]                                       #
+                - [0x89, 0x45, 0x100]                                #
+                - [0xb9, 0x100, 0x00, 0x00, 0x00]                    #
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,1Ch
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x89, 0x55, 0x100]                                #  mov     dword ptr [ebp-14h],edx
+                - [0x8b, 0x83, 0x100, 0x00, 0x00, 0x00]              #  mov     eax,dword ptr [ebx+80h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+                - [0xb9, 0x100, 0x00, 0x00, 0x00]                    #  mov     ecx,85h
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp-8],ebx
+                - [0x8b, 0xb7, 0x100, 0x100, 0x00, 0x00]             #  mov     esi,dword ptr [edi+154h]
+                - [0x8b, 0x87, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr [edi+0B4h]
+                - [0x89, 0x46, 0x100]                                #  mov     dword ptr [esi+18h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (81d08ef8)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt!PspInsertProcess+0x277 (81d091ab)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp-14h]
+                - [0x83, 0xce, 0xff]                                 #  or      esi,0FFFFFFFFh
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x79 (81d08fad)
+                - [0x39, 0x88, 0x100, 0x100, 0x00, 0x00]             #  cmp     dword ptr [eax+120h],ecx
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x79 (81d08fad)
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+0Ch]
+                - [0x8b, 0x88, 0x100, 0x100, 0x00, 0x00]             #  mov     ecx,dword ptr [eax+120h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,24h
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         #  mov     ecx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xfa]                                       #  mov     edi,edx
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-0Ch],ecx
+                - [0x8b, 0x81, 0x100, 0x00, 0x00, 0x00]              #  mov     eax,dword ptr [ecx+80h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x8b, 0xb3, 0x100, 0x100, 0x00, 0x00]             #  mov     esi,dword ptr [ebx+154h]
+                - [0xb9, 0x100, 0x00, 0x00, 0x00]                    #  mov     ecx,85h
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0x8b, 0x83, 0x100, 0x00, 0x00, 0x00]              #  mov     eax,dword ptr [ebx+0B4h]
+                - [0x89, 0x7d, 0x100]                                #  mov     dword ptr [ebp-18h],edi
+                - [0x89, 0x46, 0x100]                                #  mov     dword ptr [esi+18h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (8211a940)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt!PspInsertProcess+0x284 (82119ffa)
+                - [0x83, 0xce, 0xff]                                 #  or      esi,0FFFFFFFFh
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x85, 0xff]                                       #  test    edi,edi
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x84 (82119dfa)
+                - [0x39, 0x87, 0x100, 0x100, 0x00, 0x00]             #  cmp     dword ptr [edi+120h],eax
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x76 (82119dec)
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+0Ch]
+                - [0x8b, 0x8f, 0x100, 0x100, 0x00, 0x00]             #  mov     ecx,dword ptr [edi+120h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,1Ch
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0x8b, 0x80, 0x100, 0x00, 0x00, 0x00]              #  mov     eax,dword ptr [eax+80h]
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-0Ch],eax
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xb9, 0x100, 0x00, 0x00, 0x00]                    #  mov     ecx,85h
+                - [0x8b, 0xb7, 0x100, 0x100, 0x00, 0x00]             #  mov     esi,dword ptr [edi+154h]
+                - [0x8b, 0x87, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr [edi+0B4h]
+                - [0x89, 0x46, 0x100]                                #  mov     dword ptr [esi+18h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (8191f1d2)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt!PspInsertProcess+0x21f (8191f42d)
+                - [0x85, 0xdb]                                       #  test    ebx,ebx
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x6b (8191f279)
+                - [0x83, 0xbb, 0x100, 0x100, 0x00, 0x00, 0x00]       #  cmp     dword ptr [ebx+120h],0
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x6b (8191f279)
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+0Ch]
+                - [0x8b, 0x8b, 0x100, 0x100, 0x00, 0x00]             #  mov     ecx,dword ptr [ebx+120h]
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!PspImplicitAssignProcessToJob (819710aa)
+                - [0x8b, 0xf0]                                       #  mov     esi,eax
+                - [0x85, 0xf6]                                       #  test    esi,esi
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  js      nt! ??
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp-8]
+                - [0x66, 0xff, 0x88, 0x100, 0x100, 0x00, 0x00]       #  dec     word ptr [eax+13Eh]
+                - [0x6a, 0x00]                                       #  push    0
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,14h
+                - [0x64, 0xa1, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr fs:[00000124h]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-0Ch],eax
+                - [0x8b, 0x80, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [eax+80h]
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-8],eax
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,85h
+                - [0x8b, 0xb7, 0x100, 0x100, 0x100, 0x100]           #  mov     esi,dword ptr [edi+154h]
+                - [0x8b, 0x87, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [edi+0B4h]
+                - [0x89, 0x46, 0x100]                                #  mov     dword ptr [esi+18h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (81af6f9c)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspInsertProcess+0x1db (81af64a5)
+                - [0x85, 0xdb]                                       #  test    ebx,ebx
+                - [0x74, 0x100]                                      #  je      nt!PspInsertProcess+0x6b (81af6335)
+                - [0x83, 0xbb, 0x100, 0x100, 0x100, 0x100, 0x100]    #  cmp     dword ptr [ebx+120h],0
+                - [0x74, 0x100]                                      #  je      nt!PspInsertProcess+0x6b (81af6335)
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+0Ch]
+                - [0x8b, 0x8b, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [ebx+120h]
+                - [0x8b, 0xd7]                                       #  mov     edx,edi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!PspImplicitAssignProcessToJob (81b1f7d0)

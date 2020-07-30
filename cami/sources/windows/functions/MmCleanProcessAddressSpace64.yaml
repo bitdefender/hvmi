@@ -1,0 +1,564 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MmCleanProcessAddressSpace
+guest64: True
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX   # Eprocess
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x08]                     #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x18]                     #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,20h
+                - [0x48, 0x8b, 0xf1]                                 #  mov     rsi,rcx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (fffff800`0358b670)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCleanProcessAddressSpace+0x610 (fffff800`032a3e0c)
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rdi,qword ptr gs:[188h]
+                - [0x48, 0x83, 0xcb, 0xff]                           #  or      rbx,0FFFFFFFFFFFFFFFFh
+                - [0x41, 0xbd, 0x01, 0x00, 0x00, 0x00]               #  mov     r13d,1
+                - [0x66, 0x01, 0x9f, 0x100, 0x100, 0x00, 0x00]       #  add     word ptr [rdi+1C6h],bx
+                - [0x4c, 0x8d, 0xb6, 0x100, 0x100, 0x00, 0x00]       #  lea     r14,[rsi+218h]
+                - [0xf0, 0x49, 0x0f, 0xba, 0x2e, 0x00]               #  lock bts qword ptr [r14],0
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jb      nt! ?? ::FNODOBFM::`string'+0x400c0 (fffff800`0334c810)
+                - [0x80, 0x8f, 0x100, 0x100, 0x00, 0x00, 0x02]       #  or      byte ptr [rdi+459h],2
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x100]                          #  mov     qword ptr [rax+10h],rbx
+                - [0x48, 0x89, 0x68, 0x100]                          #  mov     qword ptr [rax+18h],rbp
+                - [0x48, 0x89, 0x70, 0x100]                          #  mov     qword ptr [rax+20h],rsi
+                - [0x48, 0x89, 0x48, 0x100]                          #  mov     qword ptr [rax+8],rcx
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x8b, 0x89, 0x100, 0x100, 0x00, 0x00]             #  mov     ecx,dword ptr [rcx+440h]
+                - [0xf6, 0xc1, 0x20]                                 #  test    cl,20h
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt!MmCleanProcessAddressSpace+0x976 (fffff800`02b85dea)
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xc1, 0xe8, 0x0a]                                 #  shr     eax,0Ah
+                - [0x83, 0xe0, 0x03]                                 #  and     eax,3
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCleanProcessAddressSpace+0x976 (fffff800`02b85dea)
+                - [0xbe, 0x01, 0x00, 0x00, 0x00]                     #  mov     esi,1
+                - [0x3b, 0xc6]                                       #  cmp     eax,esi
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt!MmCleanProcessAddressSpace+0x13d (fffff800`02b855b1)
+                - [0x8b, 0x93, 0x100, 0x100, 0x00, 0x00]             #  mov     edx,dword ptr [rbx+3DCh]
+                - [0x48, 0x8d, 0x8b, 0x100, 0x100, 0x00, 0x00]       #  lea     rcx,[rbx+398h]
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x83, 0xc2, 0xf8]                                 #  add     edx,0FFFFFFF8h
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0xff, 0xf6, 0x48, 0x83, 0xec, 0x40, 0x48, 0x8b]   #
+                - [0xf1, 0xe8, 0x100, 0x100, 0x100, 0x100, 0x83, 0xf8] #
+                - [0x01, 0x0f, 0x84, 0x0d, 0x06, 0x00, 0x00, 0x48]   #
+                - [0x89, 0x5c, 0x24, 0x50, 0x48, 0x89, 0x6c, 0x24]   #
+                - [0x58, 0x65, 0x48, 0x8b, 0x2c, 0x25, 0x88, 0x01]   #
+                - [0x00, 0x00, 0x66, 0xff, 0x8d, 0xc6, 0x01, 0x00]   #
+                - [0x00, 0x48, 0x89, 0x7c, 0x24, 0x60]               #
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x56]                                       #  push    rsi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,40h
+                - [0x48, 0x8b, 0xf1]                                 #  mov     rsi,rcx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (fffff800`0337baf8)
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x628 (fffff800`030b2bc8)
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+58h],rbp
+                - [0x65, 0x48, 0x8b, 0x2c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rbp,qword ptr gs:[188h]
+                - [0x66, 0xff, 0x8d, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [rbp+1C6h]
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+60h],rdi
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                    #  mov     qword ptr [rsp+38h],r12
+                - [0x4c, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+30h],r13
+                - [0x4c, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r15
+                - [0x4c, 0x8d, 0xae, 0x100, 0x100, 0x100, 0x100]     #  lea     r13,[rsi+218h]
+                - [0xf0, 0x49, 0x0f, 0xba, 0x6d, 0x00, 0x100]        #  lock bts qword ptr [r13],0
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt! ?? ::FNODOBFM::`string'+0x24b20 (fffff800`0313f7a0)
+                - [0x80, 0x8d, 0x100, 0x100, 0x100, 0x100, 0x100]    #  or      byte ptr [rbp+459h],2
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,40h
+                - [0x4c, 0x8b, 0xe1]                                 #  mov     r12,rcx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (fffff800`029391dc)
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,1
+                - [0x0f, 0x84, 0x40, 0x09, 0x00, 0x00]               #  je      nt!MmCleanProcessAddressSpace+0x957 (fffff800`026a5ad7)
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+60h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+68h],rsi
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+38h],rdi
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rdi,qword ptr gs:[188h]
+                - [0x4c, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+30h],r13
+                - [0x66, 0xff, 0x8f, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [rdi+1C6h]
+                - [0x4c, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+28h],r14
+                - [0x4c, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r15
+                - [0x4d, 0x8d, 0xb4, 0x24, 0x100, 0x100, 0x100, 0x100] #  lea     r14,[r12+218h]
+                - [0xf0, 0x49, 0x0f, 0xba, 0x2e, 0x100]              #  lock bts qword ptr [r14],0
+                - [0x73, 0x100]                                      #  jae     nt!MmCleanProcessAddressSpace+0x62 (fffff800`026a51e2)
+                - [0x49, 0x8b, 0xce]                                 #  mov     rcx,r14
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExfAcquirePushLockExclusive (fffff800`026b47c0)
+ 
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x8b, 0xdc]                                 #  mov     r11,rsp
+                - [0x49, 0x89, 0x5b, 0x08]                           #  mov     qword ptr [r11+8],rbx
+                - [0x49, 0x89, 0x6b, 0x10]                           #  mov     qword ptr [r11+10h],rbp
+                - [0x49, 0x89, 0x73, 0x18]                           #  mov     qword ptr [r11+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x50]                           #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x8b, 0x89, 0xfc, 0x02, 0x00, 0x00]               #  mov     ecx,dword ptr [rcx+2FCh]
+                - [0xf6, 0xc1, 0x20]                                 #  test    cl,20h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     ???
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xc1, 0xe8, 0x0a]                                 #  shr     eax,0Ah
+                - [0x83, 0xe0, 0x03]                                 #  and     eax,3
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x08]                     #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x18]                     #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (fffff800`6363e774)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x1e9 (fffff800`6363e75d)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x30]                     #  lea     rcx,[rsp+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (fffff800`63208640)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExFreeSvmAsid (fffff800`63295c90)
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01]         #  mov   rsi,qword ptr gs:[188h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x08]                           #  mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x68, 0x10]                           #  mov     qword ptr [rax+10h],rbp
+                - [0x48, 0x89, 0x70, 0x18]                           #  mov     qword ptr [rax+18h],rsi
+                - [0x48, 0x89, 0x78, 0x20]                           #  mov     qword ptr [rax+20h],rdi
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (fffff803`a4279e08)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCleanProcessAddressSpace+0x1fa (fffff803`a41f4532)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (fffff803`a3e7be80)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExFreeSvmAsid (fffff803`a3e6f3e8)
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xd7]                                 #  mov     rdx,rdi
+                - [0x48, 0x8b, 0xce]                                 #  mov     rcx,rsi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (fffff803`a3e6c368)
+                - [0x48, 0x8b, 0xcf]                                 #  mov     rcx,rdi
+                - [0x44, 0x8b, 0xf0]                                 #  mov     r14d,eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetProcessPartition (fffff803`a3eaa110)
+                - [0x48, 0x8b, 0xe8]                                 #  mov     rbp,rax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x08]                           #  mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x68, 0x10]                           #  mov     qword ptr [rax+10h],rbp
+                - [0x48, 0x89, 0x70, 0x18]                           #  mov     qword ptr [rax+18h],rsi
+                - [0x48, 0x89, 0x78, 0x20]                           #  mov     qword ptr [rax+20h],rdi
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x8b, 0x89, 0x100, 0x100, 0x00, 0x00]             #  mov     ecx,dword ptr [rcx+304h]
+                - [0x8b, 0xd1]                                       #  mov     edx,ecx
+                - [0x83, 0xe2, 0x20]                                 #  and     edx,20h
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt! ?? ::NNGAKEGL::`string'+0x257ec (fffff801`e03cd14c)
+                - [0x85, 0xd2]                                       #  test    edx,edx
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt! ?? ::NNGAKEGL::`string'+0x25902 (fffff801`e03cd262)
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xc1, 0xe8, 0x0a]                                 #  shr     eax,0Ah
+                - [0x83, 0xe0, 0x03]                                 #  and     eax,3
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jbe     nt! ?? ::NNGAKEGL::`string'+0x25902 (fffff801`e03cd262)
+                - [0x83, 0xf8, 0x02]                                 #  cmp     eax,2
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x25801 (fffff801`e03cd161)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (fffff801`dfe6e7b0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExFreeSvmAsid (fffff801`dfe7ecec)
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01]         #
+                - [0x00, 0x00]                                       #  mov   rsi,qword ptr gs:[188h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x08]                           #  mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x68, 0x10]                           #  mov     qword ptr [rax+10h],rbp
+                - [0x48, 0x89, 0x70, 0x18]                           #  mov     qword ptr [rax+18h],rsi
+                - [0x48, 0x89, 0x78, 0x20]                           #  mov     qword ptr [rax+20h],rdi
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x8b, 0x89, 0x100, 0x100, 0x00, 0x00]             #  mov     ecx,dword ptr [rcx+304h]
+                - [0x8b, 0xd1]                                       #  mov     edx,ecx
+                - [0x83, 0xe2, 0x20]                                 #  and     edx,20h
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt! ?? ::NNGAKEGL::`string'+0x45cc4 (fffff800`26c68b64)
+                - [0x85, 0xd2]                                       #  test    edx,edx
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt! ?? ::NNGAKEGL::`string'+0x45dda (fffff800`26c68c7a)
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xc1, 0xe8, 0x0a]                                 #  shr     eax,0Ah
+                - [0x83, 0xe0, 0x03]                                 #  and     eax,3
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jbe     nt! ?? ::NNGAKEGL::`string'+0x45dda (fffff800`26c68c7a)
+                - [0x83, 0xf8, 0x02]                                 #  cmp     eax,2
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x45cd9 (fffff800`26c68b79)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x30]                     #  lea     rcx,[rsp+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (fffff800`266f36a0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExFreeSvmAsid (fffff800`2673495c)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x100]                          #  mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x68, 0x100]                          #  mov     qword ptr [rax+10h],rbp
+                - [0x48, 0x89, 0x70, 0x100]                          #  mov     qword ptr [rax+18h],rsi
+                - [0x48, 0x89, 0x78, 0x100]                          #  mov     qword ptr [rax+20h],rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (fffff802`a771730c)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCleanProcessAddressSpace+0x1f5 (fffff802`a76b4129)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x4c, 0x8d, 0xb7, 0x100, 0x100, 0x00, 0x00]       #  lea     r14,[rdi+500h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (fffff802`a72a0000)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExFreeSvmAsid (fffff802`a731a8a4)
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xd7]                                 #  mov     rdx,rdi
+                - [0x48, 0x8b, 0xce]                                 #  mov     rcx,rsi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (fffff802`a7322978)
+                - [0x48, 0x8b, 0xcf]                                 #  mov     rcx,rdi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x08]                           #  mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x68, 0x10]                           #  mov     qword ptr [rax+10h],rbp
+                - [0x48, 0x89, 0x70, 0x18]                           #  mov     qword ptr [rax+18h],rsi
+                - [0x48, 0x89, 0x78, 0x20]                           #  mov     qword ptr [rax+20h],rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x50]                           #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x48, 0x8d, 0xb1, 0x00, 0x05, 0x00, 0x00]         #  lea     rsi,[rcx+500h]
+                - [0x8b, 0x89, 0x04, 0x03, 0x00, 0x00]               #  mov     ecx,dword ptr [rcx+304h]
+                - [0x8b, 0xd1]                                       #  mov     edx,ecx
+                - [0x83, 0xe2, 0x20]                                 #  and     edx,20h
+                - [0x74, 0x10]                                       #  je      nt!MmCleanProcessAddressSpace+0x44 (fffff800`55070850)
+                - [0x8a, 0x86, 0xbb, 0x00, 0x00, 0x00]               #  mov     al,byte ptr [rsi+0BBh]
+                - [0x24, 0xc0]                                       #  and     al,0C0h
+                - [0x3c, 0xc0]                                       #  cmp     al,0C0h
+                - [0x0f, 0x84, 0xb7, 0x00, 0x00, 0x00]               #  je      nt!MmCleanProcessAddressSpace+0xfb (fffff800`55070907)
+                - [0x85, 0xd2]                                       #  test    edx,edx
+                - [0x0f, 0x85, 0x71, 0x02, 0x00, 0x00]               #  jne     nt!MmCleanProcessAddressSpace+0x2bd (fffff800`55070ac9)
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xc1, 0xe8, 0x0a]                                 #  shr     eax,0Ah
+                - [0x83, 0xe0, 0x03]                                 #  and     eax,3
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x86, 0x60, 0x02, 0x00, 0x00]               #  jbe     nt!MmCleanProcessAddressSpace+0x2bd (fffff800`55070ac9)
+                - [0x83, 0xf8, 0x02]                                 #  cmp     eax,2
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x100]                          #  mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x68, 0x100]                          #  mov     qword ptr [rax+10h],rbp
+                - [0x48, 0x89, 0x70, 0x100]                          #  mov     qword ptr [rax+18h],rsi
+                - [0x48, 0x89, 0x78, 0x100]                          #  mov     qword ptr [rax+20h],rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x48, 0x8d, 0xb1, 0x100, 0x100, 0x00, 0x00]       #  lea     rsi,[rcx+500h]
+                - [0x8b, 0x89, 0x100, 0x100, 0x00, 0x00]             #  mov     ecx,dword ptr [rcx+304h]
+                - [0x8b, 0xd1]                                       #  mov     edx,ecx
+                - [0x83, 0xe2, 0x20]                                 #  and     edx,20h
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt! ?? ::NNGAKEGL::`string'+0x2e464 (fffff803`cf59db64)
+                - [0x85, 0xd2]                                       #  test    edx,edx
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt! ?? ::NNGAKEGL::`string'+0x2e563 (fffff803`cf59dc63)
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xc1, 0xe8, 0x0a]                                 #  shr     eax,0Ah
+                - [0x83, 0xe0, 0x03]                                 #  and     eax,3
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jbe     nt! ?? ::NNGAKEGL::`string'+0x2e563 (fffff803`cf59dc63)
+                - [0x83, 0xf8, 0x02]                                 #  cmp     eax,2
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt! ?? ::NNGAKEGL::`string'+0x2e479 (fffff803`cf59db79)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x08]                           #  mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x68, 0x10]                           #  mov     qword ptr [rax+10h],rbp
+                - [0x48, 0x89, 0x70, 0x18]                           #  mov     qword ptr [rax+18h],rsi
+                - [0x48, 0x89, 0x78, 0x20]                           #  mov     qword ptr [rax+20h],rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (fffff801`58c023b4)
+                - [0x83, 0xf8, 0x01]                                 #  cmp     eax,1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x1ec (fffff801`58c028d0)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x4c, 0x8d, 0xb7, 0x100, 0x100, 0x00, 0x00]       #  lea     r14,[rdi+500h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (fffff801`5882a8a0)
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xd7]                                 #  mov     rdx,rdi
+                - [0x48, 0x8b, 0xce]                                 #  mov     rcx,rsi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (fffff801`58822dd4)
+                - [0x48, 0x8b, 0xcf]                                 #  mov     rcx,rdi
+                - [0x44, 0x8b, 0xe0]                                 #  mov     r12d,eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetProcessPartition (fffff801`588633a0)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,68h
+                - [0x8b, 0x91, 0x100, 0x100, 0x100, 0x100]           #  mov     edx,dword ptr [rcx+304h]
+                - [0x4c, 0x8d, 0xb9, 0x100, 0x100, 0x100, 0x100]     #  lea     r15,[rcx+500h]
+                - [0x48, 0x8b, 0xe9]                                 #  mov     rbp,rcx
+                - [0x8b, 0xca]                                       #  mov     ecx,edx
+                - [0x83, 0xe1, 0x20]                                 #  and     ecx,20h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MmCleanProcessAddressSpace+0x196cca (fffff800`466082ba)
+                - [0x85, 0xc9]                                       #  test    ecx,ecx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MmCleanProcessAddressSpace+0x196e1e (fffff800`4660840e)
+                - [0x8b, 0xc2]                                       #  mov     eax,edx
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,0C00h
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]                 #  cmp     eax,400h
+                - [0x0f, 0x86, 0x100, 0x100, 0x100, 0x100]           #  jbe     nt!MmCleanProcessAddressSpace+0x196e1e (fffff800`4660840e)
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]                 #  cmp     eax,800h
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x196ce1 (fffff800`466082d1)
+                - [0x48, 0x89, 0x9c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+80h],rbx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+                - [0x48, 0x89, 0xb4, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+88h],rsi
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x55]                                       #  push    rbp
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,68h
+                - [0x48, 0x8b, 0xe9]                                 #  mov     rbp,rcx
+                - [0x4c, 0x8d, 0xb9, 0x100, 0x100, 0x100, 0x100]     #  lea     r15,[rcx+500h]
+                - [0x8b, 0x89, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [rcx+304h]
+                - [0xf6, 0xc1, 0x100]                                #  test    cl,20h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MmCleanProcessAddressSpace+0x1273d2 (fffff801`28245b32)
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xc1, 0xe8, 0x100]                                #  shr     eax,0Ah
+                - [0x83, 0xe0, 0x100]                                #  and     eax,3
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,1
+                - [0x0f, 0x86, 0x100, 0x100, 0x100, 0x100]           #  jbe     nt!MmCleanProcessAddressSpace+0x1273e4 (fffff801`28245b44)
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x1273f9 (fffff801`28245b59)
+                - [0x48, 0x89, 0x9c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+80h],rbx
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+                - [0x48, 0x89, 0xb4, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+88h],rsi
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x89, 0xbc, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+90h],rdi
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x48, 0x8d, 0xa9, 0x100, 0x100, 0x100, 0x100]     #  lea     rbp,[rcx+500h]
+                - [0x8b, 0x89, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [rcx+304h]
+                - [0xf6, 0xc1, 0x100]                                #  test    cl,20h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MmCleanProcessAddressSpace+0x1a551e (fffff803`dfcdf98e)
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xc1, 0xe8, 0x100]                                #  shr     eax,0Ah
+                - [0x83, 0xe0, 0x100]                                #  and     eax,3
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,1
+                - [0x0f, 0x86, 0x100, 0x100, 0x100, 0x100]           #  jbe     nt!MmCleanProcessAddressSpace+0x1a552e (fffff803`dfcdf99e)
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x1a5545 (fffff803`dfcdf9b5)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiCleanEmbryonicProcess (fffff802`4f3b012c)
+                - [0x83, 0xf8, 0x100]                                #  cmp     eax,1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x2b4 (fffff802`4f3e32b8)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (fffff802`4ef756d0)
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xd7]                                 #  mov     rdx,rdi
+                - [0x48, 0x8b, 0xce]                                 #  mov     rcx,rsi
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiBeginProcessClean (fffff802`4ef105f8)
+                - [0x48, 0x8b, 0xcf]                                 #  mov     rcx,rdi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x8b, 0x89, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [rcx+304h]
+                - [0xf6, 0xc1, 0x100]                                #  test    cl,20h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MmCleanProcessAddressSpace+0x13206a (fffff805`6e1541e6)
+                - [0x8b, 0xc1]                                       #  mov     eax,ecx
+                - [0xbb, 0x100, 0x100, 0x100, 0x100]                 #  mov     ebx,400h
+                - [0x25, 0x100, 0x100, 0x100, 0x100]                 #  and     eax,0C00h
+                - [0x3b, 0xc3]                                       #  cmp     eax,ebx
+                - [0x0f, 0x86, 0x100, 0x100, 0x100, 0x100]           #  jbe     nt!MmCleanProcessAddressSpace+0x13207a (fffff805`6e1541f6)
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]                 #  cmp     eax,800h
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCleanProcessAddressSpace+0x132091 (fffff805`6e15420d)
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+30h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KeInitializeEvent (fffff805`6dae42c0)
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]

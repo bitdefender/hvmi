@@ -1,0 +1,17 @@
+{
+    "Type": "user",
+    "Signatures": [
+        {
+            "sig_type": "value-code",
+            "sig_id": "browsers-exec-syscall",
+            "offset": 0,
+            "flags": "64",
+            "pattern": [
+                "0x4c", "0x8b", "0xd1",                             // MOV       r10, rcx
+                "0xb8", "0x100", "0x100", "0x100", "0x100",         // MOV       eax, imm32
+                "0x0f", "0x05",                                     // SYSCALL
+                "0xc3"                                              // RETN
+            ]
+        }
+    ]
+}

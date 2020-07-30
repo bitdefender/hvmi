@@ -1,0 +1,116 @@
+{
+    "Type": "kernel",
+    "Signatures": [
+        {
+            "sig_type": "value-code",
+            "sig_id": "patchguard-idtr-value-pattern-1",
+            "offset": 0,
+            "flags": "64",
+            "pattern": [
+                "0x0f", "0x01", "0x8d", "0x100", "0x100", "0x00", "0x00",       // SIDT tbyte ptr [rbp+0x4e0]
+                "0x0f", "0x01", "0x9d", "0x100", "0x100", "0x00", "0x00",       // LIDT tbyte ptr [rbp+0x390]
+                "0x0f", "0x23", "0x100",                                        // MOV dr7, rax
+                "0x0f", "0x01", "0x9d", "0x100", "0x100", "0x00", "0x00"        // LIDT tbyte ptr [rbp+0x4e0]
+            ]
+        },
+
+        {
+            "sig_type": "value-code",
+            "sig_id": "patchguard-idtr-value-pattern-2",
+            "offset": 0,
+            "flags": "64",
+            "pattern": [
+                "0x0f", "0x01", "0x8d", "0x100", "0x100", "0x00", "0x00",       // SIDT tbyte ptr [rbp+0x4d0]
+                "0x0f", "0x01", "0x9d", "0x100", "0x100", "0x00", "0x00",       // LIDT tbyte ptr [rbp+0x370]
+                "0xc6", "0x03", "0xf1"                                          // MOV byte ptr [rbx], 0xf1
+            ]
+        },
+
+        {
+            "sig_type": "value-code",
+            "sig_id": "patchguard-idtr-value-pattern-3",
+            "offset": 0,
+            "flags": "64",
+            "pattern": [
+                "0xfa",                                                         // CLI
+                "0x0f", "0x01", "0x8d", "0x100", "0x100", "0x00", "0x00",       // SIDT tbyte ptr [rbp+0x4c0]
+                "0x0f", "0x01", "0x9d", "0x100", "0x100", "0x00", "0x00",       // LIDT tbyte ptr [rbp+0x3a0]
+                "0x41", "0x0f", "0x23", "0x100"                                 // MOV dr7, r8
+            ]
+        },
+
+        {
+            "sig_type": "value-code",
+            "sig_id": "patchguard-idtr-value-pattern-4",
+            "offset": 0,
+            "flags": "64",
+            "pattern": [
+                "0x0f", "0x01", "0x4d", "0x100",        // SIDT tbyte ptr [rbp+0x48]
+                "0x0f", "0x01", "0x5d", "0x100",        // LIDT tbyte ptr [rbp+0x28]
+                "0x41", "0x0f", "0x23", "0x100",        // MOV dr7, r15
+                "0x0f", "0x01", "0x5d", "0x100",        // LIDT tbyte ptr [rbp+0x48]
+                "0xfb"                                  // STI
+            ]
+        },
+
+        {
+            "sig_type": "value-code",
+            "sig_id": "patchguard-idtr-value-pattern-5",
+            "offset": 0,
+            "flags": "64",
+            "pattern": [
+                "0x0f", "0x01", "0x4d", "0x100",        // SIDT tbyte ptr [rbp+0x48]
+                "0x0f", "0x01", "0x5d", "0x100",        // LIDT tbyte ptr [rbp+0x28]
+                "0x41", "0x0f", "0x23", "0x100",        // MOV dr7, r15
+                "0x0f", "0x01", "0x5d", "0x100",        // LIDT tbyte ptr [rbp+0x48]
+                "0xfb"                                  // STI
+            ]
+        },
+
+        {
+            "sig_type": "value-code",
+            "sig_id": "patchguard-idtr-value-pattern-6",
+            "offset": 0,
+            "flags": "64",
+            "pattern": [
+                "0x0f", "0x01", "0x4d", "0x100",        // SIDT tbyte ptr [rbp+0x48]
+                "0x0f", "0x01", "0x5d", "0x100",        // LIDT tbyte ptr [rbp+0x28]
+                "0x0f", "0x23", "0x100",                // MOV dr7, rsi
+                "0x0f", "0x01", "0x5d", "0x100",        // LIDT tbyte ptr [rbp+0x48]
+                "0xfb"                                  // STI
+            ]
+        },
+
+        {
+            "sig_type": "value-code",
+            "sig_id": "patchguard-idtr-value-pattern-7",
+            "offset": 0,
+            "flags": "64",
+            "pattern": [
+                "0xfa",                                                         // CLI
+                "0x0f", "0x01", "0x8d", "0x100", "0x100", "0x00", "0x00",       // SIDT      tbyte ptr[rbp + 0x318]
+                "0x0f", "0x01", "0x9d", "0x100", "0x100", "0x00", "0x00",       // LIDT      tbyte ptr[rbp + 0x220]
+                "0x41", "0x0f", "0x23", "0x100",                                // MOV       dr7, r13
+                "0x0f", "0x01", "0x9d", "0x100", "0x100", "0x00", "0x00",       // LIDT      tbyte ptr[rbp + 0x318]
+                "0xfb"                                                          // STI
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "patchguard-idtr-codeblocks",
+            "flags": "64",
+            "score": 3,
+            "hashes": [
+                ["0x9be86cfa", "0x04a9f781", "0xbf058628", "0xbe21c951", "0x00248b33", "0xf2138ad6", "0x3af305a6"],
+                ["0xecaae6bb", "0x9a64e6e4", "0xc200d436", "0xbdfe17bf", "0x29e5d2f8", "0x2c0eb51a", "0x61c61411", "0xf6590538"],
+                ["0x5870c93b", "0xd4ae0f5c", "0xde9b61f8", "0x1364a34c", "0xf48a9e85", "0x01ae1eef", "0xbb47a66a", "0xd086a2a2", "0x92124e81", "0x88d707df"], 
+                ["0xe48db851", "0x37322885", "0x1616b21a", "0x889fa923", "0xc22a58da", "0x222ce12f", "0x2000e625", "0x845bea9b", "0xecaae6bb"],
+                ["0xf6590538", "0x45dbc476", "0xdea179ff", "0xf6590538", "0x0b1b1f3b", "0x3af305a6", "0xecaae6bb"],
+                ["0xbc677708", "0xd4fd648a", "0xa4612a9f"],
+                ["0x3af305a6", "0x8d8f6d95", "0x92124e81", "0x88d707df", "0xca2f1745", "0x8d8f6d95", "0x0b1b1f3b"],
+                ["0xe972a236", "0x8d8f6d95", "0x7b71ebb4", "0x4784f1e3", "0x4cbb65eb", "0xbc677708", "0x3af305a6"]
+            ]
+        }
+    ]
+}

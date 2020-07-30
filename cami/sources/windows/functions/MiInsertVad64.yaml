@@ -1,0 +1,194 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiInsertVad
+guest64: True
+# Arguments:
+#         RCX: VAD GVA
+#         RDX: Eprocess GVA
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+1Ch]
+                - [0x48, 0x8b, 0xda]                                 #  mov     rbx,rdx
+                - [0x44, 0x0f, 0xb6, 0x41, 0x100]                    #  movzx   r8d,byte ptr [rcx+21h]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x44, 0x0f, 0xb6, 0x49, 0x100]                    #  movzx   r9d,byte ptr [rcx+20h]
+                - [0x49, 0xc1, 0xe0, 0x100]                          #  shl     r8,20h
+                - [0x4c, 0x0b, 0xc0]                                 #  or      r8,rax
+                - [0x49, 0xc1, 0xe1, 0x100]                          #  shl     r9,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+18h]
+                - [0x48, 0xff, 0x82, 0x100, 0x100, 0x100, 0x100]     #  inc     qword ptr [rdx+630h]
+                - [0x4c, 0x0b, 0xc8]                                 #  or      r9,rax
+                - [0x48, 0x8b, 0x82, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [rdx+480h]
+                - [0x48, 0xc1, 0xe8, 0x100]                          #  shr     rax,0Ch
+                - [0x48, 0x89, 0x8a, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rdx+628h],rcx
+                - [0x4c, 0x3b, 0xc0]                                 #  cmp     r8,rax
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],rbp
+                - [0x56]                                             #  push    rsi
+                - [0x48, 0x83, 0xec, 0x20]                           #  sub     rsp,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+1Ch]
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x44, 0x0f, 0xb6, 0x41, 0x100]                    #  movzx   r8d,byte ptr [rcx+21h]
+                - [0x48, 0x8b, 0xea]                                 #  mov     rbp,rdx
+                - [0x0f, 0xb6, 0x49, 0x100]                          #  movzx   ecx,byte ptr [rcx+20h]
+                - [0x49, 0xc1, 0xe0, 0x20]                           #  shl     r8,20h
+                - [0x4c, 0x0b, 0xc0]                                 #  or      r8,rax
+                - [0x48, 0xc1, 0xe1, 0x20]                           #  shl     rcx,20h
+                - [0x8b, 0x43, 0x100]                                #  mov     eax,dword ptr [rbx+18h]
+                - [0x48, 0xff, 0x82, 0x100, 0x100, 0x00, 0x00]       #  inc     qword ptr [rdx+620h]
+                - [0x48, 0x0b, 0xc8]                                 #  or      rcx,rax
+                - [0x48, 0x8b, 0x82, 0x100, 0x100, 0x00, 0x00]       #  mov     rax,qword ptr [rdx+480h]
+                - [0x48, 0xc1, 0xe8, 0x0c]                           #  shr     rax,0Ch
+                - [0x48, 0x89, 0x9a, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rdx+618h],rbx
+                - [0x4c, 0x3b, 0xc0]                                 #  cmp     r8,rax
+                - [0x77, 0x29]                                       #  ja      nt!MiInsertVad+0x79 (fffff800`5b3247b9)
+                - [0x4c, 0x2b, 0xc1]                                 #  sub     r8,rcx
+                - [0x49, 0xc1, 0xe0, 0x0c]                           #  shl     r8,0Ch
+                - [0x49, 0x81, 0xc0, 0x00, 0x10, 0x00, 0x00]         #  add     r8,1000h
+                - [0x4c, 0x01, 0x82, 0x100, 0x100, 0x00, 0x00]       #  add     qword ptr [rdx+338h],r8
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+1Ch]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x44, 0x0f, 0xb6, 0x41, 0x100]                    #  movzx   r8d,byte ptr [rcx+21h]
+                - [0x48, 0x8b, 0xea]                                 #  mov     rbp,rdx
+                - [0x0f, 0xb6, 0x49, 0x100]                          #  movzx   ecx,byte ptr [rcx+20h]
+                - [0x49, 0xc1, 0xe0, 0x100]                          #  shl     r8,20h
+                - [0x4c, 0x0b, 0xc0]                                 #  or      r8,rax
+                - [0x48, 0xc1, 0xe1, 0x100]                          #  shl     rcx,20h
+                - [0x8b, 0x47, 0x100]                                #  mov     eax,dword ptr [rdi+18h]
+                - [0x48, 0xff, 0x82, 0x100, 0x100, 0x100, 0x100]     #  inc     qword ptr [rdx+638h]
+                - [0x48, 0x0b, 0xc8]                                 #  or      rcx,rax
+                - [0x48, 0x8b, 0x82, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [rdx+480h]
+                - [0x48, 0xc1, 0xe8, 0x0c]                           #  shr     rax,0Ch
+                - [0x48, 0x89, 0xba, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rdx+630h],rdi
+                - [0x4c, 0x3b, 0xc0]                                 #  cmp     r8,rax
+                - [0x77, 0x100]                                      #  ja      nt!MiInsertVad+0x79 (fffff803`1d4e97c9)
+                - [0x4c, 0x2b, 0xc1]                                 #  sub     r8,rcx
+                - [0x49, 0xc1, 0xe0, 0x0c]                           #  shl     r8,0Ch
+                - [0x49, 0x81, 0xc0, 0x100, 0x100, 0x100, 0x100]     #  add     r8,1000h
+                - [0x4c, 0x01, 0x82, 0x100, 0x100, 0x100, 0x100]     #  add     qword ptr [rdx+338h],r8
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+1Ch]
+                - [0x48, 0x8b, 0xda]                                 #  mov     rbx,rdx
+                - [0x0f, 0xb6, 0x51, 0x100]                          #  movzx   edx,byte ptr [rcx+21h]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x0f, 0xb6, 0x49, 0x100]                          #  movzx   ecx,byte ptr [rcx+20h]
+                - [0x48, 0xc1, 0xe2, 0x100]                          #  shl     rdx,20h
+                - [0x48, 0x0b, 0xd0]                                 #  or      rdx,rax
+                - [0x48, 0xc1, 0xe1, 0x100]                          #  shl     rcx,20h
+                - [0x8b, 0x47, 0x100]                                #  mov     eax,dword ptr [rdi+18h]
+                - [0x48, 0xff, 0x83, 0x100, 0x100, 0x100, 0x100]     #  inc     qword ptr [rbx+638h]
+                - [0x48, 0x0b, 0xc8]                                 #  or      rcx,rax
+                - [0x48, 0x8b, 0x83, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [rbx+480h]
+                - [0x48, 0xc1, 0xe8, 0x100]                          #  shr     rax,0Ch
+                - [0x48, 0x89, 0xbb, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbx+630h],rdi
+                - [0x48, 0x3b, 0xd0]                                 #  cmp     rdx,rax
+                - [0x77, 0x100]                                      #  ja      nt!MiInsertVad+0x7b (fffff802`4ef2b65b)
+                - [0x45, 0x85, 0xc0]                                 #  test    r8d,r8d
+                - [0x75, 0x100]                                      #  jne     nt!MiInsertVad+0x7b (fffff802`4ef2b65b)
+                - [0x48, 0x2b, 0xd1]                                 #  sub     rdx,rcx
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+1Ch]
+                - [0x48, 0x8b, 0xda]                                 #  mov     rbx,rdx
+                - [0x44, 0x0f, 0xb6, 0x49, 0x100]                    #  movzx   r9d,byte ptr [rcx+21h]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x0f, 0xb6, 0x51, 0x100]                          #  movzx   edx,byte ptr [rcx+20h]
+                - [0x49, 0xc1, 0xe1, 0x100]                          #  shl     r9,20h
+                - [0x4c, 0x0b, 0xc8]                                 #  or      r9,rax
+                - [0x48, 0xc1, 0xe2, 0x100]                          #  shl     rdx,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+18h]
+                - [0x48, 0xff, 0x83, 0x100, 0x100, 0x100, 0x100]     #  inc     qword ptr [rbx+638h]
+                - [0x48, 0x0b, 0xd0]                                 #  or      rdx,rax
+                - [0x48, 0x8b, 0x83, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [rbx+480h]
+                - [0x48, 0xc1, 0xe8, 0x0c]                           #  shr     rax,0Ch
+                - [0x48, 0x89, 0x8b, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbx+630h],rcx
+                - [0x4c, 0x3b, 0xc8]                                 #  cmp     r9,rax
+                - [0x77, 0x100]                                      #  ja      nt!MiInsertVad+0x79 (fffff801`74901e59)
+                - [0x45, 0x85, 0xc0]                                 #  test    r8d,r8d
+                - [0x75, 0x100]                                      #  jne     nt!MiInsertVad+0x79 (fffff801`74901e59)
+                - [0x4c, 0x2b, 0xca]                                 #  sub     r9,rdx
+                - [0x49, 0xc1, 0xe1, 0x100]                          #  shl     r9,0Ch
+                - [0x49, 0x81, 0xc1, 0x100, 0x100, 0x100, 0x100]     #  add     r9,1000h
+                - [0x4c, 0x01, 0x8b, 0x100, 0x100, 0x100, 0x100]     #  add     qword ptr [rbx+338h],r9
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x100, 0x100, 0x100, 0x100]                 #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x100, 0x100, 0x100, 0x100]                 #  mov     qword ptr [rsp+10h],rbp
+                - [0x48, 0x100, 0x100, 0x100, 0x100]                 #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+1Ch]
+                - [0x4c, 0x8d, 0xaa, 0x100, 0x100, 0x100, 0x100]     #  lea     r13,[rdx+500h]
+                - [0x0f, 0xb6, 0x71, 0x100]                          #  movzx   esi,byte ptr [rcx+21h]
+                - [0x45, 0x8b, 0xe0]                                 #  mov     r12d,r8d
+                - [0x44, 0x0f, 0xb6, 0x79, 0x100]                    #  movzx   r15d,byte ptr [rcx+20h]
+                - [0x48, 0x8b, 0xfa]                                 #  mov     rdi,rdx
+                - [0x48, 0xc1, 0xe6, 0x100]                          #  shl     rsi,20h
+                - [0x48, 0x8b, 0xe9]                                 #  mov     rbp,rcx
+                - [0x48, 0x0b, 0xf0]                                 #  or      rsi,rax
+                - [0x49, 0xc1, 0xe7, 0x100]                          #  shl     r15,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+18h]
+                - [0x4c, 0x0b, 0xf8]                                 #  or      r15,rax
+                - [0x41, 0xf6, 0xc0, 0x100]                          #  test    r8b,1
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiInsertVad+0x137baa (fffff800`922c22a6)
+                - [0x49, 0x8b, 0xcd]                                 #  mov     rcx,r13
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiGetSharedVm (fffff800`920fd1a0)
+                - [0x48, 0x8b, 0xc8]                                 #  mov     rcx,rax
+                - [0x48, 0x8b, 0xd8]                                 #  mov     rbx,rax

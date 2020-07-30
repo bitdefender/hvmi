@@ -1,0 +1,10 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        {
+            "originator": "[kernel]",
+            "object_type": "infinity-hook",
+            "flags": "integrity"
+        }
+    ]
+}

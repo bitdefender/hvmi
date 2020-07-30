@@ -1,0 +1,29 @@
+{
+    "Type": "user",
+    "Signatures": [
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "browsers-init-codeblocks",
+            "score": 3,
+            "hashes": [
+                ["0x901bc487", "0x0dfb1642", "0x7f77d3c6", "0x0bb48d99"],
+                ["0x6e139105", "0x79a28e5e", "0x850cb73d", "0x514b29e6"],
+                ["0x3ccd78fb", "0x4718402b", "0x2ec4bab7", "0x525603e7"],
+                ["0xa0445f7c", "0x50b51008", "0x06e776b1", "0xfb7c7fb7"],
+                ["0x0e88b83b", "0x154dbc03", "0xd7e5f508", "0x09718cb5"],
+                ["0xc1cb1f35", "0xbbcd1b30", "0x211f1cc5", "0xec52c851"],
+                ["0x14e7df9a", "0x1968f4c5", "0xe2b1378b", "0xa4612a9f"],
+                ["0x8839e6a4", "0xd8953757", "0x3763846f", "0xd49c760d"],
+                ["0xc2e41585", "0x7ab89bd6", "0x1fb01e9e", "0xac115da3"],
+                ["0x140ebf89", "0x88511b2e", "0xd5f83594", "0x64c1abaf"],
+                ["0x80c7040f", "0xe0450b71", "0x6f80cd6f", "0x41ea1fda"],
+                ["0x28e35539", "0xda0514f2", "0x54147756", "0x202964c2"],
+                ["0xfcf44597", "0x69ea13d0", "0x81c7d9b5", "0xbcf761a8"],
+                ["0xd65b2d39", "0xe60d9664", "0x33f53518", "0xbf7a7e9d"],
+                ["0x3fe45bb3", "0x9396a346", "0x13b24182", "0x0a03390d", "0x4a6c15e3", "0x85f0e556"],
+                ["0xf15dcf5e", "0x82e98c65", "0x34fc151b", "0x849a98a0", "0xdff45030", "0x7d6021e7"],
+                ["0x3fe45bb3", "0xf7fa6642", "0x1d0da575", "0x270f6964", "0x37567ecb", "0x85f0e556"]
+            ]
+        }
+    ]
+}

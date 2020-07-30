@@ -1,0 +1,1020 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="include\debugger.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\decoder.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\dumper.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\glue.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\introcore.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\introcpu.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\introcrt.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kernvm.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\memtags.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\patsig.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\stats.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\gpacache.h">
+      <Filter>Header Files\cache</Filter>
+    </ClInclude>
+    <ClInclude Include="include\icache.h">
+      <Filter>Header Files\cache</Filter>
+    </ClInclude>
+    <ClInclude Include="include\codeblocks.h">
+      <Filter>Header Files\normalizer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\alerts.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\alert_exceptions.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\callbacks.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\guest_stack.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\guests.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\integrity.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\introapi.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\memcloak.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\slack.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\swapmem.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\unpacker.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vasmonitor.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixapi.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixddefs.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixguest.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixksym.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixkernel.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixmm.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixmodule.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixprocess.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixstack.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixvdso.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_cr.h">
+      <Filter>Header Files\guests\hooks\reg</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_msr.h">
+      <Filter>Header Files\guests\hooks\reg</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_xcr.h">
+      <Filter>Header Files\guests\hooks\reg</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook.h">
+      <Filter>Header Files\guests\hooks\mem</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_gpa.h">
+      <Filter>Header Files\guests\hooks\mem</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_object.h">
+      <Filter>Header Files\guests\hooks\mem</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_pts.h">
+      <Filter>Header Files\guests\hooks\mem</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_ptwh.h">
+      <Filter>Header Files\guests\hooks\mem</Filter>
+    </ClInclude>
+    <ClInclude Include="include\agent.h">
+      <Filter>Header Files\guests\agent</Filter>
+    </ClInclude>
+    <ClInclude Include="include\loader.h">
+      <Filter>Header Files\guests\agent</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winguest.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winpe.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winstack.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winprocess.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winprocesshp.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winumcache.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winumpath.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winummodule.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\wddefs.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winbugcheck.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\windrvobj.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winpool.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winselfmap.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winhkhnd.h">
+      <Filter>Header Files\guests\windows\static</Filter>
+    </ClInclude>
+    <ClInclude Include="include\crc32.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\queue.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\update_exceptions.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\exceptions.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\visibility.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\msr_protection.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\deployer.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winidt.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\aghcall.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hnd_remediation.h">
+      <Filter>Header Files\guests\agent\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cr_protection.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixfastread.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixfiles.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\thread_safeness.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winpfn.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winumcrash.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixcrash.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winguest_supported.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_ptm.h">
+      <Filter>Header Files\guests\hooks\mem</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winuser_checks.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\shellcode.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winvad.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winthread.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hnd_loggather.h">
+      <Filter>Header Files\guests\agent\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winstubs.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winobj.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_gva.h">
+      <Filter>Header Files\guests\hooks\mem</Filter>
+    </ClInclude>
+    <ClInclude Include="include\detours.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\drivers.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winhal.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winapi.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\windriver.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\scan_engines.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\memtables.h">
+      <Filter>Header Files\guests\instrument</Filter>
+    </ClInclude>
+    <ClInclude Include="include\rtlpvirtualunwind.h">
+      <Filter>Header Files\guests\instrument</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ptfilter.h">
+      <Filter>Header Files\guests\instrument</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winpower.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixnet.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\intronet.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winnet.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vecore.h">
+      <Filter>Header Files\guests\instrument</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hook_dtr.h">
+      <Filter>Header Files\guests\hooks\reg</Filter>
+    </ClInclude>
+    <ClInclude Include="include\update_guests.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\bitmask.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\rbtree.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\dtr_protection.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\introdefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winummoduleblock.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\swapgs.h">
+      <Filter>Header Files\guests\instrument</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixagent.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixagent_ondemand.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixdeployer.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixhnd.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\wininfinityhook.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\wincmdline.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winagent.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\windeployer.h">
+      <Filter>Header Files\guests\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="include\udlist.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\compiler-gnu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\compiler-msvc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\introtypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\windpi.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\public\env.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\public\intro_sal.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\public\glueiface.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\public\intro_types.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\public\introstatus.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\public\upperiface.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\public\vecommon.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winumdoubleagent.h">
+      <Filter>Header Files\guests\windows\user</Filter>
+    </ClInclude>
+    <ClInclude Include="include\serializers.h">
+      <Filter>Header Files\guests</Filter>
+    </ClInclude>
+    <ClInclude Include="include\pgtable.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\wintoken.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\disasm\inc\constants.h">
+      <Filter>Header Files\disasm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\disasm\inc\disasm.h">
+      <Filter>Header Files\disasm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\disasm\inc\disasmstatus.h">
+      <Filter>Header Files\disasm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\disasm\inc\disasmtypes.h">
+      <Filter>Header Files\disasm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\disasm\inc\registers.h">
+      <Filter>Header Files\disasm</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winagent_dummy_Win32.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winagent_dummy_x64.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winagent_gather_Win32.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winagent_gather_x64.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winagent_killer_Win32.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winagent_killer_x64.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winagent_ptdriver_x64.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winagent_ve_x64.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winbootdrv_Win32.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winbootdrv_x64.h">
+      <Filter>Header Files\guests\windows\static\agents</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixcred.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixidt.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\structs.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\windrv_protected.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\utils\bitmask.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\conv.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\crc32.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\rbtree.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\snprintf.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\utils.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\debugger.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\decoder.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dumper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\introcore.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\introcpu.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\structs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\introcrt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kernvm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\patsig.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\stats.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\alerts.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\callbacks.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\cr_protection.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\detours.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\drivers.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\dtr_protection.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\guests.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\integrity.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\introapi.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\intronet.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\memcloak.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\msr_protection.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\scan_engines.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\shellcode.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\slack.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\swapmem.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\thread_safeness.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\udlist.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\unpacker.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\vasmonitor.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\visibility.c">
+      <Filter>Source Files\guests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\agents\agent.c">
+      <Filter>Source Files\guests\agents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\agents\deployer.c">
+      <Filter>Source Files\guests\agents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\agents\loader.c">
+      <Filter>Source Files\guests\agents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\agents\handlers\hnd_loggather.c">
+      <Filter>Source Files\guests\agents\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\agents\handlers\hnd_remediation.c">
+      <Filter>Source Files\guests\agents\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\cache\gpacache.c">
+      <Filter>Source Files\guests\cache</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\cache\icache.c">
+      <Filter>Source Files\guests\cache</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\exceptions\alert_exceptions.c">
+      <Filter>Source Files\guests\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\exceptions\codeblocks.c">
+      <Filter>Source Files\guests\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\exceptions\exceptions.c">
+      <Filter>Source Files\guests\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\exceptions\exceptions_kern.c">
+      <Filter>Source Files\guests\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\exceptions\exceptions_user.c">
+      <Filter>Source Files\guests\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\mem\hook.c">
+      <Filter>Source Files\guests\hooks\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\mem\hook_gpa.c">
+      <Filter>Source Files\guests\hooks\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\mem\hook_gva.c">
+      <Filter>Source Files\guests\hooks\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\mem\hook_object.c">
+      <Filter>Source Files\guests\hooks\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\mem\hook_ptm.c">
+      <Filter>Source Files\guests\hooks\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\mem\hook_pts.c">
+      <Filter>Source Files\guests\hooks\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\mem\hook_ptwh.c">
+      <Filter>Source Files\guests\hooks\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\reg\hook_cr.c">
+      <Filter>Source Files\guests\hooks\reg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\reg\hook_dtr.c">
+      <Filter>Source Files\guests\hooks\reg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\reg\hook_msr.c">
+      <Filter>Source Files\guests\hooks\reg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\hooks\reg\hook_xcr.c">
+      <Filter>Source Files\guests\hooks\reg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\instrument\memtables.c">
+      <Filter>Source Files\guests\instrument</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\instrument\ptfilter.c">
+      <Filter>Source Files\guests\instrument</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\instrument\rtlpvirtualunwind.c">
+      <Filter>Source Files\guests\instrument</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\instrument\swapgs.c">
+      <Filter>Source Files\guests\instrument</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\instrument\vecore.c">
+      <Filter>Source Files\guests\instrument</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixagent.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixagent_ondemand.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixaghnd.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixapi.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixcrash.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixcred.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixdeployer.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixfastread.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixfiles.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixguest.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixidt.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixkernel.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixksym.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixmm.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixmodule.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixnet.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixprocess.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixstack.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixvdso.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\update\update_exceptions.c">
+      <Filter>Source Files\guests\update</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\update\update_guests.c">
+      <Filter>Source Files\guests\update</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winapi.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winbugcheck.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\windriver.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\windrvobj.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winhal.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winidt.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\wininfinityhook.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winobj.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winpfn.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winpool.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winpower.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winselfmap.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winvad.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\wincmdline.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\windpi.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winprocess.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winprocesshp.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winstack.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winthread.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winumcache.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winumcrash.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winummodule.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winummoduleblock.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winumpath.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winuser_checks.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\winagent.c">
+      <Filter>Source Files\guests\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\windeployer.c">
+      <Filter>Source Files\guests\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\winguest.c">
+      <Filter>Source Files\guests\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\winguest_supported.c">
+      <Filter>Source Files\guests\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\winnet.c">
+      <Filter>Source Files\guests\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\winpe.c">
+      <Filter>Source Files\guests\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\user\winumdoubleagent.c">
+      <Filter>Source Files\guests\windows\user</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\exceptions\serializers.c">
+      <Filter>Source Files\guests\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\wintoken.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\exceptions\exceptions_krnusr.c">
+      <Filter>Source Files\guests\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\windrv_protected.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\winhkhnd.c">
+      <Filter>Source Files\guests\windows</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="agents\agent64.asm" />
+    <CustomBuild Include="agents\trampoline32.asm" />
+    <CustomBuild Include="agents\trampoline64.asm" />
+    <CustomBuild Include="agents\trampoline64.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </CustomBuild>
+    <CustomBuild Include="agents\agent64.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </CustomBuild>
+    <CustomBuild Include="agents\trampoline32.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{611b7e57-5cb9-4269-b0ce-7f0cead18ab1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Misc Files">
+      <UniqueIdentifier>{3b2641e2-e995-4f3d-b748-16002dd936c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{fb99a289-6bf2-462d-9ff9-b08f0ec4e687}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\cache">
+      <UniqueIdentifier>{4d01bd28-bb7a-42a6-ad71-99830c53f992}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\core">
+      <UniqueIdentifier>{397d25f2-110e-437f-9490-d5511d2d97f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests">
+      <UniqueIdentifier>{169dc987-77bd-4a80-964b-95e6c5be3359}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\normalizer">
+      <UniqueIdentifier>{fca3465f-61a3-49f4-9a6f-4c2384b7f746}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\public">
+      <UniqueIdentifier>{a5c624df-6ae6-4d26-ad4a-130e11f44208}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\utils">
+      <UniqueIdentifier>{2d095b17-292a-44e8-9f19-b7102015722b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\agent">
+      <UniqueIdentifier>{6f5e33a4-2b43-4a08-9351-5b05b71ca2c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\hooks">
+      <UniqueIdentifier>{13635905-25b3-41e0-987f-22dcec797124}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\linux">
+      <UniqueIdentifier>{15ff65fb-c057-477b-8b5c-da5ebbd2ed00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\windows">
+      <UniqueIdentifier>{e9fc65da-3b1e-41df-a8a8-4aa2cf20a5ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\hooks\mem">
+      <UniqueIdentifier>{ab65e278-9401-427f-9796-43ac18aa56da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\hooks\reg">
+      <UniqueIdentifier>{e730d082-2ff6-496d-92f2-7a50bbbfd767}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\windows\kernel">
+      <UniqueIdentifier>{380b8d04-9d5f-4df1-bf6f-99f726ffdf92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\windows\static">
+      <UniqueIdentifier>{086e35ca-0006-466b-8520-c4c567035442}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\windows\user">
+      <UniqueIdentifier>{72346293-ea44-412e-8c44-19b2e3f1cf8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\disasm">
+      <UniqueIdentifier>{02f9489e-4e2c-4569-bb33-a21bfa273c41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\agent\handlers">
+      <UniqueIdentifier>{f7733af2-77fd-4310-bbfe-01fd152270a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{47c136f2-3764-4bc5-9e6c-9ae5c63aa84f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\windows\static\agents">
+      <UniqueIdentifier>{45d07d4b-59f3-4bff-a186-cd7579c022fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\guests\instrument">
+      <UniqueIdentifier>{e9dca03d-bd80-44f6-b012-49e709e4aba6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests">
+      <UniqueIdentifier>{860618a5-9e95-468c-8bcd-f2a4c4956ead}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\utils">
+      <UniqueIdentifier>{5e80812a-ad1a-4872-a47f-beb0cbfe0f47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\agents">
+      <UniqueIdentifier>{05569eac-4327-4dd6-85ca-3fb28a58f210}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\cache">
+      <UniqueIdentifier>{33346b87-a569-4f7d-9c3d-3fc0e1525913}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\exceptions">
+      <UniqueIdentifier>{22be9b17-5735-497a-939a-8eaeb708dde4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\hooks">
+      <UniqueIdentifier>{f09ba5d8-dd31-43d7-b652-5d8300d5ff2a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\instrument">
+      <UniqueIdentifier>{87c6f577-dc92-4e34-b6be-029c0bd264b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\linux">
+      <UniqueIdentifier>{071ca7a2-114a-4465-b656-075928f9b319}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\windows">
+      <UniqueIdentifier>{eb61a2bd-bfa1-4183-97bb-6fc310045c7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\update">
+      <UniqueIdentifier>{6ad97384-fe82-4288-ac23-f4ce4e332510}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\agents\handlers">
+      <UniqueIdentifier>{15310f1e-00b8-453d-9d1a-e739abe2d7c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\hooks\mem">
+      <UniqueIdentifier>{69492257-876f-40fa-9aef-b2aef47423e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\hooks\reg">
+      <UniqueIdentifier>{5c643837-27aa-442f-9127-fb141b32ce27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\windows\user">
+      <UniqueIdentifier>{e37dd8a6-3404-4960-b22a-41726dcfb3f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\windows\kernel">
+      <UniqueIdentifier>{f6094276-4fe8-40ef-9c71-c96336929b63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\guests\agents\asm">
+      <UniqueIdentifier>{66a16060-1f33-4123-a591-81fcffa6a4d0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="introcore.def">
+      <Filter>Misc Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="agents\agent32.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\hcall32.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\hcall64.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\lix_agent.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\lix_thread.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\loadstub32.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\loadstub64.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\ptfilter64.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\removal32.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\removal64.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\startstub32.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\startstub64.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\trampoline32_bp.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+    <MASM Include="agents\trampoline64_bp.asm">
+      <Filter>Source Files\guests\agents\asm</Filter>
+    </MASM>
+  </ItemGroup>
+</Project>

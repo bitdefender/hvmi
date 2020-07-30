@@ -1,0 +1,212 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiInsertPrivateVad
+guest64: True
+# Arguments:
+#       RCX: pointer to a MMVAD or MMVAD_SHORT structure. Private VADs (created by VirtualAlloc(Ex) calls) are
+#       always MMVAD_SHORT
+#       R8: pointer to the EPROCESS structure of the process for which the VAD is created. This might not be in
+#       the process list yet
+#
+#   Note that the `arguments` field is not set in .yaml, even though this isn't the "valid" x64 calling convention.
+#       That is because the argument in R8 is not used by introcore at the moment ( we get the proess from hte current Cr3).
+#       Even more so, we don't specify a "calling convention" here, but a list of arguments we're interested in.
+#
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [rsp+10h],edx
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,78h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x48, 0x83, 0xcb, 0xff]                           #  or      rbx,0FFFFFFFFFFFFFFFFh
+                - [0x4d, 0x8b, 0xf8]                                 #  mov     r15,r8
+                - [0x48, 0x8b, 0x7e, 0x100]                          #  mov     rdi,qword ptr [rsi+70h]
+                - [0x66, 0x01, 0x9e, 0x100, 0x100, 0x00, 0x00]       #  add     word ptr [rsi+1C6h],bx
+                - [0x8b, 0xea]                                       #  mov     ebp,edx
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+48h],rdi
+                - [0x4c, 0x8b, 0xe1]                                 #  mov     r12,rcx
+                - [0x4c, 0x8d, 0xb7, 0x100, 0x100, 0x00, 0x00]       #  lea     r14,[rdi+398h]
+                - [0xf0, 0x49, 0x0f, 0xba, 0x2e, 0x00]               #  lock bts qword ptr [r14],0
+                - [0x72, 0x100]                                      #  jb      nt!MiInsertPrivateVad+0xc8 (fffff800`026f83c0)
+                - [0x80, 0x8e, 0x100, 0x100, 0x00, 0x00, 0x08]       #  or      byte ptr [rsi+450h],8
+                - [0x48, 0x8d, 0x87, 0x100, 0x100, 0x00, 0x00]       #  lea     rax,[rdi+448h]
+                - [0x49, 0x8b, 0xcc]                                 #  mov     rcx,r12
+                - [0x4c, 0x89, 0xa7, 0x100, 0x100, 0x00, 0x00]       #  mov     qword ptr [rdi+478h],r12
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [rsp+10h],edx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,98h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x100, 0x100, 0x100, 0x100] #  mov   rsi,qword ptr gs:[188h]
+                - [0x48, 0x83, 0xcb, 0xff]                           #  or      rbx,0FFFFFFFFFFFFFFFFh
+                - [0x4d, 0x8b, 0xf0]                                 #  mov     r14,r8
+                - [0x48, 0x8b, 0x7e, 0x70]                           #  mov     rdi,qword ptr [rsi+70h]
+                - [0x66, 0x01, 0x9e, 0x100, 0x100, 0x100, 0x100]     #  add     word ptr [rsi+1C6h],bx
+                - [0x8b, 0xea]                                       #  mov     ebp,edx
+                - [0x4c, 0x8b, 0xe9]                                 #  mov     r13,rcx
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+60h],rsi
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+48h],rdi
+                - [0x4c, 0x8d, 0xa7, 0x100, 0x100, 0x100, 0x100]     #  lea     r12,[rdi+398h]
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],r12
+                - [0xf0, 0x49, 0x0f, 0xba, 0x2c, 0x24, 0x100]        #  lock bts qword ptr [r12],0
+                - [0x0f, 0x82, 0x100, 0x100, 0x100, 0x100]           #  jb      nt!MiInsertPrivateVad+0x117 (fffff800`02cb511f)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [rsp+10h],edx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,88h
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rdi,qword ptr gs:[188h]
+                - [0x48, 0x83, 0xcb, 0x100]                          #  or      rbx,0FFFFFFFFFFFFFFFFh
+                - [0x4d, 0x8b, 0xf8]                                 #  mov     r15,r8
+                - [0x48, 0x8b, 0x77, 0x100]                          #  mov     rsi,qword ptr [rdi+70h]
+                - [0x66, 0x01, 0x9f, 0x100, 0x100, 0x100, 0x100]     #  add     word ptr [rdi+1C6h],bx
+                - [0x44, 0x8b, 0xe2]                                 #  mov     r12d,edx
+                - [0x48, 0x8b, 0xe9]                                 #  mov     rbp,rcx
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+68h],rdi
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rsi
+                - [0x4c, 0x8d, 0xb6, 0x100, 0x100, 0x100, 0x100]     #  lea     r14,[rsi+398h]
+                - [0x4c, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+78h],r14
+                - [0xf0, 0x49, 0x100, 0x100, 0x100, 0x100]           #  lock bts qword ptr [r14],0
+                - [0x73, 0x100]                                      #  jae     nt!MiInsertPrivateVad+0x68 (fffff800`030baf94)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [rsp+10h],edx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,88h
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rdi,qword ptr gs:[188h]
+                - [0x48, 0x83, 0xcb, 0xff]                           #  or      rbx,0FFFFFFFFFFFFFFFFh
+                - [0x4d, 0x8b, 0xf8]                                 #  mov     r15,r8
+                - [0x48, 0x8b, 0x77, 0x100]                          #  mov     rsi,qword ptr [rdi+70h]
+                - [0x66, 0x01, 0x9f, 0x100, 0x100, 0x100, 0x100]     #  add     word ptr [rdi+1C6h],bx
+                - [0x44, 0x8b, 0xe2]                                 #  mov     r12d,edx
+                - [0x48, 0x8b, 0xe9]                                 #  mov     rbp,rcx
+                - [0x48, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+68h],rdi
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],rsi
+                - [0x4c, 0x8d, 0xae, 0x100, 0x100, 0x100, 0x100]     #  lea     r13,[rsi+398h]
+                - [0x4c, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+78h],r13
+                - [0xf0, 0x49, 0x0f, 0xba, 0x6d, 0x100, 0x100]       #  lock bts qword ptr [r13],0
+                - [0x73, 0x100]                                      #  jae     nt!MiInsertPrivateVad+0x69 (fffff800`028828a1)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],rbx
+                - [0x89, 0x54, 0x24, 0x100]                          #  mov     dword ptr [rsp+10h],edx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rdi,qword ptr gs:[188h]
+                - [0x48, 0x83, 0xcb, 0x100]                          #  or      rbx,0FFFFFFFFFFFFFFFFh
+                - [0x4d, 0x8b, 0xe8]                                 #  mov     r13,r8
+                - [0x4c, 0x8b, 0x7f, 0x100]                          #  mov     r15,qword ptr [rdi+70h]
+                - [0x66, 0x01, 0x9f, 0x100, 0x100, 0x00, 0x00]       #  add     word ptr [rdi+1C6h],bx
+                - [0x44, 0x8b, 0xe2]                                 #  mov     r12d,edx
+                - [0x48, 0x8b, 0xe9]                                 #  mov     rbp,rcx
+                - [0xf0, 0x49, 0x0f, 0xba, 0xaf, 0x100, 0x100, 0x00, 0x00, 0x00] #  lock bts qword ptr [r15+398h],0
+                - [0x73, 0x100]                                      #  jae     nt!MiInsertPrivateVad+0x51 (fffff800`028a6421)
+                - [0x49, 0x8d, 0x8f, 0x100, 0x100, 0x00, 0x00]       #  lea     rcx,[r15+398h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExfAcquirePushLockExclusive (fffff800`02899230)
+                - [0x80, 0x8f, 0x100, 0x100, 0x00, 0x00, 0x100]      #  or      byte ptr [rdi+458h],8
+                - [0x49, 0x8d, 0x97, 0x100, 0x100, 0x00, 0x00]       #  lea     rdx,[r15+448h]
+                - [0x48, 0x8b, 0xcd]                                 #  mov     rcx,rbp
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x18]                     #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,20h
+                - [0xf7, 0x41, 0x100, 0x100, 0x100, 0x100, 0x100]    #  test    dword ptr [rcx+30h],40000h
+                - [0x4d, 0x8b, 0xf0]                                 #  mov     r14,r8
+                - [0x4c, 0x8b, 0xe2]                                 #  mov     r12,rdx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiInsertPrivateVad+0x1501e0 (fffff806`1261ad70)
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+1Ch]
+                - [0x0f, 0xb6, 0x59, 0x100]                          #  movzx   ebx,byte ptr [rcx+21h]
+                - [0x0f, 0xb6, 0x71, 0x100]                          #  movzx   esi,byte ptr [rcx+20h]
+                - [0x48, 0xc1, 0xe3, 0x100]                          #  shl     rbx,20h
+                - [0x48, 0x0b, 0xd8]                                 #  or      rbx,rax
+                - [0x48, 0xc1, 0xe6, 0x100]                          #  shl     rsi,20h
+                - [0x8b, 0x41, 0x100]                                #  mov     eax,dword ptr [rcx+18h]
+                - [0x48, 0x0b, 0xf0]                                 #  or      rsi,rax
+                - [0x41, 0x0f, 0xb6, 0x80, 0x100, 0x100, 0x100, 0x100] #  movzx   eax,byte ptr [r8+5B8h]
+                - [0x24, 0x07]                                       #  and     al,7
+                - [0x3c, 0x02]                                       #  cmp     al,2
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MiInsertPrivateVad+0x1501f3 (fffff806`1261ad83)

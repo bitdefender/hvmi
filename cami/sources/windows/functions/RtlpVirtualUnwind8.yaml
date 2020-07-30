@@ -1,0 +1,47 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: RtlpVirtualUnwind8
+guest64: True
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: WIN_PATTERN_MIN_VERSION_ANY
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x80, 0x79, 0x01, 0xff]                           #  cmp     byte ptr [rcx+1], 0FFh
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jnz     loc_FFFFF800014AAC45
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]                 #  jmp     loc_FFFFF8000145B2EA
+                - [0x80, 0x7d, 0x01, 0x8d]                           #  cmp     byte ptr [rbp+1], 8Dh
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jnz     loc_FFFFF800014AABE7
+                - [0x0f, 0xb6, 0x55, 0x02]                           #  movzx   edx, byte ptr [rbp+2]
+                - [0x44, 0x0f, 0xb6, 0x75, 0x00]                     #  movzx   r14d, byte ptr [rbp+0]
+                - [0x41, 0x83, 0xe6, 0x01]                           #  and     r14d, 1
+                - [0x8b, 0xc2]                                       #  mov     eax, edx
+                - [0x41, 0xc1, 0xe6, 0x03]                           #  shl     r14d, 3
+                - [0x83, 0xe0, 0x07]                                 #  and     eax, 7
+                - [0x44, 0x0b, 0xf0]                                 #  or      r14d, eax
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  jz      loc_FFFFF800014AABEF
+                - [0x0f, 0xb6, 0x46, 0x03]                           #  movzx   eax, byte ptr [rsi+3]
+                - [0x83, 0xe0, 0x0f]                                 #  and     eax, 0Fh
+                - [0x44, 0x3b, 0xf0]                                 #  cmp     r14d, eax
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jnz     loc_FFFFF800014AABEF
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]                 #  jmp     loc_FFFFF8000145B2B0
+                - [0x48, 0x83, 0xc2, 0x08]                           #  add     rdx, 8
+                - [0x49, 0x83, 0xc0, 0x08]                           #  add     r8, 8
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]                 #  jmp     loc_FFFFF800014AB080
+                - [0x4c, 0x8b, 0x8c, 0x24, 0x100, 0x00, 0x00, 0x00]  #  mov     r9, [rsp+88h+arg_48]
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]                 #  jmp     loc_FFFFF800014AB0B8
+                - [0x8a, 0x45, 0x00]                                 #  mov     al, [rbp+0]
+                - [0x48, 0x8b, 0xd5]                                 #  mov     rdx, rbp
+                - [0x24, 0xf8]                                       #  and     al, 0F8h
+                - [0x3c, 0x48]                                       #  cmp     al, 48h
+                - [0x75, 0x100]                                      #  jnz     short loc_FFFFF800014AB1CF
+                - [0x8a, 0x45, 0x01]                                 #  mov     al, [rbp+1]
+                - [0x3c, 0x83]                                       #  cmp     al, 83h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jnz     loc_FFFFF800014AB272

@@ -1,0 +1,12 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        {
+            "originator": "-",
+            "object_type": "msr",
+            "signatures": [
+                "patchguard-lstar"
+            ]
+        }
+    ]
+}

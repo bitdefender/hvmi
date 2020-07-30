@@ -1,0 +1,71 @@
+{
+    "Type": "kernel",
+    "Signatures": [
+        
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "nt-rdata-writes",
+            "flags": "64",
+            "score": 6,
+            "hashes": [
+                ["0xd54462a4", "0x4de6c04d", "0x94a83833", "0xcaaf8fc5", "0x774c7a6e", "0xcf809694", "0x51b07735", "0xb9b87bb"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "kernel-iat-init",
+            "flags": "32 64",
+            "score": 3,
+            "hashes": [
+                ["0xedbcdd76", "0x25038b0a", "0x18576414", "0x2009dd4d", "0x6e3c0340", "0xea3a9e4d"],
+                ["0x85ff8b25", "0xaed2d8e6", "0x256e26b2", "0x7d537f76", "0x38b5bbff", "0x2f19aca2"],
+                ["0xf6590538", "0x354aa198", "0xbd0b20ca", "0x1ef1b63f", "0x3d8b2b16", "0x1566f7f0"]
+            ]
+        },
+
+        {
+            "sig_type": "idt",
+            "sig_id": "hal-idt",
+            "entry": 2
+        },
+        
+        {
+            "sig_type": "idt",
+            "sig_id": "init-x86-idt",
+            "entry": 18
+        },
+
+        {
+            "sig_type": "value",
+            "sig_id": "x86-idt-null",
+            "score": 1,
+            "hashes": [
+                // The QWORD equal to 0x0000850000a00000
+                {
+                    "offset": 0,
+                    "size": 8,
+                    "hash": "0x11d377a"
+                }
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "patchguard-idt-codeblocks",
+            "flags": "64",
+            "score": 4,
+            "hashes": [
+                // Windows 10 RS4
+                ["0xe48db851", "0x37322885", "0x1616b21a", "0x889fa923", "0xc22a58da", "0x222ce12f", "0x2000e625", "0x845bea9b", "0xecaae6bb", "0x9a64e6e4",
+                 "0xc200d436", "0xbdfe17bf", "0x29e5d2f8", "0x2c0eb51a", "0x61c61411", "0xf6590538", "0x966ab5db", "0xf6590538", "0xf7fa7d88"]
+            ]
+        },
+
+        {
+            "sig_type": "idt",
+            "sig_id": "patchguard-idt",
+            "entry": 1
+        }
+    ]
+}

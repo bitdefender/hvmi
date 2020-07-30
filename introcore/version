@@ -1,0 +1,9 @@
+{
+    global:
+        IntPreinit;
+        IntInit;
+        IntUninit;
+
+    local:
+        *;
+};

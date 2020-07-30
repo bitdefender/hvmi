@@ -1,0 +1,123 @@
+{
+    "Type": "user",
+    "Signatures": [
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "xul-codeblocks-32",
+            "flags": "medium 32",
+            "score": 3,
+            "hashes": [
+                ["0x6768c502", "0x6763b211", "0x8d7f4b2c", "0xac21a360"],
+                ["0x6763b211", "0x8d7f4b2c", "0xac21a360", "0xddb17801"],
+                ["0xe1a88bf7", "0x2a9ea674", "0x6768c502", "0x6763b211", "0x8d7f4b2c", "0xac21a360"],
+                ["0xa22fc793", "0x19de3cdd", "0xf5c7035d", "0x6ce37785"],
+                ["0x8bc236fc", "0xbd261541", "0xcc814c5d", "0xc34578e6"],
+                ["0x0c1eda2f", "0xd95ba171", "0xabcde989", "0x0460ce97"],
+                ["0x77d2496b", "0xc389d158", "0x6d564706", "0xee731200"],
+                ["0x6768c502", "0x9fcae4c2", "0xe55a5182", "0x0af5d11d"],
+                ["0xf3a3a1f2", "0x233ae175", "0x29ead612", "0x143893f2"],
+                ["0x9ddec6e7", "0x3755c05d", "0x1a517790", "0xf9b3ab73"],
+                ["0xa7a0ea33", "0x6396397f", "0xc7a41be6", "0xae06eb3a"],
+                ["0xbff0fc5b", "0xfb7b99f2", "0xe8617d16", "0x6a4864e4"],
+                ["0xae16a618", "0xf72edd40", "0x7f8d060d", "0x776898fb"],
+                ["0x98d0e863", "0xd1a2526e", "0x4ea45c9f", "0x875622e5"],
+                ["0x46292529", "0xae16a618", "0x4bd1570b", "0x9e3f619f"],
+                ["0x807289dc", "0x53c05fe4", "0xdef87bf1", "0x5837511d"],
+                ["0xaf318396", "0x1ebee680", "0x7ff5562a", "0x67f6c3f5"],
+                ["0xb12b7469", "0xaaab4240", "0xc8abe701", "0x9067931d"],
+                ["0x6beaf9de", "0x5b27fbe5", "0x8217324c", "0x7895fbfb"],
+                ["0xadaa198b", "0x9facee56", "0x85eab95d", "0xc621b684"],
+                ["0x85eab95d", "0xc621b684", "0x9a69b76b", "0x197caab9"],
+                ["0x19de3cdd", "0x16963e2d", "0x35b31baf", "0x74d8acf0"],
+                ["0x779a3d8b", "0x03d15d5a", "0x8cc088c5", "0xecff17c5"],
+                ["0x80c7040f", "0xe0450b71", "0x2e446de1", "0xde85ffc3"],
+                ["0xd95ba171", "0xfa1d323b", "0xc18b25f2", "0xcffafbcb"],
+                ["0x8db67e93", "0x8cdf2ffa", "0xb246af9a", "0x80c7040f"],
+                ["0x11db85b6", "0x50954fce", "0x0e0af80a", "0xeb81d9b0", "0xb246af9a", "0x80c7040f", "0x97423be7"],
+                ["0x80c7040f", "0x97423be7", "0xae560d1a", "0x8db67e93"],
+                ["0x69d940ed", "0x4e851980", "0x48f986b2", "0xb98f7a1d", "0x2f9514e9", "0xde842eba"],
+                ["0xf01b3d92", "0x198c0827", "0xa26ed811", "0x8dba4646", "0xe4ceb5c6", "0x759e4842", "0x0af4d518", "0x141b8df1"],
+                ["0x80c7040f", "0xe0450b71", "0x209fe5d3", "0x1887fdf9", "0x562aa6a9", "0x7eedf2b4", "0x4d296f5e", "0x8be3b4ee"],
+                ["0x925d6114", "0x1d35686e", "0xa3b11077", "0x296a5de3", "0x3e5738ed", "0xd9f8288f", "0xe1568547", "0x9adf0044"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "xul-codeblocks-64",
+            "flags": "medium 64",
+            "score": 3,
+            "hashes": [
+                ["0xc70a5ee7", "0x7288880a", "0x996bfc59", "0x155363de"],
+                ["0x4f895062", "0xa48e6856", "0xd41f08b3", "0x55c11c4c"],
+                ["0x0c1eda2f", "0xd95ba171", "0xfa1d323b", "0xc18b25f2"],
+                ["0x960b6051", "0x807289dc", "0x8ff85c4a", "0x06296828"],
+                ["0x46739292", "0xa960a803", "0x55c11c4c", "0x4a860ea6"],
+                ["0x2d06d16b", "0xdd305f73", "0xea4d0532", "0xb847cd61"],
+                ["0x996bfc59", "0x155363de", "0x68d8c5f0", "0xb4734399"],
+                ["0xa0fd1d93", "0x19dcee07", "0xe7b1d482", "0x0af73a98"],
+                ["0x7a7a12c2", "0x69ec9570", "0x57117cdb", "0x162bfb52", "0x0a0980a3", "0x46739292", "0x225c56b0", "0xcc3e0ea8", "0x3f691db8", "0xcc233be3"],
+                ["0x9d4a35a4", "0xa8eab00b", "0x9007d24a", "0x9f3fc61c"],
+                ["0xc828a5a3", "0xadaa198b", "0x9facee56", "0x85eab95d", "0xc621b684", "0x9a69b76b"],
+                ["0x477ab19d", "0x6d028e65", "0x3ac8762b", "0xda9dadfa"],
+                ["0x8d287605", "0x779a3d8b", "0x3d15d5a", "0x8cc088c5", "0xecff17c5"],
+                ["0x68fc20f6", "0x4f071966", "0xdd525ebb","0xc3dcbd06", "0xeedd98fa"],
+                ["0xd95ba171", "0xfa1d323b", "0xc18b25f2", "0xcffafbcb"],
+                ["0x8db67e93", "0x8cdf2ffa", "0xb246af9a", "0x80c7040f"],
+                ["0x11db85b6", "0x50954fce","0x0e0af80a", "0xeb81d9b0", "0xb246af9a", "0x80c7040f", "0x97423be7"],
+                ["0x80c7040f", "0x97423be7", "0xae560d1a", "0x8db67e93"],
+                ["0x2b584a83", "0xe6c9e13c", "0x0af4d518", "0xb36244c8", "0x9271c9b4"],
+                ["0xf01b3d92", "0x198c0827", "0xa26ed811", "0x8dba4646", "0xe4ceb5c6", "0x759e4842", "0x0af4d518", "0x141b8df1"],
+                ["0x155120dd", "0x9362d098", "0x6c14124a", "0x91185dee", "0xae29c388", "0x66e55d7e", "0xa6cf314f", "0xef63fa70"],
+                ["0x8617babc", "0xc52c096f", "0x3a6058ac", "0xd8276ee9"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "mozglue-codeblocks-32",
+            "flags": "medium 32",
+            "score": 3,
+            "hashes": [
+                ["0xadaa198b", "0x9facee56", "0x85eab95d", "0xc621b684"],
+                ["0xd7e939e1", "0xa7a0ea33", "0x1a4a81db", "0x18bd289d", "0x87003b91", "0xf7f5720d"],
+                ["0xc828a5a3", "0xadaa198b", "0x9facee56", "0x85eab95d", "0xc621b684", "0x9a69b76b"],
+                ["0xbff0fc5b", "0xf5a011c0", "0x585addb0", "0x2c91e13d", "0xca17b61c"],
+                ["0x403be069", "0x4de27fd3", "0xb9260bfb", "0xb4a2bd57", "0x8c77fb25", "0x32443e73"],
+                ["0xcf880438", "0x216b59da", "0xf4743b7f", "0x71c485ee"],
+                ["0x815b3fa8", "0xa8f6a101", "0x6fe8fa40", "0x14db1a5c", "0x65b427b7", "0x71c485ee"],
+                ["0x498dac42", "0x7f33a57c", "0xf8642af4", "0x245ce2e7", "0x4e30fadd", "0x1f8496ff"],
+                ["0x58938a2c", "0x4b4c62a6", "0x4f849b5b", "0x83ecca19", "0x6395a578", "0xd9b7bb32"],
+                ["0x91eb500b", "0x5a4c295c", "0x6763b211", "0x8d7f4b2c", "0xac21a360", "0x34d2dd34"],
+                ["0x1886bb9a", "0x196495a1", "0xa6b51699", "0x41dc9ce5", "0xa0a3c1d6", "0xcf40fdf7"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "mozglue-xul-code-64",
+            "flags": "medium 64",
+            "score": 4,
+            "hashes": [
+                ["0x9a96f82b", "0x8d287605", "0x779a3d8b", "0x03d15d5a", "0x8cc088c5", "0xecff17c5"],
+                ["0xcdd33875", "0xc70a5ee7", "0x7288880a", "0x996bfc59", "0x155363de", "0x68d8c5f0"],
+                ["0x3f691db8", "0xcc233be3", "0x3eb2718b", "0x787d4638", "0x5800143c", "0x864da35a"],
+                ["0x779a3d8b", "0x03d15d5a", "0x8cc088c5", "0xecff17c5", "0x7d6021e7", "0x47df8a35"],
+                ["0xf3563473", "0xff605016", "0x56ca422f", "0xce8297c0", "0x9cd7a155", "0xfc357ab6"],
+                ["0xd48c00bc", "0x25ab7bcb", "0x9ec0dbaf", "0xaf38ef32", "0x2b584a83", "0xe6c9e13c"]
+            ]
+        },
+
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "firefox-lib-writes-code",
+            "flags": "medium 32 64",
+            "score": 4,
+            "hashes": [
+                ["0x49ae8b1f", "0x80c7040f", "0xe0450b71", "0x209fe5d3", "0x6f80cd6f", "0x41ea1fda"],
+                ["0x96cdfa4f", "0x4d8c1cff", "0x2a3282e3", "0xde81892c", "0x3b0f496d", "0xf72f5490"],
+                ["0x96cdfa4f", "0x4ead2c2a", "0x3c5d6c96", "0x89ff53e7", "0xf8eff340", "0xf72f5490"]
+            ]
+        }
+    ]
+}

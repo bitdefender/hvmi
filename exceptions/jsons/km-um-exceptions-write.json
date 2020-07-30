@@ -1,0 +1,32 @@
+{
+    "Type": "kernel-user",
+    "Exceptions": [
+        {
+            "flags" : "32 64",
+            "process":  "chrome.exe",
+            "originator": "[kernel]",
+            "victim" : "ntdll.dll",
+            "object_type": "module",
+            "signatures": [
+                "km-um-codeblocks-sig-64",
+                "km-um-codeblocks-sig-32",
+                "km-um-browsers-common-export-sig",
+                "km-um-chromium-exports"
+            ]
+        },
+        
+        {
+            "flags" : "32 64",
+            "process":  "firefox.exe",
+            "originator": "[kernel]",
+            "victim" : "ntdll.dll",
+            "object_type": "module",
+            "signatures": [
+                "km-um-codeblocks-sig-64",
+                "km-um-codeblocks-sig-32",
+                "km-um-browsers-common-export-sig",
+                "km-um-firefox-exports"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "Type": "user",
+    "Signatures": [
+        {
+            "sig_type": "export",
+            "sig_id": "um-apc-services-exports",
+            "library": "sechost.dll",
+            "hashes": [
+                {
+                    "name": "*",
+                    "delta": 0
+                }
+            ]
+        }
+    ]
+}

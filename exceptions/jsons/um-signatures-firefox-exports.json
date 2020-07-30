@@ -1,0 +1,137 @@
+{
+    "Type": "user",
+    "Signatures": [
+        {
+            "sig_type": "export",
+            "sig_id": "firefox-inj-exports",
+            "library": "firefox.exe",
+            "hashes": [
+                {
+                    "name": "*",
+                    "delta": 0
+                }
+            ]
+        },
+
+        {
+            "sig_type": "export",
+            "sig_id": "mozglue-ntdll-hooked-functions",
+            "library": "ntdll.dll",
+            "hashes": [
+                {
+                    "name": "LdrLoadDll",
+                    "delta": 13
+                }
+            ]
+        },
+
+        {
+            "sig_type": "export",
+            "sig_id": "mozglue-kernel32-hooked-functions",
+            "library": "kernel32.dll",
+            "hashes": [
+                {
+                    "name": "RtlInstallFunctionTableCallback",
+                    "delta": 13
+                },
+
+                {
+                    "name": "BaseThreadInitThunk",
+                    "delta": 13
+                }
+            ]
+        },
+
+        {
+            "sig_type": "export",
+            "sig_id": "xul-kernel32-hooked-functions",
+            "library": "kernel32.dll",
+            "hashes": [
+                {
+                    "name": "SetUnhandledExceptionFilter",
+                    "delta": 13
+                },
+                
+                {
+                    "name": "TlsAlloc",
+                    "delta": 21
+                },
+
+                {
+                    "name": "TlsFree",
+                    "delta": 21
+                },
+
+                {
+                    "name": "QueryPerformanceCounter",
+                    "delta": 14
+                },
+
+                {
+                    "name": "VirtualAlloc",
+                    "delta": 8
+                },
+
+                {
+                    "name": "MapViewOfFile",
+                    "delta": 8
+                },
+
+                {
+                    "name": "SetThreadStackGuarantee",
+                    "delta": 32
+                },
+
+                {
+                    "name": "VerLanguageNameW",
+                    "delta": 32
+                },
+
+                {
+                    "name": "LockResource",
+                    "delta": 32
+                },
+
+                {
+                    "name": "CreateMutexW",
+                    "delta": 16
+                },
+
+                {
+                    "name": "GetWindowInfo",
+                    "delta": 16
+                },
+
+                {
+                    "name": "TrackPopupMenu",
+                    "delta": 16
+                },
+
+                {
+                    "name": "SendMessageTimeoutW",
+                    "delta": 16
+                },
+
+                {
+                    "name": "SendMessageTimeoutA",
+                    "delta": 16
+                },
+
+                {
+                    "name": "SetCursorPos",
+                    "delta": 16
+                },
+
+                {
+                    "name": "MapViewOfFile",
+                    "delta": 2    
+                },
+                
+                {
+                    "name": "VirtualAlloc",
+                    "delta": 2                
+                }
+            ]
+        }
+    ]
+}

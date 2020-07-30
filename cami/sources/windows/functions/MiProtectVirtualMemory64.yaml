@@ -1,0 +1,489 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiProtectVirtualMemory
+guest64: True
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        # source process in rcx
+        args:
+            - DET_ARG_RDX           # Destination Eprocess
+            - DET_ARG_R8            # Pointer to Base GVA
+            - DET_ARG_R9            # Pointer to Length
+            - DET_ARG_STACK5        # New Rights
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 8000
+        args:
+            - DET_ARG_RCX           # Destination Eprocess
+            - DET_ARG_RDX           # Pointer to Base GVA
+            - DET_ARG_R8            # Pointer to Length
+            - DET_ARG_R9            # New Rights
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+20h],r9d
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x00, 0x00, 0x00]        #  sub     rsp,90h
+                - [0x45, 0x8b, 0xd1]                                 #  mov     r10d,r9d
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+40h],r9d
+                - [0x4d, 0x8b, 0x38]                                 #  mov     r15,qword ptr [r8]
+                - [0x48, 0x8b, 0xf1]                                 #  mov     rsi,rcx
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x44, 0x89, 0x44, 0x24, 0x100]                    #  mov     dword ptr [rsp+4Ch],r8d
+                - [0x4c, 0x8b, 0x32]                                 #  mov     r14,qword ptr [rdx]
+                - [0x4c, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],r14
+                - [0x4c, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+70h],r15
+                - [0x65, 0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rbx,qword ptr gs:[188h]
+                - [0x48, 0x89, 0x9c, 0x24, 0x100, 0x00, 0x00, 0x00]  #  mov     qword ptr [rsp+80h],rbx
+                - [0x41, 0x8b, 0xc9]                                 #  mov     ecx,r9d
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiMakeProtectionMask (fffff800`026cb0d0)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+20h],r9d
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,90h
+                - [0x45, 0x8b, 0xd1]                                 #  mov     r10d,r9d
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+40h],r9d
+                - [0x4d, 0x8b, 0x38]                                 #  mov     r15,qword ptr [r8]
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x44, 0x89, 0x44, 0x24, 0x100]                    #  mov     dword ptr [rsp+4Ch],r8d
+                - [0x4c, 0x8b, 0x22]                                 #  mov     r12,qword ptr [rdx]
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                    #  mov     qword ptr [rsp+50h],r12
+                - [0x4c, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+70h],r15
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x100, 0x100, 0x100, 0x100] #  mov   rdi,qword ptr gs:[188h]
+                - [0x48, 0x89, 0xbc, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+80h],rdi
+                - [0x41, 0x8b, 0xc9]                                 #  mov     ecx,r9d
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiMakeProtectionMask (fffff800`02ced6c0)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+20h],r9d
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,0A0h
+                - [0x45, 0x8b, 0xf9]                                 #  mov     r15d,r9d
+                - [0x4d, 0x8b, 0x08]                                 #  mov     r9,qword ptr [r8]
+                - [0x4c, 0x8b, 0xe1]                                 #  mov     r12,rcx
+                - [0x45, 0x33, 0xd2]                                 #  xor     r10d,r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+54h],r10d
+                - [0x4c, 0x8b, 0x02]                                 #  mov     r8,qword ptr [rdx]
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+78h],r8
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+70h],r9
+                - [0x65, 0x48, 0x8b, 0x3c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rdi,qword ptr gs:[188h]
+                - [0x48, 0x89, 0xbc, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+80h],rdi
+                - [0x41, 0x8b, 0xcf]                                 #  mov     ecx,r15d
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiMakeProtectionMask (fffff800`030a28d0)
+                - [0x44, 0x8b, 0xe8]                                 #  mov     r13d,eax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+20h],r9d
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,0A0h
+                - [0x45, 0x8b, 0xf9]                                 #  mov     r15d,r9d
+                - [0x49, 0x8b, 0xc0]                                 #  mov     rax,r8
+                - [0x4c, 0x8b, 0xe1]                                 #  mov     r12,rcx
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x00, 0x00] #  mov     rcx,qword ptr [rsp+100h]
+                - [0xc7, 0x01, 0x100, 0x100, 0x00, 0x00]             #  mov     dword ptr [rcx],1
+                - [0x45, 0x33, 0xd2]                                 #  xor     r10d,r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+54h],r10d
+                - [0x4c, 0x8b, 0x02]                                 #  mov     r8,qword ptr [rdx]
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+78h],r8
+                - [0x4c, 0x8b, 0x08]                                 #  mov     r9,qword ptr [rax]
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+70h],r9
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7602
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                       # mov     dword ptr [rsp+20h],r9d
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                       # mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                       # mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                       # mov     qword ptr [rsp+8],rcx
+                - [0x53]                                                # push    rbx
+                - [0x56]                                                # push    rsi
+                - [0x57]                                                # push    rdi
+                - [0x41, 0x54]                                          # push    r12
+                - [0x41, 0x55]                                          # push    r13
+                - [0x41, 0x56]                                          # push    r14
+                - [0x41, 0x57]                                          # push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x00, 0x00, 0x00]           # sub     rsp,0A0h
+                - [0x45, 0x8b, 0xf9]                                    # mov     r15d,r9d
+                - [0x49, 0x8b, 0xc0]                                    # mov     rax,r8
+                - [0x4c, 0x8b, 0xe1]                                    # mov     r12,rcx
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100]  # mov     rcx,qword ptr [rsp+100h]
+                - [0xc7, 0x01, 0x100, 0x100, 0x00, 0x00]                # mov     dword ptr [rcx],1
+                - [0x45, 0x33, 0xd2]                                    # xor     r10d,r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                       # mov     dword ptr [rsp+54h],r10d
+                - [0x4c, 0x8b, 0x02]                                    # mov     r8,qword ptr [rdx]
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                       # mov     qword ptr [rsp+78h],r8
+                - [0x4c, 0x8b, 0x08]                                    # mov     r9,qword ptr [rax]
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,0D0h
+                - [0x4d, 0x8b, 0xd1]                                 #  mov     r10,r9
+                - [0x4c, 0x8b, 0xf9]                                 #  mov     r15,rcx
+                - [0xb8, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,1
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [rsp+48h],eax
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     rcx,qword ptr [rsp+138h]
+                - [0x89, 0x01]                                       #  mov     dword ptr [rcx],eax
+                - [0x45, 0x33, 0xc9]                                 #  xor     r9d,r9d
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+4Ch],r9d
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+40h],r9d
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [rsp+50h],eax
+                - [0x49, 0x8b, 0x38]                                 #  mov     rdi,qword ptr [r8]
+                - [0x48, 0x89, 0xbc, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+88h],rdi
+                - [0x48, 0x89, 0xbc, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+0A0h],rdi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x4c, 0x24, 0x20]                     #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x89, 0x44, 0x24, 0x18]                     #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x10]                     #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x08]                     #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x00, 0x00, 0x00]        #  sub     rsp,0D0h
+                - [0x49, 0x8b, 0xc1]                                 #  mov     rax,r9
+                - [0x4c, 0x8b, 0xd2]                                 #  mov     r10,rdx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x41, 0xb9, 0x01, 0x00, 0x00, 0x00]               #  mov     r9d,1
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+4Ch],r9d
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x00, 0x00] #  mov     rcx,qword ptr [rsp+138h]
+                - [0x44, 0x89, 0x09]                                 #  mov     dword ptr [rcx],r9d
+                - [0x45, 0x33, 0xed]                                 #  xor     r13d,r13d
+                - [0x44, 0x89, 0x6c, 0x24, 0x100]                    #  mov     dword ptr [rsp+50h],r13d
+                - [0x44, 0x89, 0x6c, 0x24, 0x100]                    #  mov     dword ptr [rsp+44h],r13d
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+58h],r9d
+                - [0x4d, 0x8b, 0x20]                                 #  mov     r12,qword ptr [r8]
+                - [0x4c, 0x89, 0xa4, 0x24, 0x100, 0x00, 0x00, 0x00]  #  mov     qword ptr [rsp+88h],r12
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,0D0h
+                - [0x4c, 0x8b, 0xea]                                 #  mov     r13,rdx
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x41, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  mov     r11d,1
+                - [0x44, 0x89, 0x5c, 0x24, 0x100]                    #  mov     dword ptr [rsp+48h],r11d
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     rcx,qword ptr [rsp+138h]
+                - [0x44, 0x89, 0x19]                                 #  mov     dword ptr [rcx],r11d
+                - [0x45, 0x33, 0xd2]                                 #  xor     r10d,r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+54h],r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+4Ch],r10d
+                - [0x45, 0x8b, 0xfb]                                 #  mov     r15d,r11d
+                - [0x44, 0x89, 0x5c, 0x24, 0x100]                    #  mov     dword ptr [rsp+68h],r11d
+                - [0x4d, 0x8b, 0x00]                                 #  mov     r8,qword ptr [r8]
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+70h],r8
+                - [0x4c, 0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+0A0h],r8
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,0D0h
+                - [0x4c, 0x8b, 0xf9]                                 #  mov     r15,rcx
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,1
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [rsp+48h],ecx
+                - [0x48, 0x8b, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     rax,qword ptr [rsp+138h]
+                - [0x89, 0x08]                                       #  mov     dword ptr [rax],ecx
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [rsp+4Ch],eax
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [rsp+40h],eax
+                - [0x89, 0x4c, 0x24, 0x100]                          #  mov     dword ptr [rsp+50h],ecx
+                - [0x49, 0x8b, 0x30]                                 #  mov     rsi,qword ptr [r8]
+                - [0x48, 0x89, 0xb4, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+88h],rsi
+                - [0x48, 0x89, 0xb4, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+0B8h],rsi
+                - [0x4d, 0x8b, 0x01]                                 #  mov     r8,qword ptr [r9]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,0F0h
+                - [0x48, 0x8b, 0xf2]                                 #  mov     rsi,rdx
+                - [0x4c, 0x8b, 0xf9]                                 #  mov     r15,rcx
+                - [0x41, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  mov     r11d,1
+                - [0x44, 0x89, 0x5c, 0x24, 0x100]                    #  mov     dword ptr [rsp+68h],r11d
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     rcx,qword ptr [rsp+158h]
+                - [0x44, 0x89, 0x19]                                 #  mov     dword ptr [rcx],r11d
+                - [0x45, 0x33, 0xd2]                                 #  xor     r10d,r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+6Ch],r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+60h],r10d
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x00, 0x01, 0x00, 0x100]        #  sub     rsp,100h
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x41, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  mov     r11d,1
+                - [0x44, 0x89, 0x5c, 0x24, 0x100]                    #  mov     dword ptr [rsp+6Ch],r11d
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     rcx,qword ptr [rsp+168h]
+                - [0x44, 0x89, 0x19]                                 #  mov     dword ptr [rcx],r11d
+                - [0x45, 0x33, 0xd2]                                 #  xor     r10d,r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+74h],r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+70h],r10d
+                - [0x45, 0x8b, 0xe3]                                 #  mov     r12d,r11d
+                - [0x44, 0x89, 0x9c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [rsp+88h],r11d
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,100h
+                - [0xbe, 0x100, 0x100, 0x100, 0x100]                 #  mov     esi,1
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [rsp+6Ch],esi
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     rcx,qword ptr [rsp+168h]
+                - [0x89, 0x31]                                       #  mov     dword ptr [rcx],esi
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x89, 0x5c, 0x24, 0x100]                          #  mov     dword ptr [rsp+70h],ebx
+                - [0x89, 0xb4, 0x24, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [rsp+80h],esi
+                - [0x4d, 0x8b, 0x00]                                 #  mov     r8,qword ptr [r8]
+                - [0x4c, 0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+0B0h],r8
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,110h
+                - [0x4c, 0x8b, 0xf2]                                 #  mov     r14,rdx
+                - [0x41, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  mov     r11d,1
+                - [0x44, 0x89, 0x5c, 0x24, 0x100]                    #  mov     dword ptr [rsp+74h],r11d
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     rcx,qword ptr [rsp+178h]
+                - [0x44, 0x89, 0x19]                                 #  mov     dword ptr [rcx],r11d
+                - [0x45, 0x33, 0xd2]                                 #  xor     r10d,r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+78h],r10d
+                - [0x45, 0x8b, 0xeb]                                 #  mov     r13d,r11d
+                - [0x44, 0x89, 0x9c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [rsp+90h],r11d
+                - [0x4d, 0x8b, 0x00]                                 #  mov     r8,qword ptr [r8]
+                - [0x4c, 0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+0B0h],r8
+                - [0x4c, 0x89, 0x84, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+0F0h],r8
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x100, 0x100, 0x100, 0x100]                 #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x100, 0x100, 0x100, 0x100]                 #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x100, 0x100, 0x100, 0x100]                 #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x100, 0x100, 0x100, 0x100]                 #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,100h
+                - [0x49, 0x8b, 0xc1]                                 #  mov     rax,r9
+                - [0x41, 0xbb, 0x100, 0x100, 0x100, 0x100]           #  mov     r11d,1
+                - [0x44, 0x89, 0x5c, 0x24, 0x100]                    #  mov     dword ptr [rsp+70h],r11d
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     rcx,qword ptr [rsp+168h]
+                - [0x44, 0x89, 0x19]                                 #  mov     dword ptr [rcx],r11d
+                - [0x45, 0x33, 0xc9]                                 #  xor     r9d,r9d
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+78h],r9d
+                - [0x45, 0x8b, 0xe3]                                 #  mov     r12d,r11d
+                - [0x44, 0x89, 0x9c, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     dword ptr [rsp+90h],r11d
+                - [0x4d, 0x8b, 0x28]                                 #  mov     r13,qword ptr [r8]
+                - [0x4c, 0x89, 0xac, 0x24, 0x100, 0x100, 0x100, 0x100] #  mov     qword ptr [rsp+0E8h],r13
+                - [0x4c, 0x8b, 0x00]                                 #  mov     r8,qword ptr [rax]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x4c, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r9
+                - [0x4c, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],r8
+                - [0x48, 0x89, 0x54, 0x24, 0x100]                    #  mov     qword ptr [rsp+10h],rdx
+                - [0x48, 0x89, 0x4c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x00, 0x00]       #  sub     rsp,100h
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0xbe, 0x100, 0x100, 0x00, 0x00]                   #  mov     esi,1
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [rsp+6Ch],esi
+                - [0x48, 0x8b, 0x8c, 0x24, 0x100, 0x100, 0x00, 0x00] #  mov     rcx,qword ptr [rsp+168h]
+                - [0x89, 0x31]                                       #  mov     dword ptr [rcx],esi
+                - [0x45, 0x33, 0xd2]                                 #  xor     r10d,r10d
+                - [0x44, 0x89, 0x54, 0x24, 0x100]                    #  mov     dword ptr [rsp+74h],r10d
+                - [0x44, 0x8b, 0xe6]                                 #  mov     r12d,esi
+                - [0x89, 0xb4, 0x24, 0x100, 0x100, 0x00, 0x00]       #  mov     dword ptr [rsp+88h],esi

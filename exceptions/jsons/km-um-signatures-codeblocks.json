@@ -1,0 +1,48 @@
+{
+    "Type": "kernel",
+    "Signatures": [
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "km-um-codeblocks-sig-64",
+            "flags": "64",
+            "score": 3,
+            "hashes": [
+                ["0xee5b3bbe", "0xb0bf266e", "0x214904e4", "0xa4612a9f", "0x7d537f76", "0x11de5665"],
+                ["0xee5b3bbe", "0xc0d5d2e1", "0x5c3ef0a1", "0xeec82ee8", "0x1715948e"],
+                ["0x7d537f76", "0x11de5665", "0x4784f1e3", "0x3c38c74d"],
+                ["0x61c61411", "0x6f505482", "0x6db971df", "0x04fbd013", "0x183259d0", "0x73fce085"],
+                ["0x61c61411", "0x6f505482", "0x1abe4149", "0x6ae7d1c4", "0x99e2531c", "0xc650728b"],
+                ["0x7b71ebb4", "0x37ee056c", "0x92f4a8d0", "0x1ac9c5a2", "0x8c995658", "0xf6590538"],
+                ["0xcd1ed072", "0x3535f95d", "0x6f505482", "0x8400b7d6", "0xe4c780cb", "0x90da3f66"],
+                ["0xfa1bd7b8", "0x4eb3d7f4", "0xf179d45a", "0xfda1853c", "0xa4612a9f"],
+                ["0x1d0ea8af", "0x548e16f6", "0xbc1edc60", "0xc6fd8819", "0x9f34565a"],
+                ["0x36514d97", "0x36208c96", "0x92a9e160", "0xfda1853c", "0xd40bde10", "0xd80fb900"],
+                ["0x38b5bbff", "0x3af305a6", "0x7ae92df2", "0xfda1853c", "0xa4612a9f"]
+           ]
+        },
+        
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "km-um-codeblocks-sig-32",
+            "flags": "32",
+            "score": 3,
+            "hashes": [
+                ["0xbc677708", "0x3af305a6", "0x6c79e593", "0x5e0eca05", "0xfbc70dd8", "0x20364cf8"],
+                ["0xe720d044", "0x23906869", "0x5e31954a", "0xc7079bbf", "0xd0ea5e1b", "0x3283e316"],
+                ["0xc7cf3fcb", "0xa2233321", "0x5e31954a", "0xc54125e6", "0xc25ff1f5", "0xd7f48a08"],
+                ["0x5d595045", "0xfd72ef5d", "0x89afbc78", "0x1e38d798", "0x6242c07f", "0xb25eac9f"],
+                ["0xdcfe9230", "0xf011cff9", "0x8f9956d7", "0x93cb29bc", "0xc54125e6", "0xc25ff1f5"],
+                ["0xc7cf3fcb", "0xa2233321", "0x5e31954a", "0x722a311a", "0xefea756c", "0x4c65c81e"],
+                ["0x5e31954a", "0xc54125e6", "0xc25ff1f5", "0xb41791b8", "0xd7f48a08", "0x1cf6da9f"],
+                ["0x22073cc2", "0xe7f53cd0", "0x67840daf", "0xc54125e6", "0xc25ff1f5", "0xb41791b8"],
+                ["0xb7dbeb2a", "0x37ee056c", "0x230a7f5d", "0xf91b3067", "0x0771e8e1", "0xe6ad41d3"],
+                ["0xbe21c951", "0x704e7fbc", "0xbe714c4a", "0xc54125e6", "0xc25ff1f5", "0xb41791b8"],
+                ["0x6dc6f740", "0xefeb922a", "0xc9ae8463", "0xc54125e6", "0xc25ff1f5", "0xb41791b8"],
+                ["0x16e6ace0", "0xb048dd55", "0x67840daf", "0x752399c6", "0x6088e23b", "0xd7f48a08"],
+                ["0x3af305a6", "0x1f3aa00d", "0x11b250c9", "0x61c61411", "0xf6590538", "0x58954eea"],
+                ["0x310b85a2", "0xd40bde10", "0x7387db51", "0x80970567", "0x4fde8020", "0xf6590538"],
+                ["0x6ad9aad2", "0x0b6ffa50", "0x5d269c52", "0xcbc16cf4", "0x31e800f4", "0x5e31954a"]
+           ]
+        }
+   ]
+}    

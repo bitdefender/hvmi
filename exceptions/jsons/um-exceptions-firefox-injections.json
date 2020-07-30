@@ -1,0 +1,23 @@
+{
+    "Type": "user",
+    "Exceptions": [
+        
+        {
+            "flags": "child",
+            "originator": "firefox.exe",
+            "victim": "firefox.exe",
+            "object_type": "process"
+        },
+
+        {
+            "flags": "child",
+            "originator": "firefox.exe",
+            "victim": "firefox.exe",
+            "object_type": "process",
+            "signatures": [
+                "browsers-common-inj-exports",
+                "firefox-inj-exports"
+            ]
+        }
+    ]
+}

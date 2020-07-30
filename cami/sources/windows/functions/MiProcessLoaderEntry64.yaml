@@ -1,0 +1,226 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiProcessLoaderEntry
+guest64: True
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX   # Ldr Address
+            - DET_ARG_RDX   # Load
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x08]                     #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x6c, 0x24, 0x18]                     #  mov     qword ptr [rsp+18h],rbp
+                - [0x48, 0x89, 0x74, 0x24, 0x20]                     #  mov     qword ptr [rsp+20h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x44, 0x8b, 0xf2]                                 #  mov     r14d,edx
+                - [0xbb, 0x01, 0x00, 0x00, 0x00]                     #  mov     ebx,1
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleResource (fffff800`034a08c0)]
+                - [0x8a, 0xd3]                                       #  mov     dl,bl
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (fffff800`032d7c70)
+                - [0x45, 0x0f, 0x20, 0xc5]                           #  mov     r13,cr8
+                - [0x8d, 0x43, 0x0e]                                 #  lea     eax,[rbx+0Eh]
+                - [0x44, 0x3a, 0xe8]                                 #  cmp     r13b,al
+                - [0x100, 0x100]                                     #  jae     nt!MiProcessLoaderEntry+0x45 (fffff800`033c5e95)
+                - [0x44, 0x0f, 0x22, 0xc0]                           #  mov     cr8,rax
+                - [0x65, 0x4c, 0x8b, 0x24, 0x25, 0x20, 0x00, 0x00, 0x00] #  mov   r12,qword ptr gs:[20h]
+                - [0x8b, 0x2d, 0x100, 0x100, 0x100, 0x100]           #  mov     ebp,dword ptr [nt!PerfGlobalGroupMask+0x4 (fffff800`03462344)]
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0xc1, 0xed, 0x10]                                 #  shr     ebp,10h
+                - [0x45, 0x33, 0xff]                                 #  xor     r15d,r15d
+                - [0x89, 0x74, 0x24, 0x100]                          #  mov     dword ptr [rsp+68h],esi
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x100]                          #  mov     qword ptr [rax+18h],rbx
+                - [0x48, 0x89, 0x68, 0x100]                          #  mov     qword ptr [rax+20h],rbp
+                - [0x89, 0x50, 0x100]                                #  mov     dword ptr [rax+10h],edx
+                - [0x48, 0x89, 0x48, 0x100]                          #  mov     qword ptr [rax+8],rcx
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0xbb, 0x01, 0x00, 0x00, 0x00]                     #  mov     ebx,1
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleResource (fffff800`031a6ea0)]
+                - [0x8a, 0xd3]                                       #  mov     dl,bl
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (fffff800`02c3d3cc)
+                - [0x65, 0x4c, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   r11,qword ptr gs:[188h]
+                - [0x41, 0x8b, 0x83, 0x100, 0x100, 0x00, 0x00]       #  mov     eax,dword ptr [r11+444h]
+                - [0xa9, 0xf8, 0xff, 0xff, 0xff]                     #  test    eax,0FFFFFFF8h
+                - [0x74, 0x100]                                      #  je      nt!MiProcessLoaderEntry+0x4a (fffff800`02b2ceb2)
+                - [0xcd, 0x2c]                                       #  int     2Ch
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rax,qword ptr gs:[188h]
+                - [0xf0, 0x83, 0x88, 0x100, 0x100, 0x00, 0x00, 0x08] #  lock or dword ptr [rax+444h],8
+                - [0x45, 0x0f, 0x20, 0xc6]                           #  mov     r14,cr8
+                - [0xb9, 0x0f, 0x00, 0x00, 0x00]                     #  mov     ecx,0Fh
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x08]                     #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x74, 0x24, 0x18]                     #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x20]                           #  sub     rsp,20h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x66, 0xff, 0x8e, 0xe4, 0x01, 0x00, 0x00]         #  dec     word ptr [rsi+1E4h]
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleResource (fffff803`f8efc840)]
+                - [0xb2, 0x01]                                       #  mov     dl,1
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (fffff803`f8c2aff0)
+                - [0x83, 0xfb, 0x01]                                 #  cmp     ebx,1
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x08]                     #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x74, 0x24, 0x18]                     #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x20]                           #  sub     rsp,20h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x66, 0xff, 0x8e, 0xe4, 0x01, 0x00, 0x00]         #  dec     word ptr [rsi+1E4h]
+                - [0xb2, 0x01]                                       #  mov     dl,1
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleResource (fffff803`f8efc840)]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (fffff803`f8c2aff0)
+                - [0x83, 0xfb, 0x01]                                 #  cmp     ebx,1
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x08]                     #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x74, 0x24, 0x18]                     #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x20]                           #  sub     rsp,20h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x48, 0x8b, 0xce]                                 #  mov     rcx,rsi
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiAcquireResourceExclusiveLite
+                - [0x83, 0xfb, 0x01]                                 #  cmp     ebx,1
+                - [0x100, 0x100]                                     #  jne     something
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp + 38h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive(fffff802`1610e364)
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr[nt!PsLoadedModuleList + 0x8 (fffff802`162d5b58)]
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleList(fffff802`162d5b50)]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x66, 0xff, 0x8e, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [rsi+1E4h]
+                - [0xb2, 0x100]                                      #  mov     dl,1
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleResource (fffff800`07a5b280)]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (fffff800`076e7bb0)
+                - [0x83, 0xfb, 0x100]                                #  cmp     ebx,1
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiProcessLoaderEntry+0x141 (fffff800`077ed679)
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+48h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive (fffff800`077ed6ec)
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!PsLoadedModuleList+0x8 (fffff800`07a5b2f8)]
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleList (fffff800`07a5b2f0)]
+                - [0x48, 0x39, 0x08]                                 #  cmp     qword ptr [rax],rcx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiProcessLoaderEntry+0xd0390 (fffff800`078bd8c8)
+                - [0x48, 0x89, 0x0f]                                 #  mov     qword ptr [rdi],rcx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x100]                    #  mov     qword ptr [rsp+8],rbx
+                - [0x48, 0x89, 0x74, 0x24, 0x100]                    #  mov     qword ptr [rsp+18h],rsi
+                - [0x57]                                             #  push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,30h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x8b, 0xda]                                       #  mov     ebx,edx
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x66, 0xff, 0x8e, 0x100, 0x100, 0x00, 0x00]       #  dec     word ptr [rsi+1E4h]
+                - [0xb2, 0x100]                                      #  mov     dl,1
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleResource (fffff802`76cce8c0)]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (fffff802`76936440)
+                - [0x83, 0xfb, 0x100]                                #  cmp     ebx,1
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiProcessLoaderEntry+0x14e (fffff802`769f50f2)
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                    #  lea     rcx,[rsp+48h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive (fffff802`769f5174)
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!PsLoadedModuleList+0x8 (fffff802`76cce938)]
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt!PsLoadedModuleList (fffff802`76cce930)]
+                - [0x48, 0x39, 0x08]                                 #  cmp     qword ptr [rax],rcx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiProcessLoaderEntry+0x1c1 (fffff802`769f5165)
+                - [0x48, 0x89, 0x0f]                                 #  mov     qword ptr [rdi],rcx
+                - [0x45, 0x32, 0xc0]                                 #  xor     r8b,r8b
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                              # mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x100]                                       # mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x68, 0x100]                                       # mov     qword ptr [rax+18h],rbp
+                - [0x48, 0x89, 0x70, 0x100]                                       # mov     qword ptr [rax+20h],rsi
+                - [0x57]                                                          # push    rdi
+                - [0x48, 0x83, 0xec, 0x100]                                       # sub     rsp,30h
+                - [0x65, 0x48, 0x8b, 0x2c, 0x25, 0x88, 0x01, 0x00, 0x00]          # mov   rbp,qword ptr gs:[188h]
+                - [0x48, 0x83, 0xce, 0x100]                                       # or      rsi,0FFFFFFFFFFFFFFFFh
+                - [0x8b, 0xda]                                                    # mov     ebx,edx
+                - [0xc6, 0x40, 0x100, 0x100]                                      # mov     byte ptr [rax+10h],0
+                - [0x48, 0x8b, 0xf9]                                              # mov     rdi,rcx
+                - [0x66, 0x01, 0xb5, 0x100, 0x100, 0x100, 0x100]                  # add     word ptr [rbp+1E4h],si
+                - [0xb2, 0x100]                                                   # mov     dl,1
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]                  # lea     rcx,[nt!PsLoadedModuleResource (fffff803`1a82a2a0)]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                              # call    nt!ExAcquireResourceExclusiveLite (fffff803`19e9b970)
+                - [0x83, 0xfb, 0x100]                                             # cmp     ebx,1
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]                        # jne     nt!MiProcessLoaderEntry+0x168 (fffff803`19f785dc)
+                - [0x48, 0x8d, 0x4c, 0x24, 0x100]                                 # lea     rcx,[rsp+48h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                              # call    nt!MmLockLoadedModuleListExclusive (fffff803`19f78660)
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]                  # mov     rax,qword ptr [nt!PsLoadedModuleList+0x8 (fffff803`1a82a318)]
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]                  # lea     rcx,[nt!PsLoadedModuleList (fffff803`1a82a310)]
+                - [0x48, 0x39, 0x08]                                              # cmp     qword ptr [rax],rcx

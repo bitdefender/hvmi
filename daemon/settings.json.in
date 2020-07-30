@@ -1,0 +1,15 @@
+{
+	"policiesDir": "@CMAKE_INSTALL_PREFIX@/etc/@CMAKE_PROJECT_NAME@/policies",
+	"exceptionsFile": "@CMAKE_INSTALL_PREFIX@/var/@CMAKE_PROJECT_NAME@/exceptions.bin",
+	"liveUpdateFile": "@CMAKE_INSTALL_PREFIX@/var/@CMAKE_PROJECT_NAME@/intro_live_update.bin",
+	"pageCacheLimit": 512,
+	"useAltp2m": false,
+	"disableQueryHeap": false,
+	"logUnprotectedProcesses_": false,
+	"kvmBackend": false,
+	"enablePTFilter": true,
+	"enableBugcheckCleanup": true,
+	"enableBetaMode": true,
+	"ignoredDomains": [
+	]
+}

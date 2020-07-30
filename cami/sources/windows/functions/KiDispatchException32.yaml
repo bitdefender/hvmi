@@ -1,0 +1,284 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: KiDispatchException
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 17763
+        args:
+            - DET_ARG_STACK1    # Exception record GVA
+            - DET_ARG_STACK2    # Exception frame GVA, or i think at least, not used in introcore
+            - DET_ARG_STACK3    # Trap frame GVA
+            - DET_ARG_STACK4    # Previous mode
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    0F8h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt! ?? ::FNODOBFM::`string'+0x5c50 (826984b0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (826be8b0)
+                - [0x64, 0xa1, 0x20, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000020h]
+                - [0xff, 0x80, 0x100, 0x100, 0x100, 0x100]           #  inc     dword ptr [eax+58Ch]
+                - [0xc7, 0x45, 0x100, 0x17, 0x00, 0x01, 0x00]        #  mov     dword ptr [ebp-20h],10017h
+                - [0x80, 0x7d, 0x100, 0x100]                         #  cmp     byte ptr [ebp+14h],1
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0x31 (826f34a2)
+                - [0x80, 0x3d, 0x100, 0x100, 0x100, 0x100, 0x00]     #  cmp     byte ptr [nt!KdDebuggerEnabled (827a4a4c)],0
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0x6b (826f34dc)
+                - [0xc7, 0x45, 0x100, 0x1f, 0x00, 0x01, 0x00]        #  mov     dword ptr [ebp-20h],1001Fh
+                - [0x80, 0x3d, 0x100, 0x100, 0x100, 0x100, 0x00]     #  cmp     byte ptr [nt!KeI386XMMIPresent (827a1158)],0
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0x48 (826f34b9)
+                - [0xc7, 0x45, 0x100, 0x3f, 0x00, 0x01, 0x00]        #  mov     dword ptr [ebp-20h],1003Fh
+                - [0xf7, 0x05, 0x100, 0x100, 0x100, 0x100, 0x00, 0x00, 0x40, 0x00] #  test    dword ptr [nt!KeFeatureBits (827a9a94)],400000h
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0x6b (826f34dc)
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!KeEnabledXStateFeatures (827a9b80)]
+                - [0x83, 0xe0, 0xfc]                                 #  and     eax,0FFFFFFFCh
+                - [0x0b, 0x05, 0x100, 0x100, 0x100, 0x100]           #  or      eax,dword ptr [nt!KeEnabledXStateFeatures+0x4 (827a9b84)]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x6a, 0xfe]                                       #  push    0FFFFFFFEh
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!RtlpSparseBitmapCtxUpdateBits + 0x203a (81c894c0)
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_except_handler4(81b9d6b0)
+                - [0x64, 0xa1, 0x00, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs : [00000000h]
+                - [0x50]                                             #  push    eax
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,110h
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr[nt!__security_cookie(81c97b94)]
+                - [0x31, 0x45, 0x100]                                #  xor     dword ptr[ebp - 8],eax
+                - [0x33, 0xc5]                                       #  xor     eax,ebp
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr[ebp - 1Ch],eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x50]                                             #  push    eax
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp - 10h]
+                - [0x64, 0xa3, 0x00, 0x00, 0x00, 0x00]               #  mov     dword ptr fs : [00000000h],eax
+                - [0x89, 0x65, 0x100]                                #  mov     dword ptr[ebp - 18h],esp
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr[ebp + 8]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr[ebp - 94h],edi
+                - [0x8b, 0x55, 0x100]                                #  mov     edx,dword ptr[ebp + 0Ch]
+                - [0x89, 0x95, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr[ebp - 8Ch],edx
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr[ebp + 10h]
+                - [0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr[ebp - 0A0h],ebx
+                - [0x64, 0xa1, 0x20, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs : [00000020h]
+                - [0xff, 0x80, 0x100, 0x100, 0x100, 0x100]           #  inc     dword ptr[eax + 58Ch]
+                - [0x80, 0x7d, 0x100, 0x00]                          #  cmp     byte ptr[ebp + 18h],0
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x6a, 0xfe]                                       #  push    0FFFFFFFEh
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!RtlpSparseBitmapCtxUpdateBits+0x14b8 (8143e750)
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_except_handler4 (813537d0)
+                - [0x64, 0xa1, 0x00, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000000h]
+                - [0x50]                                             #  push    eax
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,110h
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (8144db94)]
+                - [0x31, 0x45, 0x100]                                #  xor     dword ptr [ebp-8],eax
+                - [0x33, 0xc5]                                       #  xor     eax,ebp
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-1Ch],eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x50]                                             #  push    eax
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-10h]
+                - [0x64, 0xa3, 0x00, 0x00, 0x00, 0x00]               #  mov     dword ptr fs:[00000000h],eax
+                - [0x89, 0x65, 0x100]                                #  mov     dword ptr [ebp-18h],esp
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-9Ch],ebx
+                - [0x8b, 0x55, 0x100]                                #  mov     edx,dword ptr [ebp+0Ch]
+                - [0x89, 0x95, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-88h],edx
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+10h]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-98h],edi
+                - [0x64, 0xa1, 0x20, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000020h]
+                - [0xff, 0x80, 0x100, 0x100, 0x100, 0x100]           #  inc     dword ptr [eax+58Ch]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    114h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_SafeReallocBlob+0x343d (81a01848)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (81936f2c)
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-98h],ebx
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+0Ch]
+                - [0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-8Ch],esi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+10h]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-0ACh],edi
+                - [0xc6, 0x85, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     byte ptr [ebp-85h],0
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8b, 0x88, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [eax+80h]
+                - [0x89, 0x8d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-9Ch],ecx
+                - [0x64, 0xa1, 0x20, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000020h]
+                - [0xff, 0x80, 0x100, 0x100, 0x100, 0x100]           #  inc     dword ptr [eax+58Ch]
+                - [0x80, 0x7d, 0x100, 0x100]                         #  cmp     byte ptr [ebp+18h],0
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0x62 (818923a6)
+                - [0x83, 0xb9, 0x100, 0x100, 0x100, 0x100, 0x100]    #  cmp     dword ptr [ecx+31Ch],0
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!KiDispatchException+0xc4530 (81956874)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x00, 0x00]                   #  push    110h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_SafeReallocBlob+0x304f (81a74248)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (819af894)
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-98h],ebx
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+0Ch]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-88h],edi
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+10h]
+                - [0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-94h],esi
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8b, 0x88, 0x100, 0x00, 0x00, 0x00]              #  mov     ecx,dword ptr [eax+80h]
+                - [0x89, 0x8d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-9Ch],ecx
+                - [0x64, 0xa1, 0x20, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000020h]
+                - [0xff, 0x80, 0x100, 0x100, 0x00, 0x00]             #  inc     dword ptr [eax+58Ch]
+                - [0x80, 0x7d, 0x100, 0x00]                          #  cmp     byte ptr [ebp+18h],0
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0xac (818e6c82)
+                - [0x83, 0xb9, 0x100, 0x100, 0x00, 0x00, 0x00]       #  cmp     dword ptr [ecx+314h],0
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0xac (818e6c82)
+                - [0x8b, 0x03]                                       #  mov     eax,dword ptr [ebx]
+                - [0x89, 0x85, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-90h],eax
+                - [0x3d, 0x04, 0x00, 0x00, 0x10]                     #  cmp     eax,10000004h
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x00, 0x00]                   #  push    110h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!RtlpMuiRegValidateConfigNode+0x3527 (81c08390)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (81b3c3f4)
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-98h],ebx
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+0Ch]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-88h],edi
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+10h]
+                - [0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-94h],esi
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8b, 0x88, 0x100, 0x00, 0x00, 0x00]              #  mov     ecx,dword ptr [eax+80h]
+                - [0x89, 0x8d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-9Ch],ecx
+                - [0x64, 0xa1, 0x20, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000020h]
+                - [0xff, 0x80, 0x100, 0x100, 0x00, 0x00]             #  inc     dword ptr [eax+58Ch]
+                - [0x80, 0x7d, 0x100, 0x00]                          #  cmp     byte ptr [ebp+18h],0
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0x5b (81aa7e75)
+                - [0x83, 0xb9, 0x100, 0x100, 0x00, 0x00, 0x00]       #  cmp     dword ptr [ecx+314h],0
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::FNODOBFM::`string'+0x2462d (81b6a2c7)
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,1003Fh
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    114h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_SafeReallocBlob+0x3e6d (819eb378)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (819202d8)
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-98h],ebx
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+0Ch]
+                - [0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-8Ch],esi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+10h]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-0B0h],edi
+                - [0xc6, 0x85, 0x100, 0x100, 0x100, 0x100, 0x00]     #  mov     byte ptr [ebp-85h],0
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8b, 0x88, 0x100, 0x00, 0x00, 0x00]              #  mov     ecx,dword ptr [eax+80h]
+                - [0x89, 0x8d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-9Ch],ecx
+                - [0x64, 0xa1, 0x20, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000020h]
+                - [0xff, 0x80, 0x100, 0x100, 0x100, 0x100]           #  inc     dword ptr [eax+58Ch]
+                - [0x80, 0x7d, 0x100, 0x00]                          #  cmp     byte ptr [ebp+18h],0
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0xbc (818aa3b6)
+                - [0x83, 0xb9, 0x100, 0x100, 0x00, 0x00, 0x00]       #  cmp     dword ptr [ecx+31Ch],0
+                - [0x74, 0x100]                                      #  je      nt!KiDispatchException+0xbc (818aa3b6)
+                - [0x8b, 0x03]                                       #  mov     eax,dword ptr [ebx]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    10Ch
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_SafeReallocBlob+0x10a9 (81853a60)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (81769bf4)
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+14h]
+                - [0x88, 0x8d, 0x100, 0x100, 0x100, 0x100]           #  mov     byte ptr [ebp-90h],cl
+                - [0x88, 0x8d, 0x100, 0x100, 0x100, 0x100]           #  mov     byte ptr [ebp-8Eh],cl
+                - [0x88, 0x8d, 0x100, 0x100, 0x100, 0x100]           #  mov     byte ptr [ebp-8Dh],cl
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-9Ch],ebx
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+0Ch]
+                - [0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-8Ch],esi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+10h]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-0B0h],edi
+                - [0xc6, 0x85, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     byte ptr [ebp-85h],0
+                - [0x64, 0xa1, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8b, 0x90, 0x100, 0x100, 0x100, 0x100]           #  mov     edx,dword ptr [eax+80h]
+                - [0x89, 0x95, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-98h],edx
+                - [0x64, 0xa1, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr fs:[00000020h]
+                - [0xff, 0x80, 0x100, 0x100, 0x100, 0x100]           #  inc     dword ptr [eax+58Ch]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x6a, 0x100]                                      #  push    0FFFFFFFEh
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!WriteRegisterWithIndex8+0x3b2a (81ec8508)
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_except_handler4 (81db17a0)
+                - [0x64, 0xa1, 0x00, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000000h]
+                - [0x50]                                             #  push    eax
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,118h
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (81edc830)]
+                - [0x31, 0x45, 0x100]                                #  xor     dword ptr [ebp-8],eax
+                - [0x33, 0xc5]                                       #  xor     eax,ebp
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-1Ch],eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x50]                                             #  push    eax
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-10h]
+                - [0x64, 0xa3, 0x00, 0x00, 0x00, 0x00]               #  mov     dword ptr fs:[00000000h],eax
+                - [0x89, 0x65, 0x100]                                #  mov     dword ptr [ebp-18h],esp
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x89, 0x9d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-0F8h],ebx
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+0Ch]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-0DCh],edi
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+10h]
+                - [0x89, 0xb5, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-0E0h],esi
+                - [0xc6, 0x85, 0x100, 0x100, 0x100, 0x100, 0x100]    #  mov     byte ptr [ebp-0D5h],0
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]

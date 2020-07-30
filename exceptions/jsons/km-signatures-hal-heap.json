@@ -1,0 +1,37 @@
+{
+    "Type": "user",
+    "Signatures": [
+        {
+            "sig_type": "value-code",
+            "sig_id": "hal-heap-code-val-offset-0",
+            "offset": 0,
+            "pattern": [
+                "0x0d", "0x100", "0x100", "0x100", "0x100",         // OR EAX, 0x80000000
+                "0x0f", "0x01", "0xc1",                             // VMCALL
+                "0xc3"                                              // RETN
+            ]
+        },
+        
+        {
+            "sig_type": "value-code",
+            "sig_id": "hal-heap-code-val-offset-5",
+            "offset": -5,
+            "pattern": [
+                "0x0d", "0x100", "0x100", "0x100", "0x100",         // OR EAX, 0x80000000
+                "0x0f", "0x01", "0xc1",                             // VMCALL
+                "0xc3"                                              // RETN
+            ]
+        },
+        
+        {
+            "sig_type": "value-code",
+            "sig_id": "hal-heap-code-val-offset-8",
+            "offset": -8,
+            "pattern": [
+                "0x0d", "0x100", "0x100", "0x100", "0x100",         // OR EAX, 0x80000000
+                "0x0f", "0x01", "0xc1",                             // VMCALL
+                "0xc3"                                              // RETN
+            ]
+        }
+    ]
+}

@@ -1,0 +1,136 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: KiDisplayBlueScreen
+guest64: True
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0xff, 0xf3]                                       #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x48, 0x81, 0xec, 0xc0, 0x00, 0x00, 0x00]         #  sub     rsp,0C0h
+                - [0x48, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]   #  mov     rax,qword ptr [nt!_security_cookie (fffff800`02a4e9b0)]
+                - [0x48, 0x33, 0xc4]                                 #  xor     rax,rsp
+                - [0x48, 0x89, 0x84, 0x24, 0xb0, 0x00, 0x00, 0x00]   #  mov     qword ptr [rsp+0B0h],rax
+                - [0x48, 0x8b, 0xb4, 0x24, 0x10, 0x01, 0x00, 0x00]   #  mov     rsi,qword ptr [rsp+110h]
+                - [0x49, 0x8b, 0xd9]                                 #  mov     rbx,r9
+                - [0x49, 0x8b, 0xf8]                                 #  mov     rdi,r8
+                - [0x40, 0x8a, 0xea]                                 #  mov     bpl,dl
+                - [0x44, 0x8b, 0xe1]                                 #  mov     r12d,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KiEnableHeadlessBlueScreen (fffff800`029cb650)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!InbvIsBootDriverInstalled (fffff800`02967cb0)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x74, 0x100]                                      #  je      nt!KiDisplayBlueScreen+0x96 (fffff800`029cbbb6)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!InbvAcquireDisplayOwnership (fffff800`02967c40)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!InbvResetDisplay (fffff800`0297c080)
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x41, 0xb9, 0xdf, 0x01, 0x00, 0x00]               #  mov     r9d,1DFh
+                - [0x41, 0xb8, 0x7f, 0x02, 0x00, 0x00]               #  mov     r8d,27Fh
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0xc7, 0x44, 0x24, 0x20, 0x04, 0x00, 0x00, 0x00]   #  mov     dword ptr [rsp+20h],4
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x40, 0x53]                                       #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x48, 0x81, 0xec, 0xc0, 0x00, 0x00, 0x00]         #  sub     rsp,0C0h
+                - [0x48, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]   #  mov     rax,qword ptr [nt!_security_cookie (fffff800`015eece0)]
+                - [0x48, 0x33, 0xc4]                                 #  xor     rax,rsp
+                - [0x48, 0x89, 0x84, 0x24, 0xb0, 0x00, 0x00, 0x00]   #  mov     qword ptr [rsp+0B0h],rax
+                - [0x48, 0x8b, 0xb4, 0x24, 0x10, 0x01, 0x00, 0x00]   #  mov     rsi,qword ptr [rsp+110h]
+                - [0x49, 0x8b, 0xd9]                                 #  mov     rbx,r9
+                - [0x49, 0x8b, 0xf8]                                 #  mov     rdi,r8
+                - [0x40, 0x8a, 0xea]                                 #  mov     bpl,dl
+                - [0x44, 0x8b, 0xe1]                                 #  mov     r12d,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!KiEnableHeadlessBlueScreen (fffff800`01560300)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!InbvIsBootDriverInstalled (fffff800`014f4370)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x74, 0x100]                                      #  je      nt!KiDisplayBlueScreen+0x96 (fffff800`01560866)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!InbvAcquireDisplayOwnership (fffff800`014f4300)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!InbvResetDisplay (fffff800`01508ac0)
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x41, 0xb9, 0xdf, 0x01, 0x00, 0x00]               #  mov     r9d,1DFh
+                - [0x41, 0xb8, 0x7f, 0x02, 0x00, 0x00]               #  mov     r8d,27Fh
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0xc7, 0x44, 0x24, 0x20, 0x04, 0x00, 0x00, 0x00]   #  mov     dword ptr [rsp+20h],4
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x08]                           #  mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x70, 0x10]                           #  mov     qword ptr [rax+10h],rsi
+                - [0x48, 0x89, 0x78, 0x18]                           #  mov     qword ptr [rax+18h],rdi
+                - [0x4c, 0x89, 0x60, 0x20]                           #  mov     qword ptr [rax+20h],r12
+                - [0x55]                                             #  push    rbp
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0xa8, 0x68, 0xfe, 0xff, 0xff]         #  lea     rbp,[rax-198h]
+                - [0x48, 0x81, 0xec, 0x80, 0x02, 0x00, 0x00]         #  sub     rsp,280h
+                - [0x48, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100]   #  mov     rax,qword ptr [nt!_security_cookie (fffff802`f7cd6298)]
+                - [0x48, 0x33, 0xc4]                                 #  xor     rax,rsp
+                - [0x48, 0x89, 0x85, 0x70, 0x01, 0x00, 0x00]         #  mov     qword ptr [rbp+170h],rax
+                - [0x8b, 0x100, 0x100, 0x100, 0x100, 0x100]          #  mov     eax,dword ptr [nt!KiBugCheckData (fffff802`f7ceb800)]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x44, 0x8b, 0xf1]                                 #  mov     r14d,ecx
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [rsp+44h],eax
+                - [0x45, 0x33, 0xff]                                 #  xor     r15d,r15d
+                - [0xc6, 0x44, 0x24, 0x100, 0x01]                    #  mov     byte ptr [rsp+40h],1
+                - [0x45, 0x33, 0xc9]                                 #  xor     r9d,r9d
+                - [0x4c, 0x89, 0x7c, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r15
+                - [0x8d, 0x4a, 0x100]                                #  lea     ecx,[rdx+0Eh]
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!HeadlessDispatch (fffff802`f7b370e0)
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x48, 0x89, 0x58, 0x100]                          #  mov     qword ptr [rax+8],rbx
+                - [0x48, 0x89, 0x70, 0x100]                          #  mov     qword ptr [rax+10h],rsi
+                - [0x48, 0x89, 0x78, 0x100]                          #  mov     qword ptr [rax+18h],rdi
+                - [0x55]                                             #  push    rbp
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x8d, 0xa8, 0x100, 0x100, 0x100, 0x100]     #  lea     rbp,[rax-1A8h]
+                - [0x48, 0x81, 0xec, 0x100, 0x100, 0x100, 0x100]     #  sub     rsp,280h
+                - [0x48, 0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]     #  mov     rax,qword ptr [nt!_security_cookie (fffff800`924829b0)]
+                - [0x48, 0x33, 0xc4]                                 #  xor     rax,rsp
+                - [0x48, 0x89, 0x85, 0x100, 0x100, 0x100, 0x100]     #  mov     qword ptr [rbp+170h],rax
+                - [0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [nt!KiBugCheckData (fffff800`9249f440)]
+                - [0xbf, 0x100, 0x100, 0x100, 0x100]                 #  mov     edi,1
+                - [0x44, 0x8b, 0xf9]                                 #  mov     r15d,ecx
+                - [0x89, 0x44, 0x24, 0x100]                          #  mov     dword ptr [rsp+48h],eax
+                - [0x45, 0x33, 0xe4]                                 #  xor     r12d,r12d
+                - [0x40, 0x88, 0x7c, 0x24, 0x100]                    #  mov     byte ptr [rsp+40h],dil
+                - [0x45, 0x33, 0xc9]                                 #  xor     r9d,r9d
+                - [0x4c, 0x89, 0x64, 0x24, 0x100]                    #  mov     qword ptr [rsp+20h],r12
+                - [0x8d, 0x4f, 0x100]                                #  lea     ecx,[rdi+0Dh]
+                - [0x45, 0x33, 0xc0]                                 #  xor     r8d,r8d
+                - [0x33, 0xd2]                                       #  xor     edx,edx

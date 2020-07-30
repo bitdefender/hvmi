@@ -1,0 +1,22 @@
+{
+    "Type": "user",
+    "Exceptions": [
+        {
+            "process": "chrome.exe",
+            "originator": "-",
+            "object_type": "nx_zone",
+            "signatures": [
+                "browsers-exec-syscall"
+            ]
+        },
+             
+        {
+            "process": "firefox.exe",
+            "originator": "-",
+            "object_type": "nx_zone",
+            "signatures": [
+                "browsers-exec-syscall"
+            ]
+        }
+    ]
+}

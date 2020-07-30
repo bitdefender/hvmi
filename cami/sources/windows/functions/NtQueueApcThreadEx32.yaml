@@ -1,0 +1,284 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: NtQueueApcThreadEx
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 17763
+
+        args:
+            - DET_ARG_RCX           # Vitctim Thread
+            - DET_ARG_STACK10       # Function Address
+            - DET_ARG_STACK11       # Function Parameter
+            - DET_ARG_RAX           # Originator Thread
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7600
+        max_ver: 7600        
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                  # mov     edi,edi
+                - [0x55]                                        # push    ebp
+                - [0x8b, 0xec]                                  # mov     ebp,esp
+                - [0x83, 0xec, 0x100]                           # sub     esp,0Ch
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]          # mov     eax,dword ptr fs:[00000124h]
+                - [0x8a, 0x80, 0x100, 0x100, 0x00, 0x00]        # mov     al,byte ptr [eax+13Ah]
+                - [0x53]                                        # push    ebx
+                - [0x88, 0x45, 0xf8]                            # mov     byte ptr [ebp-8],al
+                - [0x33, 0xdb]                                  # xor     ebx,ebx
+                - [0x53]                                        # push    ebx
+                - [0x8d, 0x45, 0xfc]                            # lea     eax,[ebp-4]
+                - [0x50]                                        # push    eax
+                - [0xff, 0x75, 0xf8]                            # push    dword ptr [ebp-8]
+                - [0xff, 0x35, 0x100, 0x100, 0x100, 0x100]      # push    dword ptr [nt!PsThreadType (827a1028)]
+                - [0x6a, 0x10]                                  # push    10h
+                - [0xff, 0x75, 0x08]                            # push    dword ptr [ebp+8]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]            # call    nt!ObReferenceObjectByHandle (8285d105)
+                - [0x3b, 0xc3]                                  # cmp     eax,ebx
+                - [0x0f, 0x8c, 0x100, 0x100, 0x100, 0x100]      # jl      nt!NtQueueApcThreadEx+0x108 (82825c1d)
+                - [0x8b, 0x45, 0xfc]                            # mov     eax,dword ptr [ebp-4]
+                - [0xf6, 0x80, 0x100, 0x100, 0x00, 0x00, 0x10]  # test    byte ptr [eax+280h],10h
+                - [0x56]                                        # push    esi
+                - [0x74, 0x100]                                 # je      nt!NtQueueApcThreadEx+0x51 (82825b66)
+                - [0xbe, 0x08, 0x00, 0x00, 0xc0]                # mov     esi,0C0000008h
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]            # jmp     nt!NtQueueApcThreadEx+0xfd (82825c12)
+                - [0x57]                                        # push    edi
+                - [0x39, 0x5d, 0x0c]                            # cmp     dword ptr [ebp+0Ch],ebx
+                - [0x74, 0x100]                                 # je      nt!NtQueueApcThreadEx+0xa6 (82825bbb)
+                - [0x53]                                        # push    ebx
+                - [0x8d, 0x45, 0xf4]                            # lea     eax,[ebp-0Ch]
+                - [0x50]                                        # push    eax
+                - [0xff, 0x75, 0xf8]                            # push    dword ptr [ebp-8]
+                - [0xff, 0x35, 0x100, 0x100, 0x100, 0x100]      # push    dword ptr [nt!PspMemoryReserveObjectTypes (827a1034)]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,0Ch
+                - [0x64, 0xa1, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8a, 0x80, 0x100, 0x100, 0x00, 0x00]             #  mov     al,byte ptr [eax+13Ah]
+                - [0x53]                                             #  push    ebx
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-8],al
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x53]                                             #  push    ebx
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-4]
+                - [0x50]                                             #  push    eax
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp-8]
+                - [0xff, 0x35, 0x100, 0x100, 0x100, 0x100]           #  push    dword ptr [nt!PsThreadType (8277a100)]
+                - [0x6a, 0x100]                                      #  push    10h
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+8]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ObReferenceObjectByHandle (82833e1b)
+                - [0x3b, 0xc3]                                       #  cmp     eax,ebx
+                - [0x0f, 0x8c, 0x100, 0x00, 0x00, 0x00]              #  jl      nt!NtQueueApcThreadEx+0x108 (8280a559)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp-4]
+                - [0xf7, 0x40, 0x100, 0x100, 0x100, 0x00, 0x00]      #  test    dword ptr [eax+3Ch],2000h
+                - [0x56]                                             #  push    esi
+                - [0x74, 0x100]                                      #  je      nt!NtQueueApcThreadEx+0x51 (8280a4a2)
+                - [0xbe, 0x100, 0x100, 0x100, 0x100]                 #  mov     esi,0C0000008h
+                - [0xe9, 0x100, 0x00, 0x00, 0x00]                    #  jmp     nt!NtQueueApcThreadEx+0xfd (8280a54e)
+                - [0x57]                                             #  push    edi
+                - [0x39, 0x5d, 0x100]                                #  cmp     dword ptr [ebp+0Ch],ebx
+                - [0x74, 0x100]                                      #  je      nt!NtQueueApcThreadEx+0xa6 (8280a4f7)
+                - [0x53]                                             #  push    ebx
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-0Ch]
+                - [0x50]                                             #  push    eax
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp-8]
+                - [0xff, 0x35, 0x100, 0x100, 0x100, 0x100]           #  push    dword ptr [nt!PspMemoryReserveObjectTypes (8277a10c)]
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,0Ch
+                - [0x64, 0xa1, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-8]
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x51]                                             #  push    ecx
+                - [0x8a, 0x80, 0x100, 0x100, 0x00, 0x00]             #  mov     al,byte ptr [eax+15Ah]
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-4],al
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp-4]
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsThreadType (824ac864)]
+                - [0x50]                                             #  push    eax
+                - [0x6a, 0x100]                                      #  push    10h
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+8]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ObReferenceObjectByHandle (82502790)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x78, 0x100]                                      #  js      nt!NtQueueApcThreadEx+0xa5 (825b005b)
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp-8]
+                - [0xf7, 0x47, 0x100, 0x100, 0x100, 0x00, 0x00]      #  test    dword ptr [edi+58h],400h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x57fe4 (82672830)
+                - [0x83, 0x7d, 0x100, 0x100]                         #  cmp     dword ptr [ebp+0Ch],0
+                - [0x53]                                             #  push    ebx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x57fee (8267283a)
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    70617350h
+                - [0x6a, 0x100]                                      #  push    30h
+                - [0x68, 0x100, 0x100, 0x00, 0x00]                   #  push    208h
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAllocatePoolWithQuotaTag (822bef30)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,0Ch
+                - [0x64, 0xa1, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-8]
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x51]                                             #  push    ecx
+                - [0x8a, 0x80, 0x100, 0x100, 0x00, 0x00]             #  mov     al,byte ptr [eax+15Ah]
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-4],al
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp-4]
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsThreadType (816b188c)]
+                - [0x50]                                             #  push    eax
+                - [0x6a, 0x100]                                      #  push    10h
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+8]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ObReferenceObjectByHandle (81778fd0)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x78, 0x100]                                      #  js      nt!NtQueueApcThreadEx+0xa5 (816d6b0d)
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp-8]
+                - [0xf7, 0x47, 0x100, 0x100, 0x100, 0x00, 0x00]      #  test    dword ptr [edi+58h],400h
+                - [0x75, 0x100]                                      #  jne     nt!NtQueueApcThreadEx+0xab (816d6b13)
+                - [0x83, 0x7d, 0x100, 0x100]                         #  cmp     dword ptr [ebp+0Ch],0
+                - [0x53]                                             #  push    ebx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!NtQueueApcThreadEx+0x15323f (81829ca7)
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    70617350h
+                - [0x6a, 0x100]                                      #  push    30h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    208h
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAllocatePoolWithQuotaTag (814d5490)
+                - [0x8b, 0xf0]                                       #  mov     esi,eax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,0Ch
+                - [0x64, 0xa1, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-8]
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x51]                                             #  push    ecx
+                - [0x8a, 0x80, 0x100, 0x100, 0x00, 0x00]             #  mov     al,byte ptr [eax+15Ah]
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-4],al
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp-4]
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsThreadType (81ea66f8)]
+                - [0x50]                                             #  push    eax
+                - [0x6a, 0x100]                                      #  push    10h
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+8]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ObReferenceObjectByHandle (81ed5b74)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x00, 0x00, 0x00]              #  js      nt!NtQueueApcThreadEx+0xc2 (81f39d54)
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp-8]
+                - [0xf7, 0x47, 0x100, 0x100, 0x100, 0x00, 0x00]      #  test    dword ptr [edi+58h],400h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x00]            #  jne     nt!NtQueueApcThreadEx+0x1014f2 (8203b184)
+                - [0x83, 0x7d, 0x100, 0x100]                         #  cmp     dword ptr [ebp+0Ch],0
+                - [0x53]                                             #  push    ebx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x00]            #  jne     nt!NtQueueApcThreadEx+0x1014fc (8203b18e)
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    70617350h
+                - [0x6a, 0x100]                                      #  push    30h
+                - [0x68, 0x100, 0x100, 0x00, 0x00]                   #  push    208h
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,0Ch
+                - [0x64, 0xa1, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-8]
+                - [0x6a, 0x100]                                      #  push    0
+                - [0x51]                                             #  push    ecx
+                - [0x8a, 0x80, 0x100, 0x100, 0x00, 0x00]             #  mov     al,byte ptr [eax+15Ah]
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-4],al
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp-4]
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsThreadType (81318a68)]
+                - [0x50]                                             #  push    eax
+                - [0x6a, 0x100]                                      #  push    10h
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+8]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ObReferenceObjectByHandle (813c7490)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x100, 0x100, 0x100]           #  js      nt!NtQueueApcThreadEx+0xc2 (814152d6)
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp-8]
+                - [0xf7, 0x47, 0x100, 0x100, 0x100, 0x00, 0x00]      #  test    dword ptr [edi+58h],400h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!NtQueueApcThreadEx+0xea663 (814ff877)
+                - [0x83, 0x7d, 0x100, 0x100]                         #  cmp     dword ptr [ebp+0Ch],0
+                - [0x53]                                             #  push    ebx
+                - [0x75, 0x100]                                      #  jne     nt!NtQueueApcThreadEx+0xc8 (814152dc)
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    70617350h
+                - [0x6a, 0x100]                                      #  push    30h
+                - [0x68, 0x100, 0x100, 0x00, 0x00]                   #  push    208h
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAllocatePoolWithQuotaTag (811178d0)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x83, 0xec, 0x100]                                #  sub     esp,10h
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-4]
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+0Ch]
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x8a, 0x80, 0x100, 0x100, 0x00, 0x00]             #  mov     al,byte ptr [eax+15Ah]
+                - [0x43]                                             #  inc     ebx
+                - [0x6a, 0x00]                                       #  push    0
+                - [0x51]                                             #  push    ecx
+                - [0x88, 0x45, 0x100]                                #  mov     byte ptr [ebp-8],al
+                - [0x4e]                                             #  dec     esi
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp-8]
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsThreadType (81747c40)]
+                - [0xf7, 0xde]                                       #  neg     esi
+                - [0x50]                                             #  push    eax
+                - [0x6a, 0x10]                                       #  push    10h
+                - [0xff, 0x75, 0x100]                                #  push    dword ptr [ebp+8]
+                - [0x1b, 0xf6]                                       #  sbb     esi,esi
+                - [0x88, 0x5d, 0x100]                                #  mov     byte ptr [ebp-0Ch],bl
+                - [0x23, 0x75, 0x100]                                #  and     esi,dword ptr [ebp+0Ch]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ObReferenceObjectByHandle (817ca090)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x100, 0x100, 0x100]           #  js      nt!NtQueueApcThreadEx+0xd1 (8184f303)

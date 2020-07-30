@@ -1,0 +1,215 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MmCopyVirtualMemory
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 17763
+        args:
+            - DET_ARG_STACK4    # Source Eprocess
+            - DET_ARG_STACK5    # Source Address
+            - DET_ARG_STACK6    # Destination Eprocess
+            - DET_ARG_STACK7    # Destination Address
+            - DET_ARG_STACK8    # Size
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    2C4h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt! ?? ::FNODOBFM::`string'+0x3e40 (82c6daa0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4 (82c81508)
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+18h]
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x3b, 0xd8]                                       #  cmp     ebx,eax
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  je      nt!MmCopyVirtualMemory+0x3f1 (82e92a12)
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+20h]
+                - [0x89, 0x01]                                       #  mov     dword ptr [ecx],eax
+                - [0xc7, 0x45, 0x100, 0x02, 0x00, 0x00, 0x00]        #  mov     dword ptr [ebp-20h],2
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+0Ch]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-2Ch],ecx
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+14h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-40h],ecx
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp-38h],ebx
+                - [0x8d, 0xb5, 0x100, 0x100, 0x100, 0x100]           #  lea     esi,[ebp-0D4h]
+                - [0x89, 0x75, 0x100]                                #  mov     dword ptr [ebp-44h],esi
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         #  mov     ecx,dword ptr fs:[124h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-50h],ecx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4Ch],eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-28h],eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-54h],eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-48h],eax
+                - [0xb8, 0x00, 0x02, 0x00, 0x00]                     #  mov     eax,200h
+                - [0x3b, 0xd8]                                       #  cmp     ebx,eax
+                - [0x100, 0x100]                                     #  jb      nt!MmCopyVirtualMemory+0x72 (82e92693)
+                - [0xf6, 0x45, 0x100, 0x02]                          #  test    byte ptr [ebp-20h],2
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7601
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    2C4h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt! ?? ::FNODOBFM::`string'+0x3f08 (82e66a98)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4 (82e7a828)
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+18h]
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x3b, 0xd8]                                       #  cmp     ebx,eax
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCopyVirtualMemory+0x3f1 (83076787)
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+20h]
+                - [0x89, 0x01]                                       #  mov     dword ptr [ecx],eax
+                - [0xc7, 0x45, 0xe0, 0x100, 0x100, 0x100, 0x100]     #  mov     dword ptr [ebp-20h],2
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+0Ch]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-2Ch],ecx
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+14h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-40h],ecx
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp-38h],ebx
+                - [0x8d, 0xb5, 0x100, 0x100, 0x100, 0x100]           #  lea     esi,[ebp-0D4h]
+                - [0x89, 0x75, 0x100]                                #  mov     dword ptr [ebp-44h],esi
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         #  mov     ecx,dword ptr fs:[124h]
+                - [0x89, 0x4d, 0x100]                                #  mov     dword ptr [ebp-50h],ecx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4Ch],eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-28h],eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-54h],eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-48h],eax
+                - [0xb8, 0x100, 0x100, 0x00, 0x00]                   #  mov     eax,200h
+                - [0x3b, 0xd8]                                       #  cmp     ebx,eax
+                - [0x72, 0x100]                                      #  jb      nt!MmCopyVirtualMemory+0x72 (83076408)
+                - [0xf6, 0x45, 0x100, 0x100]                         #  test    byte ptr [ebp-20h],2
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x6a, 0xfe]                                       #  push    0FFFFFFFEh
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset ...
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset ...
+                - [0x64, 0xa1, 0x00, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000000h]
+                - [0x50]                                             #  push    eax
+                - [0x81, 0xec, 0xe4, 0x02, 0x00, 0x00]               #  sub     esp,2E4h
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [...]
+                - [0x31, 0x45, 0xf8]                                 #  xor     dword ptr [ebp-8],eax
+                - [0x33, 0xc5]                                       #  xor     eax,ebp
+                - [0x89, 0x45, 0xe0]                                 #  mov     dword ptr [ebp-20h],eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x50]                                             #  push    eax
+                - [0x8d, 0x45, 0xf0]                                 #  lea     eax,[ebp-10h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    314h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_SafeReallocBlob+0x255d (81e60968)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (81d96f2c)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x89, 0x85, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2D8h],eax
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+0Ch]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2B0h],edi
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x89, 0x85, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2E0h],eax
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x85, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2DCh],eax
+                - [0x8b, 0x55, 0x100]                                #  mov     edx,dword ptr [ebp+18h]
+                - [0x89, 0x95, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-294h],edx
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+20h]
+                - [0x89, 0x85, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2C4h],eax
+                - [0x85, 0xd2]                                       #  test    edx,edx
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]           #  je      nt!MmCopyVirtualMemory+0x41c (81f0e038)
+                - [0x33, 0xc9]                                       #  xor     ecx,ecx
+                - [0x89, 0x08]                                       #  mov     dword ptr [eax],ecx
+                - [0x89, 0x8d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2CCh],ecx
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2BCh],edi
+                - [0x8b, 0x85, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [ebp-2DCh]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x6a, 0xfe]                                       #  push    0FFFFFFFEh
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!RtlpSparseBitmapCtxUpdateBits+0x1b70 (81c719b8)
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_except_handler4 (81b8d060)
+                - [0x64, 0xa1, 0x00, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000000h]
+                - [0x50]                                             #  push    eax
+                - [0x81, 0xec, 0x100, 0x100, 0x00, 0x00]             #  sub     esp,2DCh
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (81c80b9c)]
+                - [0x31, 0x45, 0x100]                                #  xor     dword ptr [ebp-8],eax
+                - [0x33, 0xc5]                                       #  xor     eax,ebp
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-20h],eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x50]                                             #  push    eax
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-10h]
+                - [0x64, 0xa3, 0x00, 0x00, 0x00, 0x00]               #  mov     dword ptr fs:[00000000h],eax
+                - [0x89, 0x65, 0x100]                                #  mov     dword ptr [ebp-18h],esp
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x89, 0x85, 0x100, 0x100, 0xff, 0xff]             #  mov     dword ptr [ebp-2D0h],eax
+                - [0x8b, 0x55, 0x100]                                #  mov     edx,dword ptr [ebp+0Ch]
+                - [0x89, 0x95, 0x100, 0x100, 0xff, 0xff]             #  mov     dword ptr [ebp-2B0h],edx
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x89, 0x85, 0x100, 0x100, 0xff, 0xff]             #  mov     dword ptr [ebp-2ECh],eax
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+14h]
+                - [0x89, 0xb5, 0x100, 0x100, 0xff, 0xff]             #  mov     dword ptr [ebp-2B8h],esi
+                - [0x8b, 0x100, 0x100]                               #  mov     e?x,dword ptr [ebp+20h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x6a, 0x100]                                      #  push    0FFFFFFFEh
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_SafeReallocBlob+0x168f (8189d6d8)
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_except_handler4 (817a8990)
+                - [0x64, 0xa1, 0x00, 0x00, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000000h]
+                - [0x50]                                             #  push    eax
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]           #  sub     esp,30Ch
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!__security_cookie (818af5f8)]
+                - [0x31, 0x45, 0x100]                                #  xor     dword ptr [ebp-8],eax
+                - [0x33, 0xc5]                                       #  xor     eax,ebp
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-20h],eax
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x50]                                             #  push    eax
+                - [0x8d, 0x45, 0x100]                                #  lea     eax,[ebp-10h]
+                - [0x64, 0xa3, 0x00, 0x00, 0x00, 0x00]               #  mov     dword ptr fs:[00000000h],eax
+                - [0x89, 0x65, 0x100]                                #  mov     dword ptr [ebp-18h],esp
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x89, 0x85, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2D4h],eax
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+0Ch]
+                - [0x89, 0xbd, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2B4h],edi
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x89, 0x85, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2E4h],eax
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+14h]
+                - [0x89, 0x8d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [ebp-2C4h],ecx
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+18h]

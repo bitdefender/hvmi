@@ -1,0 +1,45 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+
+-
+    #  CentOS/Ubuntu, KPTI enabled
+    !linux_dist_signature
+    id: 0x4120000 # LIX_CREATE_VERSION(4, 18, 0)
+    offset: 0xb1
+    flags: 0x0
+    pattern: !code_pattern
+        code:
+            - [0x31, 0xc0]                                       #  XOR      eax, eax
+            - [0x8e, 0xd8]                                       #  MOV      ds, eax
+            - [0x8e, 0xd0]                                       #  MOV      ss, eax
+            - [0x8e, 0xc0]                                       #  MOV      es, eax
+            - [0x8e, 0xe0]                                       #  MOV      fs, eax
+            - [0x8e, 0xe8]                                       #  MOV      gs, eax
+            - [0xb9, 0x01, 0x01, 0x00, 0xc0]                     #  MOV      ecx, 0xc0000101
+            - [0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]           #  MOV      eax, dword ptr [rip + 0x????????]
+            - [0x8b, 0x15, 0x100, 0x100, 0x100, 0x100]           #  MOV      edx, dword ptr [rip + 0x????????]
+            - [0x0f, 0x30]                                       #  WRMSR
+            - [0x48, 0x89, 0xf7]                                 #  MOV      rdi, rsi
+-
+    #  CentOS/Ubuntu, KPTI enabled
+    !linux_dist_signature
+    id: 0x40f0000 # LIX_CREATE_VERSION(4, 15, 0)
+    offset: 0x9f
+    flags: 0x0
+    pattern: !code_pattern
+        code:
+            - [0x31, 0xc0]                                       #  XOR      eax, eax
+            - [0x8e, 0xd8]                                       #  MOV      ds, eax
+            - [0x8e, 0xd0]                                       #  MOV      ss, eax
+            - [0x8e, 0xc0]                                       #  MOV      es, eax
+            - [0x8e, 0xe0]                                       #  MOV      fs, eax
+            - [0x8e, 0xe8]                                       #  MOV      gs, eax
+            - [0xb9, 0x01, 0x01, 0x00, 0xc0]                     #  MOV      ecx, 0xc0000101
+            - [0x8b, 0x05, 0x100, 0x100, 0x100, 0x100]           #  MOV      eax, dword ptr [rip + 0x????????]
+            - [0x8b, 0x15, 0x100, 0x100, 0x100, 0x100]           #  MOV      edx, dword ptr [rip + 0x????????]
+            - [0x0f, 0x30]                                       #  WRMSR
+            - [0x48, 0x89, 0xf7]                                 #  MOV      rdi, rsi
+

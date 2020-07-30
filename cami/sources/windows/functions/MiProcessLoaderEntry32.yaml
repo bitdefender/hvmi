@@ -1,0 +1,317 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiProcessLoaderEntry
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX   # Ldr Address
+            - DET_ARG_RDX   # Load
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 7602
+        args:
+            - DET_ARG_STACK1    # Ldr Address
+            - DET_ARG_STACK2    # Load
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0x5d, 0x08]                                 #  mov     ebx,dword ptr [ebp+8]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x6a, 0x01]                                       #  push    1
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!PsLoadedModuleResource (82d90840)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (82cb24df)
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp__KeGetCurrentIrql (82c49168)]
+                - [0xb1, 0x1b]                                       #  mov     cl,1Bh
+                - [0x88, 0x45, 0x0b]                                 #  mov     byte ptr [ebp+0Bh],al
+                - [0x3a, 0xc1]                                       #  cmp     al,cl
+                - [0x100, 0x100]                                     #  jae     nt!MiProcessLoaderEntry+0x2d (82ccc8fc)
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfRaiseIrql (82c4915c)]
+                - [0x64, 0x8b, 0x3d, 0x20, 0x00, 0x00, 0x00]         #  mov     edi,dword ptr fs:[20h]
+                - [0xbe, 0x100, 0x100, 0x100, 0x100]                 #  mov     esi,offset nt!PsLoadedModuleSpinLock (82db2840)
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0xff, 0x87, 0x100, 0x100, 0x00, 0x00]             #  inc     dword ptr [edi+3560h]
+                - [0x8b, 0xce]                                       #  mov     ecx,esi
+                - [0xf0, 0x0f, 0xba, 0x29, 0x1f]                     #  lock bts dword ptr [ecx],1Fh
+                - [0x100, 0x100]                                     #  jae     nt!MiProcessLoaderEntry+0x76 (82ccc945)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExpWaitForSpinLockExclusiveAndAcquire (82c7645e)
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+                - [0xeb, 0x100]                                      #  jmp     nt!MiProcessLoaderEntry+0x6f (82ccc93e)
+                - [0x40]                                             #  inc     eax
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-4],eax
+                - [0x85, 0x05, 0x100, 0x100, 0x100, 0x100]           #  test    dword ptr [nt!HvlLongSpinCountMask (82db0a7c)],eax
+                - [0x100, 0x100]                                     #  jne     nt!MiProcessLoaderEntry+0x74 (82ccc943)
+
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #
+                - [0x55]                                             #
+                - [0x8b, 0xec]                                       #
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf2]                                       #  mov     esi,edx
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x66, 0xff, 0x8b, 0x3c, 0x01, 0x00, 0x00]         #  dec     word ptr [ebx+13Ch]
+                - [0x6a, 0x01]                                       #  push    1
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!PsLoadedModuleResource
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (816bf0b0)
+                - [0x8d, 0x4d, 0xff]                                 #  lea     ecx,[ebp-1]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive (8175732a)
+                - [0x83, 0xfe, 0x01]                                 #  cmp     esi,1
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x68, 0x100, 0x100, 0x00, 0x00]                   #  push    2DCh
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!RtlpSparseBitmapCtxPrepareRanges+0x20a2 (81a355a8)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (81973070)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+8]
+                - [0x89, 0x85, 0x100, 0x100, 0xff, 0xff]             #  mov     dword ptr [ebp-2E4h],eax
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0x89, 0x85, 0x100, 0x100, 0xff, 0xff]             #  mov     dword ptr [ebp-2BCh],eax
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+10h]
+                - [0x89, 0x85, 0x100, 0x100, 0xff, 0xff]             #  mov     dword ptr [ebp-2ECh],eax
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+14h]
+                - [0x89, 0x85, 0x100, 0x100, 0xff, 0xff]             #  mov     dword ptr [ebp-2C0h],eax
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+20h]
+                - [0x89, 0x85, 0x100, 0x100, 0xff, 0xff]             #  mov     dword ptr [ebp-2B4h],eax
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+18h]
+                - [0x85]                                             #  test    esi,esi
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #
+                - [0x55]                                             #
+                - [0x8b, 0xec]                                       #
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x6a, 0x01]                                       #  push    1
+                - [0xbb, 0x100, 0x100, 0x100, 0x100]                 #  mov     ebx,offset nt!PsLoadedModuleResource
+                - [0x8b, 0xf2]                                       #  mov     esi,edx
+                - [0x53]                                             #  push    ebx
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (816bf0b0)
+                - [0x8d, 0x4d, 0xff]                                 #  lea     ecx,[ebp-1]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive (8175732a)
+                - [0x83, 0xfe, 0x01]                                 #  cmp     esi,1
+                - [0x75]                                             #  jne     ???
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf2]                                       #  mov     esi,edx
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x66, 0xff, 0x8b, 0x100, 0x100, 0x00, 0x00]       #  dec     word ptr [ebx+13Ch]
+                - [0x6a, 0x01]                                       #  push    1
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!PsLoadedModuleResource (81c92180)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (81ae8b70)
+                - [0x8d, 0x4d, 0xff]                                 #  lea     ecx,[ebp-1]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive (81b0ab12)
+                - [0x83, 0xfe, 0x01]                                 #  cmp     esi,1
+                - [0x100, 0x100]                                     #  jne     nt!MiProcessLoaderEntry+0xa0 (81b0aae2)
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsLoadedModuleList+0x4 (81c921bc)]
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,offset nt!PsLoadedModuleList (81c921b8)
+                - [0x89, 0x0f]                                       #  mov     dword ptr [edi],ecx
+                - [0x89, 0x47, 0x100]                                #  mov     dword ptr [edi+4],eax
+                - [0x39, 0x08]                                       #  cmp     dword ptr [eax],ecx
+                - [0x100, 0x100]                                     #  jne     nt!MiProcessLoaderEntry+0xc5 (81b0ab07)
+                - [0x89, 0x38]                                       #  mov     dword ptr [eax],edi
+                - [0x89, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [nt!PsLoadedModuleList+0x4 (81c921bc)],edi
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0xf6, 0x05, 0x100, 0x100, 0x100, 0x100, 0x01]     #  test    byte ptr [nt!PerfGlobalGroupMask+0x6 (81cc38c6)],1
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt! ?? ::FNODOBFM::`string'+0x29e64 (81bc053e)
+                - [0x89, 0x35, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [nt!PsLoadedModuleSpinLock (81cc9040)],esi
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x8b, 0xf2]                                       #  mov     esi,edx
+                - [0x51]                                             #  push    ecx
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiAcquireResourceExclusiveLite (81c51eec)
+                - [0x8d, 0x4d, 0xff]                                 #  lea     ecx,[ebp-1]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive (81d19d78)
+                - [0x83, 0xfe, 0x01]                                 #  cmp     esi,1
+                - [0x100, 0x100]                                     #  jne     nt!MiProcessLoaderEntry+0x76 (81d19d58)
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsLoadedModuleList+0x4 (81e1b09c)]
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,offset nt!PsLoadedModuleList (81e1b098)
+                - [0x89, 0x0f]                                       #  mov     dword ptr [edi],ecx
+                - [0x89, 0x47, 0x100]                                #  mov     dword ptr [edi+4],eax
+                - [0x39, 0x100]                                      #  cmp     dword ptr [eax],ecx
+                - [0x100, 0x100]                                     #  jne     nt!MiProcessLoaderEntry+0x8b (81d19d6d)
+                - [0x89, 0x38]                                       #  mov     dword ptr [eax],edi
+                - [0x89, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [nt!PsLoadedModuleList+0x4 (81e1b09c)],edi
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!PsLoadedModuleSpinLock (81e51040)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExReleaseSpinLockExclusiveFromDpcLevel (81cbb4f0)
+                - [0x8a, 0x4d, 0xff]                                 #  mov     cl,byte ptr [ebp-1]
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfLowerIrql (81e3b0e4)]
+                - [0x64, 0x8b, 0x15, 0x24, 0x01, 0x00, 0x00]         #  mov     edx,dword ptr fs:[124h]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x8b, 0xf2]                                       #  mov     esi,edx
+                - [0x51]                                             #  push    ecx
+                - [0x8b, 0xcb]                                       #  mov     ecx,ebx
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MiAcquireResourceExclusiveLite (81a9a6c8)
+                - [0x8d, 0x4d, 0xff]                                 #  lea     ecx,[ebp-1]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive (81b5ccca)
+                - [0x83, 0xfe, 0x01]                                 #  cmp     esi,1
+                - [0x100, 0x100]                                     #  jne     nt!MiProcessLoaderEntry+0x76 (81b5ccaa)
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsLoadedModuleList+0x4 (81c6fffc)]
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,offset nt!PsLoadedModuleList (81c6fff8)
+                - [0x39, 0x08]                                       #  cmp     dword ptr [eax],ecx
+                - [0x100, 0x100]                                     #  jne     nt!MiProcessLoaderEntry+0x8b (81b5ccbf)
+                - [0x89, 0x0f]                                       #  mov     dword ptr [edi],ecx
+                - [0x89, 0x47, 0x04]                                 #  mov     dword ptr [edi+4],eax
+                - [0x89, 0x38]                                       #  mov     dword ptr [eax],edi
+                - [0x89, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [nt!PsLoadedModuleList+0x4 (81c6fffc)],edi
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!PsLoadedModuleSpinLock (81ca8040)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExReleaseSpinLockExclusiveFromDpcLevel (81b52600)
+                - [0x8a, 0x4d, 0xff]                                 #  mov     cl,byte ptr [ebp-1]
+                - [0xff, 0x15, 0x100, 0x100, 0x100, 0x100]           #  call    dword ptr [nt!_imp_KfLowerIrql (81c900e4)]
+                - [0x64, 0x8b, 0x15, 0x24, 0x01, 0x00, 0x00]         #  mov     edx,dword ptr fs:[124h]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf2]                                       #  mov     esi,edx
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x66, 0xff, 0x8b, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [ebx+13Ch]
+                - [0x6a, 0x100]                                      #  push    1
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!PsLoadedModuleResource (816f68a0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (81523f80)
+                - [0x8d, 0x4d, 0xff]                                 #  lea     ecx,[ebp-1]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive (81598002)
+                - [0x83, 0xfe, 0x100]                                #  cmp     esi,1
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiProcessLoaderEntry+0xd7 (81597fc7)
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsLoadedModuleList+0x4 (816f68dc)]
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,offset nt!PsLoadedModuleList (816f68d8)
+                - [0x39, 0x08]                                       #  cmp     dword ptr [eax],ecx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiProcessLoaderEntry+0x10d (81597ffd)
+                - [0x89, 0x0f]                                       #  mov     dword ptr [edi],ecx
+                - [0x89, 0x47, 0x100]                                #  mov     dword ptr [edi+4],eax
+                - [0x89, 0x38]                                       #  mov     dword ptr [eax],edi
+                - [0x8b, 0x0d, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [nt!MiState+0x6ac (816ff56c)]
+                - [0x89, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [nt!PsLoadedModuleList+0x4 (816f68dc)],edi
+                - [0x8b, 0x57, 0x100]                                #  mov     edx,dword ptr [edi+18h]
+    -
+        !intro_update_win_pattern
+        section_hint: .text
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       #  mov     edi,edi
+                - [0x55]                                             #  push    ebp
+                - [0x8b, 0xec]                                       #  mov     ebp,esp
+                - [0x51]                                             #  push    ecx
+                - [0x51]                                             #  push    ecx
+                - [0x53]                                             #  push    ebx
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x56]                                             #  push    esi
+                - [0x57]                                             #  push    edi
+                - [0x8b, 0xf2]                                       #  mov     esi,edx
+                - [0x8b, 0xf9]                                       #  mov     edi,ecx
+                - [0x66, 0xff, 0x8b, 0x100, 0x100, 0x100, 0x100]     #  dec     word ptr [ebx+13Ch]
+                - [0x90]                                             #  nop
+                - [0x6a, 0x100]                                      #  push    1
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!PsLoadedModuleResource (823162c0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!ExAcquireResourceExclusiveLite (820ddd60)
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-1]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!MmLockLoadedModuleListExclusive (8216bad6)
+                - [0x83, 0xfe, 0x100]                                #  cmp     esi,1
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiProcessLoaderEntry+0xe8 (8216baaa)
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!PsLoadedModuleList+0x4 (823162fc)]
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                 #  mov     ecx,offset nt!PsLoadedModuleList (823162f8)
+                - [0x39, 0x08]                                       #  cmp     dword ptr [eax],ecx
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!MiProcessLoaderEntry+0x10e (8216bad0)
+                - [0x89, 0x0f]                                       #  mov     dword ptr [edi],ecx
+                - [0x89, 0x47, 0x100]                                #  mov     dword ptr [edi+4],eax
+                - [0x89, 0x38]                                       #  mov     dword ptr [eax],edi
+                - [0x8b, 0x0d, 0x100, 0x100, 0x100, 0x100]           #  mov     ecx,dword ptr [nt!MiState+0x6ec (8231efac)]
+                - [0x89, 0x3d, 0x100, 0x100, 0x100, 0x100]           #  mov     dword ptr [nt!PsLoadedModuleList+0x4 (823162fc)],edi
+                - [0x8b, 0x57, 0x100]                                #  mov     edx,dword ptr [edi+18h]

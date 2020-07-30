@@ -1,0 +1,20 @@
+{
+    "Type": "kernel",
+    "Signatures": [
+        {
+            "sig_type": "codeblocks",
+            "sig_id": "patchguard-lstar",
+            "flags": "64",
+            "score": 4,
+            "hashes": [
+                ["0xcbcfdc9a", "0x8c995658", "0x18576414", "0xf6590538", "0xc6a06aab", "0x32b549cb", "0x90facd2d"],
+                ["0xf6590538", "0xf63817bf", "0x781444f7", "0xa8528466", "0x2f8a6174", "0xcbcfdc9a", "0x8c995658"],
+                ["0xc6a06aab", "0xce0e8709", "0xf41fbb61", "0x90facd2d", "0x0a0a6a35", "0x2000e625", "0xf6590538"],
+                ["0xecaae6bb", "0x966ab5db", "0xf6590538", "0xe6e80111", "0xb149b527", "0xc0466a6f", "0x4145d97d"],
+                ["0xf6590538", "0xecaae6bb", "0x966ab5db", "0xb05a0758", "0x961a25db", "0x961a25db", "0x0723e6d9"],
+                ["0x0a0a6a35", "0x2000e625", "0xf6590538", "0xecaae6bb", "0x966ab5db"],
+                ["0xecaae6bb", "0x966ab5db", "0xf6590538", "0x8d3a2ee8", "0xc3b974ff", "0x2840e49d", "0x05655880"]
+            ]
+        }
+    ]
+}

@@ -1,0 +1,304 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: PspInsertProcess
+guest64: True
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 7602
+        args:
+            - DET_ARG_RCX       # Eprocess
+            - DET_ARG_RDX       # Parent Eprocess
+            - DET_ARG_STACK6    # Debug Handle
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX       # Eprocess
+            - DET_ARG_RDX       # Parent Eprocess
+            - DET_ARG_STACK5    # Debug Handle
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x44, 0x24, 0x18]                     #  mov     dword ptr [rsp+18h],r8d
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,50h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x4c, 0x8b, 0x91, 0x100, 0x100, 0x00, 0x00]       #  mov     r10,qword ptr [rcx+200h]
+                - [0x4c, 0x8b, 0xea]                                 #  mov     r13,rdx
+                - [0x48, 0x8b, 0x46, 0x100]                          #  mov     rax,qword ptr [rsi+70h]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0x48, 0x89, 0x44, 0x24, 0x100]                    #  mov     qword ptr [rsp+40h],rax
+                - [0x48, 0x8b, 0x81, 0x100, 0x100, 0x00, 0x00]       #  mov     rax,qword ptr [rcx+180h]
+                - [0xb9, 0x81, 0x00, 0x00, 0x00]                     #  mov     ecx,81h
+                - [0x49, 0x89, 0x42, 0x100]                          #  mov     qword ptr [r10+10h],rax
+                - [0x45, 0x8b, 0xf1]                                 #  mov     r14d,r9d
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (fffff800`03524cd0)
+                - [0x45, 0x33, 0xe4]                                 #  xor     r12d,r12d
+                - [0x41, 0x3a, 0xc4]                                 #  cmp     al,r12b
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt! ?? ::NNGAKEGL::`string'+0x44150 (fffff800`035d8895)
+                - [0x48, 0x83, 0xcb, 0xff]                           #  or      rbx,0FFFFFFFFFFFFFFFFh
+                - [0x8d, 0x6b, 0x02]                                 #  lea     ebp,[rbx+2]
+                - [0x4d, 0x3b, 0xec]                                 #  cmp     r13,r12
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                 #  mov     rax,rsp
+                - [0x44, 0x89, 0x48, 0x100]                          #  mov     dword ptr [rax+20h],r9d
+                - [0x44, 0x89, 0x40, 0x100]                          #  mov     dword ptr [rax+18h],r8d
+                - [0x48, 0x89, 0x50, 0x100]                          #  mov     qword ptr [rax+10h],rdx
+                - [0x48, 0x89, 0x48, 0x100]                          #  mov     qword ptr [rax+8],rcx
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,68h
+                - [0x44, 0x0f, 0x20, 0xc0]                           #  mov     rax,cr8
+                - [0xbf, 0x01, 0x00, 0x00, 0x00]                     #  mov     edi,1
+                - [0x40, 0x3a, 0xc7]                                 #  cmp     al,dil
+                - [0x76, 0x100]                                      #  jbe     nt!PspInsertProcess+0x46 (fffff800`0356e59a)
+                - [0x44, 0x0f, 0x20, 0xc0]                           #  mov     rax,cr8
+                - [0x48, 0x8d, 0x0d, 0x100, 0x100, 0x100, 0x100]     #  lea     rcx,[nt! ?? ::NNGAKEGL::`string' (fffff800`0365b570)]
+                - [0x0f, 0xb6, 0xd0]                                 #  movzx   edx,al
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!DbgPrint (fffff800`02be2bdc)
+                - [0xcd, 0x2c]                                       #  int     2Ch
+                - [0xf7, 0x84, 0x24, 0x100, 0x00, 0x00, 0x00, 0xf8, 0xff, 0xff, 0xff] #  test dword ptr [rsp+0E0h],0FFFFFFF8h
+                - [0x74, 0x100]                                      #  je      nt!PspInsertProcess+0x55 (fffff800`0356e5a9)
+                - [0xcd, 0x2c]                                       #  int     2Ch
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x65, 0x48, 0x8b, 0x04, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rax,qword ptr gs:[188h]
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x20]                     #  mov     qword ptr [rsp+20h],rbx
+                - [0x44, 0x89, 0x44, 0x24, 0x18]                     #  mov     dword ptr [rsp+18h],r8d
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x40]                           #  sub     rsp,40h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0x81, 0x10, 0x04, 0x00, 0x00]         #  mov     rax,qword ptr [rcx+410h]
+                - [0x44, 0x8b, 0x91, 0xe0, 0x02, 0x00, 0x00]         #  mov     r10d,dword ptr [rcx+2E0h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x89, 0x5c, 0x24, 0x20]                     #  mov     qword ptr [rsp+20h],rbx
+                - [0x44, 0x89, 0x44, 0x24, 0x18]                     #  mov     dword ptr [rsp+18h],r8d
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x40]                           #  sub     rsp,40h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x4c, 0x8b, 0xfa]                                 #  mov     r15,rdx
+                - [0x48, 0x8b, 0x81, 0x100, 0x04, 0x00, 0x00]        #  mov     rax,qword ptr [rcx+410h]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x44, 0x8b, 0x91, 0x100, 0x02, 0x00, 0x00]        #  mov     r10d,dword ptr [rcx+2E0h]
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x20]                     #  mov     dword ptr [rsp+20h],r9d
+                - [0x44, 0x89, 0x44, 0x24, 0x18]                     #  mov     dword ptr [rsp+18h],r8d
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,40h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x4c, 0x8b, 0xf2]                                 #  mov     r14,rdx
+                - [0x48, 0x8b, 0x81, 0x100, 0x100, 0x00, 0x00]       #  mov     rax,qword ptr [rcx+418h]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x44, 0x8b, 0x91, 0x100, 0x100, 0x00, 0x00]       #  mov     r10d,dword ptr [rcx+2E8h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xb9, 0x85, 0x00, 0x00, 0x00]                     #  mov     ecx,85h
+                - [0x41, 0x8b, 0xe9]                                 #  mov     ebp,r9d
+                - [0x4c, 0x8b, 0xae, 0x100, 0x100, 0x00, 0x00]       #  mov     r13,qword ptr [rsi+0B8h]
+                - [0x44, 0x89, 0x50, 0x100]                          #  mov     dword ptr [rax+28h],r10d
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (fffff800`26a5af48)
+                - [0x45, 0x33, 0xff]                                 #  xor     r15d,r15d
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x66 (fffff800`26a5aa12)
+                - [0x48, 0x8b, 0x94, 0x24, 0x100, 0x100, 0x00, 0x00] #  mov     rdx,qword ptr [rsp+0B0h]
+                - [0x48, 0x8b, 0xcf]                                 #  mov     rcx,rdi
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x20]                     #  mov     dword ptr [rsp+20h],r9d
+                - [0x44, 0x89, 0x44, 0x24, 0x18]                     #  mov     dword ptr [rsp+18h],r8d
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x100]                          #  sub     rsp,40h
+                - [0x65, 0x48, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   rsi,qword ptr gs:[188h]
+                - [0x4c, 0x8b, 0xf2]                                 #  mov     r14,rdx
+                - [0x48, 0x8b, 0x81, 0x100, 0x100, 0x00, 0x00]       #  mov     rax,qword ptr [rcx+418h]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x44, 0x8b, 0x91, 0x100, 0x100, 0x00, 0x00]       #  mov     r10d,dword ptr [rcx+2E8h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xb9, 0x85, 0x00, 0x00, 0x00]                     #  mov     ecx,85h
+                - [0x41, 0x8b, 0xe9]                                 #  mov     ebp,r9d
+                - [0x4c, 0x8b, 0xae, 0x100, 0x100, 0x00, 0x00]       #  mov     r13,qword ptr [rsi+0B8h]
+                - [0x44, 0x89, 0x50, 0x100]                          #  mov     dword ptr [rax+28h],r10d
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (fffff800`26a5af48)
+                - [0x45, 0x33, 0xff]                                 #  xor     r15d,r15d
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne      nt!PspInsertProcess+0x66 (fffff800`26a5aa12)
+                - [0x48, 0x83, 0xcb, 0xff]                           #  rbx,0FFFFFFFFFFFFFFFFh
+                - [0x4d, 0x85, 0xf6]                                 #  test    r14, r14
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x44, 0x24, 0x18]                     #  mov     dword ptr [rsp+18h],r8d
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x54]                                       #  push    r12
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x48, 0x83, 0xec, 0x40]                           #  sub     rsp,40h
+                - [0x65, 0x4c, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov     r14,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xf2]                                 #  mov     rsi,rdx
+                - [0x4c, 0x8b, 0x91, 0x100, 0x100, 0x00, 0x00]       #  mov     r10,qword ptr [rcx+418h]
+                - [0x48, 0x8b, 0xd9]                                 #  mov     rbx,rcx
+                - [0x8b, 0x81, 0x100, 0x100, 0x00, 0x00]             #  mov     eax,dword ptr [rcx+2E8h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xb9, 0x100, 0x00, 0x00, 0x00]                    #  mov     ecx,85h
+                - [0x45, 0x8b, 0x100]                                #  mov     r12d,r9d
+                - [0x4d, 0x8b, 0xae, 0x100, 0x00, 0x00, 0x00]        #  mov     r13,qword ptr [r14+0B8h]
+                - [0x41, 0x89, 0x42, 0x100]                          #  mov     dword ptr [r10+28h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (fffff800`d50fbdcc)
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x0f, 0x100, 0x100, 0x100, 0x100, 0x100]          #  jne     nt!PspInsertProcess+0x234 (fffff800`d50fb0d8)
+                - [0x48, 0x85, 0xf6]                                 #  test    rsi,rsi
+                - [0x100, 0x100]                                     #  je      nt!PspInsertProcess+0x7e (fffff800`d50faf22)
+                - [0x48, 0x8b, 0x86, 0x100, 0x100, 0x00, 0x00]       #  mov     rax,qword ptr [rsi+3B0h]
+                - [0x48, 0x85, 0xc0]                                 #  test    rax,rax
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x44, 0x89, 0x4c, 0x24, 0x100]                    #  mov     dword ptr [rsp+20h],r9d
+                - [0x44, 0x89, 0x44, 0x24, 0x100]                    #  mov     dword ptr [rsp+18h],r8d
+                - [0x53]                                             #  push    rbx
+                - [0x55]                                             #  push    rbp
+                - [0x56]                                             #  push    rsi
+                - [0x57]                                             #  push    rdi
+                - [0x41, 0x55]                                       #  push    r13
+                - [0x41, 0x56]                                       #  push    r14
+                - [0x41, 0x57]                                       #  push    r15
+                - [0x48, 0x83, 0xec, 0x60]                           #  sub     rsp,60h
+                - [0x65, 0x4c, 0x8b, 0x3c, 0x25, 0x88, 0x01, 0x00, 0x00] #  mov   r15,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xea]                                 #  mov     rbp,rdx
+                - [0x4c, 0x8b, 0x91, 0x100, 0x100, 0x100, 0x100]     #  mov     r10,qword ptr [rcx+418h]
+                - [0x48, 0x8b, 0xf9]                                 #  mov     rdi,rcx
+                - [0x8b, 0x81, 0x100, 0x100, 0x100, 0x100]           #  mov     eax,dword ptr [rcx+2E0h]
+                - [0x33, 0xd2]                                       #  xor     edx,edx
+                - [0xb9, 0x85, 0x00, 0x00, 0x00]                     #  mov     ecx,85h
+                - [0x41, 0x8b, 0xf1]                                 #  mov     esi,r9d
+                - [0x4d, 0x8b, 0xaf, 0x100, 0x100, 0x100, 0x100]     #  mov     r13,qword ptr [r15+0B8h]
+                - [0x41, 0x89, 0x42, 0x100]                          #  mov     dword ptr [r10+28h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!SeAuditingWithTokenForSubcategory (fffff802`ee98df40)
+                - [0x45, 0x33, 0xf6]                                 #  xor     r14d,r14d
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspInsertProcess+0x256 (fffff802`ee98d156)
+                - [0x48, 0x83, 0xcb, 0x100]                          #  or      rbx,0FFFFFFFFFFFFFFFFh
+                - [0x48, 0x85, 0xed]                                 #  test    rbp,rbp
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x48, 0x8b, 0xc4]                                              # mov     rax,rsp
+                - [0x44, 0x89, 0x40, 0x100]                                       # mov     dword ptr [rax+18h],r8d
+                - [0x53]                                                          # push    rbx
+                - [0x55]                                                          # push    rbp
+                - [0x56]                                                          # push    rsi
+                - [0x57]                                                          # push    rdi
+                - [0x41, 0x54]                                                    # push    r12
+                - [0x41, 0x55]                                                    # push    r13
+                - [0x41, 0x56]                                                    # push    r14
+                - [0x48, 0x83, 0xec, 0x100]                                       # sub     rsp,40h
+                - [0x65, 0x4c, 0x8b, 0x34, 0x25, 0x88, 0x01, 0x00, 0x00]          # mov   r14,qword ptr gs:[188h]
+                - [0x48, 0x8b, 0xf2]                                              # mov     rsi,rdx
+                - [0x4c, 0x8b, 0x91, 0x100, 0x100, 0x100, 0x100]                  # mov     r10,qword ptr [rcx+570h]
+                - [0x48, 0x8b, 0xd9]                                              # mov     rbx,rcx
+                - [0x33, 0xed]                                                    # xor     ebp,ebp
+                - [0x33, 0xd2]                                                    # xor     edx,edx
+                - [0x40, 0x88, 0x68, 0x100]                                       # mov     byte ptr [rax+8],bpl
+                - [0x45, 0x8b, 0xe1]                                              # mov     r12d,r9d
+                - [0x8b, 0x81, 0x100, 0x100, 0x100, 0x100]                        # mov     eax,dword ptr [rcx+440h]
+                - [0xb9, 0x100, 0x100, 0x100, 0x100]                              # mov     ecx,85h
+                - [0x4d, 0x8b, 0xae, 0x100, 0x100, 0x100, 0x100]                  # mov     r13,qword ptr [r14+0B8h]
+                - [0x41, 0x89, 0x42, 0x100]                                       # mov     dword ptr [r10+28h],eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                              # call    nt!SeAuditingWithTokenForSubcategory (fffff803`1a2818e0)
+                - [0x84, 0xc0]                                                    # test    al,al
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]                        # jne     nt!PspInsertProcess+0x23b (fffff803`1a2824f3)
+                - [0x48, 0x85, 0xf6]                                              # test    rsi,rsi
+                - [0x74, 0x100]                                                   # je      nt!PspInsertProcess+0x86 (fffff803`1a28233e)

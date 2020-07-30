@@ -1,0 +1,54 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        {
+            "originator": "[kernel]",
+            "victim": "*",
+            "object_type": "driver imports",
+            "signatures": [
+                "kernel-iat-init"
+            ]
+        },
+
+        {
+            "originator": "[kernel]",
+            "victim": "[hal]",
+            "object_type": "hal-heap"
+        },
+
+        {
+            "originator": "[kernel]",
+            "victim": "*",
+            "object_type": "driver",
+            "signatures": [
+                "nt-rdata-writes"
+            ]
+        },
+
+        {
+            "originator": "[hal]",
+            "object_type": "idt",
+            "signatures": [
+                "hal-idt"
+            ]
+        },
+
+        {
+            "originator": "-",
+            "object_type": "idt",
+            "signatures": [
+                "init-x86-idt",
+                "x86-idt-null"
+            ]
+        },
+
+        {
+            "originator": "-",
+            "object_type": "idt",
+            "signatures": [
+                "patchguard-idt-codeblocks",
+                "patchguard-idt"
+            ]
+        }
+    ]
+}

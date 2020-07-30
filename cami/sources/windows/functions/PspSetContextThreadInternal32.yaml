@@ -1,0 +1,226 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: PspSetContextThreadInternal
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 8000
+        args:
+            - DET_ARG_STACK3        # Vitctim Thread
+            - DET_ARG_STACK4        # Destination Address
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_STACK3        # Vitctim Thread
+            - DET_ARG_STACK4        # Destination Address
+
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 8000
+        pattern: !code_pattern
+            code:
+                - [0x6a, 0x100]                                      #  push    74h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt! ?? ::FNODOBFM::`string'+0x1678 (82a692d8)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (82a7f4b0)
+                - [0x64, 0x8b, 0x35, 0x24, 0x01, 0x00, 0x00]         #  mov     esi,dword ptr fs:[124h]
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x38, 0x5d, 0x100]                                #  cmp     byte ptr [ebp+10h],bl
+                - [0x74, 0x100]                                      #  je      nt!PspSetContextThreadInternal+0x59 (82c724d8)
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp-4],ebx
+                - [0x8b, 0x4d, 0x100]                                #  mov     ecx,dword ptr [ebp+0Ch]
+                - [0xa1, 0x100, 0x100, 0x100, 0x100]                 #  mov     eax,dword ptr [nt!MmUserProbeAddress (82b7771c)]
+                - [0x3b, 0xc8]                                       #  cmp     ecx,eax
+                - [0x72, 0x100]                                      #  jb      nt!PspSetContextThreadInternal+0x2b (82c724aa)
+                - [0x8b, 0xc8]                                       #  mov     ecx,eax
+                - [0x8b, 0x01]                                       #  mov     eax,dword ptr [ecx]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-24h],eax
+                - [0xc7, 0x45, 0x100, 0xfe, 0xff, 0xff, 0xff]        #  mov     dword ptr [ebp-4],0FFFFFFFEh
+                - [0xeb, 0x100]                                      #  jmp     nt!PspSetContextThreadInternal+0x61 (82c724e0)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp-14h]
+                - [0x8b, 0x00]                                       #  mov     eax,dword ptr [eax]
+                - [0x8b, 0x00]                                       #  mov     eax,dword ptr [eax]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-2Ch],eax
+                - [0x33, 0xc0]                                       #  xor     eax,eax
+                - [0x40]                                             #  inc     eax
+                - [0xc3]                                             #  ret
+                - [0x8b, 0x65, 0x100]                                #  mov     esp,dword ptr [ebp-18h]
+                - [0xc7, 0x45, 0x100, 0xfe, 0xff, 0xff, 0xff]        #  mov     dword ptr [ebp-4],0FFFFFFFEh
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp-2Ch]
+                - [0xe9, 0x100, 0x100, 0x00, 0x00]                   #  jmp     nt!PspSetContextThreadInternal+0x1a8 (82c7262d)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp+0Ch]
+                - [0x8b, 0x00]                                       #  mov     eax,dword ptr [eax]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-24h],eax
+
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 7600
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x6a, 0x100]                                      #  push    6Ch
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!RtlpSparseBitmapCtxUpdateBits+0x1539 (82229570)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (8213c810)
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x8a, 0x4d, 0x100]                                #  mov     cl,byte ptr [ebp+10h]
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0x84, 0xc9]                                       #  test    cl,cl
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x15c24 (8240a630)
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+0Ch]
+                - [0x8b, 0x07]                                       #  mov     eax,dword ptr [edi]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-20h],eax
+                - [0x8a, 0xd1]                                       #  mov     dl,cl
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-20h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!RtlpSanitizeContextFlags (822c027c)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x100, 0x100, 0x100]           #  js      nt!PspSetContextThreadInternal+0xd5 (822c0649)
+                - [0x80, 0x7d, 0x100, 0x00]                          #  cmp     byte ptr [ebp+10h],0
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x15c69 (8240a675)
+                - [0x89, 0x7d, 0x100]                                #  mov     dword ptr [ebp-34h],edi
+                - [0x8a, 0x45, 0x100]                                #  mov     al,byte ptr [ebp+14h]
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+8]
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x74, 0x100]                                      #  je      nt!PspSetContextThreadInternal+0x77 (822c05eb)
+                - [0xf7, 0x47, 0x100, 0x00, 0x04, 0x00, 0x00]        #  test    dword ptr [edi+58h],400h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x15cd6 (8240a6e2)
+                - [0x84, 0xc0]                                       #  test    al,al
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x6a, 0x100]                                      #  push    78h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!RtlpSparseBitmapCtxUpdateBits+0x2a23 (821f1360)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (82130a58)
+                - [0x8b, 0xc2]                                       #  mov     eax,edx
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-28h],eax
+                - [0x8b, 0xd9]                                       #  mov     ebx,ecx
+                - [0x89, 0x5d, 0x100]                                #  mov     dword ptr [ebp-2Ch],ebx
+                - [0x64, 0x8b, 0x3d, 0x24, 0x01, 0x00, 0x00]         #  mov     edi,dword ptr fs:[124h]
+                - [0x8a, 0x4d, 0x100]                                #  mov     cl,byte ptr [ebp+8]
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0x84, 0xc9]                                       #  test    cl,cl
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x32ebe (823e098e)
+                - [0x8b, 0x00]                                       #  mov     eax,dword ptr [eax]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-20h],eax
+                - [0x8a, 0xd1]                                       #  mov     dl,cl
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-20h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!RtlpSanitizeContextFlags (822d039c)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x100, 0x100, 0x100]           #  js      nt!PspSetContextThreadInternal+0xe2 (822cfef2)
+                - [0x80, 0x7d, 0x100, 0x00]                          #  cmp     byte ptr [ebp+8],0
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x32f07 (823e09d7)
+                - [0x8b, 0x45, 0x100]                                #  mov     eax,dword ptr [ebp-28h]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-40h],eax
+                - [0x8a, 0x45, 0x100]                                #  mov     al,byte ptr [ebp+0Ch]
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x74, 0x100]                                      #  je      nt!PspSetContextThreadInternal+0x7e (822cfe8e)
+                - [0xf7, 0x43, 0x100, 0x00, 0x04, 0x00, 0x00]        #  test    dword ptr [ebx+58h],400h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt! ?? ::NNGAKEGL::`string'+0x32f77 (823e0a47)
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x6a, 0x100]                                      #  push    6Ch
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_SafeReallocBlob+0x2ede (81214128)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (8114f914)
+                - [0x64, 0x8b, 0x1d, 0x24, 0x01, 0x00, 0x00]         #  mov     ebx,dword ptr fs:[124h]
+                - [0x8a, 0x4d, 0x100]                                #  mov     cl,byte ptr [ebp+10h]
+                - [0x33, 0xf6]                                       #  xor     esi,esi
+                - [0x84, 0xc9]                                       #  test    cl,cl
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x127c3e (8140bcd8)
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+0Ch]
+                - [0x8b, 0x07]                                       #  mov     eax,dword ptr [edi]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-20h],eax
+                - [0x8a, 0xd1]                                       #  mov     dl,cl
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-20h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!RtlpSanitizeContextFlags (812e5692)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x100, 0x100, 0x100]           #  js      nt!PspSetContextThreadInternal+0xd8 (812e4172)
+                - [0x80, 0x7d, 0x100, 0x00]                          #  cmp     byte ptr [ebp+10h],0
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x127c83 (8140bd1d)
+                - [0x89, 0x7d, 0x100]                                #  mov     dword ptr [ebp-34h],edi
+                - [0x8a, 0x45, 0x100]                                #  mov     al,byte ptr [ebp+14h]
+                - [0x8b, 0x7d, 0x100]                                #  mov     edi,dword ptr [ebp+8]
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x74, 0x100]                                      #  je      nt!PspSetContextThreadInternal+0x77 (812e4111)
+                - [0xf7, 0x47, 0x100, 0x00, 0x04, 0x00, 0x00]        #  test    dword ptr [edi+58h],400h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x127cf0 (8140bd8a)
+                - [0x84, 0xc0]                                       #  test    al,al
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x6a, 0x100]                                      #  push    70h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!_SafeReallocBlob+0x3cd5 (819eb1e0)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (819202d8)
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-28h],eax
+                - [0x8a, 0x5d, 0x100]                                #  mov     bl,byte ptr [ebp+10h]
+                - [0x33, 0xff]                                       #  xor     edi,edi
+                - [0x84, 0xdb]                                       #  test    bl,bl
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0xec86c (81bc757e)
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+0Ch]
+                - [0x8b, 0x06]                                       #  mov     eax,dword ptr [esi]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-20h],eax
+                - [0x8a, 0xd3]                                       #  mov     dl,bl
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-20h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!RtlpSanitizeContextFlags (81adc6f2)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x100, 0x100, 0x100]           #  js      nt!PspSetContextThreadInternal+0xd8 (81adadea)
+                - [0x84, 0xdb]                                       #  test    bl,bl
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0xec8b1 (81bc75c3)
+                - [0x89, 0x75, 0x100]                                #  mov     dword ptr [ebp-38h],esi
+                - [0x8a, 0x45, 0x100]                                #  mov     al,byte ptr [ebp+14h]
+                - [0x8b, 0x5d, 0x100]                                #  mov     ebx,dword ptr [ebp+8]
+                - [0x84, 0xc0]                                       #  test    al,al
+                - [0x74, 0x100]                                      #  je      nt!PspSetContextThreadInternal+0x88 (81adad9a)
+                - [0xf7, 0x43, 0x100, 0x00, 0x04, 0x00, 0x00]        #  test    dword ptr [ebx+58h],400h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0xec91e (81bc7630)
+                - [0x84, 0xc0]                                       #  test    al,al
+    -
+        !intro_update_win_pattern
+        section_hint: PAGE
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x6a, 0x100]                                      #  push    74h
+                - [0x68, 0x100, 0x100, 0x100, 0x100]                 #  push    offset nt!WriteRegisterWithIndex8+0x2fa3 (816f9400)
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!_SEH_prolog4_GS (815eb704)
+                - [0x64, 0xa1, 0x24, 0x01, 0x00, 0x00]               #  mov     eax,dword ptr fs:[00000124h]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-2Ch],eax
+                - [0x8a, 0x4d, 0x100]                                #  mov     cl,byte ptr [ebp+10h]
+                - [0x33, 0xdb]                                       #  xor     ebx,ebx
+                - [0x84, 0xc9]                                       #  test    cl,cl
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x12d1e2 (81906260)
+                - [0x8b, 0x75, 0x100]                                #  mov     esi,dword ptr [ebp+0Ch]
+                - [0x8b, 0x06]                                       #  mov     eax,dword ptr [esi]
+                - [0x89, 0x45, 0x100]                                #  mov     dword ptr [ebp-24h],eax
+                - [0x8a, 0xd1]                                       #  mov     dl,cl
+                - [0x8d, 0x4d, 0x100]                                #  lea     ecx,[ebp-24h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 #  call    nt!RtlpSanitizeContextFlags (81534cda)
+                - [0x85, 0xc0]                                       #  test    eax,eax
+                - [0x0f, 0x88, 0x100, 0x100, 0x00, 0x00]             #  js      nt!PspSetContextThreadInternal+0xf1 (817d916f)
+                - [0x80, 0x7d, 0x100, 0x100]                         #  cmp     byte ptr [ebp+10h],0
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]           #  jne     nt!PspSetContextThreadInternal+0x12d227 (819062a5)
+                - [0x89, 0x75, 0x100]                                #  mov     dword ptr [ebp-3Ch],esi

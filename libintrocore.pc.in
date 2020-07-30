@@ -1,0 +1,14 @@
+dir_prefix=@DEST_DIR@
+lib=@LIB_DIR@
+include=@INC_DIR@
+
+prefix=${dir_prefix}
+lib_dir=${dir_prefix}/${lib}
+include_dir=${dir_prefix}/${include}
+
+Name: introcore
+Description: Hypervisor Memory Introspection
+Version: @PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@.@PROJECT_VERSION_PATCH@
+
+Libs: -L${lib_dir} @PRIVATE_LIBS@
+Cflags: -I${include_dir}

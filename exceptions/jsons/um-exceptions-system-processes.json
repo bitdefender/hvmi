@@ -1,0 +1,47 @@
+{
+    "Type": "user",
+    "Exceptions": [
+ 
+        {
+            "flags": "system-process",
+            "originator": "csrss.exe",
+            "victim": "*",
+            "object_type": "process"
+        },
+
+        {
+            "flags": "system-process",
+            "originator": "lsass.exe",
+            "victim": "*",
+            "object_type": "process"
+        },
+
+        {
+            "flags": "system-process child",
+            "originator": "wininit.exe",
+            "victim": "lsass.exe",
+            "object_type": "process"
+        },
+
+        {
+            "flags": "system-process child",
+            "originator": "wininit.exe",
+            "victim": "services.exe",
+            "object_type": "process"
+        },
+        
+        {
+            "flags": "32 64",
+            "originator": "wmiprvse.exe",
+            "victim": "*",
+            "object_type": "process"
+        },
+
+        {
+            "flags": "init child",
+            "originator": "*",
+            "victim": "*",
+            "object_type": "process"
+        }
+    ]
+}

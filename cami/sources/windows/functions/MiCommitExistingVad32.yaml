@@ -1,0 +1,256 @@
+##
+## Copyright (c) 2020 Bitdefender
+## SPDX-License-Identifier: Apache-2.0
+##
+---
+!intro_update_win_function
+name: MiCommitExistingVad
+guest64: False
+arguments:
+    -
+        !intro_update_win_args
+        min_ver: 7600
+        max_ver: 8000
+        args:
+            - DET_ARG_STACK1    # Vad
+            - DET_ARG_STACK2    # Protected Page
+            - DET_ARG_STACK3    # Protection Size
+            - DET_ARG_STACK4    # Vm Protection Flags
+    -
+        !intro_update_win_args
+        min_ver: 17763
+        max_ver: 17763
+        args:
+            - DET_ARG_RCX       # Vad
+            - DET_ARG_RDX       # Protected Page
+            - DET_ARG_STACK1    # Protection Size
+            - DET_ARG_STACK2    # Vm Protection Flags
+
+patterns:
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7600
+        max_ver: 7602
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       # mov     edi,edi
+                - [0x55]                                             # push    ebp
+                - [0x8b, 0xec]                                       # mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                # and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                # sub     esp,44h
+                - [0x53]                                             # push    ebx
+                - [0x8b, 0x5d, 0x100]                                # mov     ebx,dword ptr [ebp+0Ch]
+                - [0x56]                                             # push    esi
+                - [0x57]                                             # push    edi
+                - [0xff, 0x75, 0x100]                                # push    dword ptr [ebp+14h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 # call    nt!MiMakeProtectionMask (82a3e30b)
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         # mov     ecx,dword ptr fs:[124h]
+                - [0x89, 0x4c, 0x24, 0x100]                          # mov     dword ptr [esp+14h],ecx
+                - [0x8b, 0x49, 0x100]                                # mov     ecx,dword ptr [ecx+50h]
+                - [0x89, 0x4c, 0x24, 0x100]                          # mov     dword ptr [esp+10h],ecx
+                - [0x8b, 0x4d, 0x100]                                # mov     ecx,dword ptr [ebp+8]
+                - [0xf7, 0x41, 0x100, 0x100, 0x100, 0x100, 0x100]    # test    dword ptr [ecx+14h],800000h
+                - [0x89, 0x5c, 0x24, 0x100]                          # mov     dword ptr [esp+1Ch],ebx
+                - [0x74, 0x100]                                      # je      nt!MiCommitExistingVad+0x51 (82a8221a)
+                - [0x8b, 0x49, 0x100]                                # mov     ecx,dword ptr [ecx+10h]
+                - [0x81, 0xe1, 0x100, 0x100, 0x100, 0x100]           # and     ecx,0FFFFFh
+                - [0x8d, 0x0c, 0xcd, 0x100, 0x100, 0x100, 0x100]     # lea     ecx,[ecx*8-40000000h]
+                - [0x89, 0x4c, 0x24, 0x100]                          # mov     dword ptr [esp+34h],ecx
+                - [0xeb, 0x100]                                      # jmp     nt!MiCommitExistingVad+0x56 (82a8221f)
+                - [0x83, 0x64, 0x24, 0x100, 0x100]                   # and     dword ptr [esp+34h],0
+                - [0x83, 0x64, 0x24, 0x100, 0x100]                   # and     dword ptr [esp+3Ch],0
+                - [0x8b, 0x4c, 0x24, 0x100]                          # mov     ecx,dword ptr [esp+3Ch]
+                - [0x83, 0xe0, 0x100]                                # and     eax,1Fh
+
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7600
+        max_ver: 7602
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                       # mov     edi,edi
+                - [0x55]                                             # push    ebp
+                - [0x8b, 0xec]                                       # mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                                # and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                                # sub     esp,4Ch
+                - [0x53]                                             # push    ebx
+                - [0x56]                                             # push    esi
+                - [0x57]                                             # push    edi
+                - [0xff, 0x75, 0x100]                                # push    dword ptr [ebp+14h]
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 # call    nt!MiMakeProtectionMask (826907d6)
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]         # mov     ecx,dword ptr fs:[124h]
+                - [0x8b, 0x5d, 0x100]                                # mov     ebx,dword ptr [ebp+0Ch]
+                - [0x89, 0x4c, 0x24, 0x100]                          # mov     dword ptr [esp+18h],ecx
+                - [0x8b, 0x49, 0x100]                                # mov     ecx,dword ptr [ecx+50h]
+                - [0x89, 0x4c, 0x24, 0x100]                          # mov     dword ptr [esp+14h],ecx
+                - [0x8b, 0x4d, 0x100]                                # mov     ecx,dword ptr [ebp+8]
+                - [0xf7, 0x41, 0x100, 0x100, 0x100, 0x100, 0x100]    # test    dword ptr [ecx+14h],800000h
+                - [0x89, 0x5c, 0x24, 0x100]                          # mov     dword ptr [esp+20h],ebx
+                - [0x74, 0x100]                                      # je      nt!MiCommitExistingVad+0x51 (8268a12c)
+                - [0x8b, 0x49, 0x100]                                # mov     ecx,dword ptr [ecx+10h]
+                - [0x81, 0xe1, 0x100, 0x100, 0x100, 0x100]           # and     ecx,0FFFFFh
+                - [0x8d, 0x0c, 0xcd, 0x100, 0x100, 0x100, 0x100]     # lea     ecx,[ecx*8-40000000h]
+                - [0x89, 0x4c, 0x24, 0x100]                          # mov     dword ptr [esp+30h],ecx
+                - [0xeb, 0x100]                                      # jmp     nt!MiCommitExistingVad+0x56 (8268a131)
+                - [0x83, 0x64, 0x24, 0x100, 0x100]                   # and     dword ptr [esp+30h],0
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                 # call    nt!MiMakeDemandZeroPte (82706559)
+                - [0x33, 0xc9]                                       # xor     ecx,ecx
+                - [0x89, 0x44, 0x24, 0x100]                          # mov     dword ptr [esp+40h],eax
+
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7600
+        max_ver: 7602
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                      # mov edi, edi
+                - [0x55]                                            # push ebp
+                - [0x8b, 0xec]                                      # mov ebp, esp
+                - [0x83, 0xec, 0x100]                               # sub esp, 0x30
+                - [0x53]                                            # push ebx
+                - [0x56]                                            # push esi
+                - [0x57]                                            # push edi
+                - [0xff, 0x75, 0x100]                               # push dword [ebp + 0x10]
+                - [0x8b, 0xf8]                                      # mov edi, eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                # call 0x478852
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]        # mov ecx, dword fs:[0x124]
+                - [0x89, 0x4d, 0x100]                               # mov dword [ebp - 8], ecx
+                - [0x8b, 0x49, 0x100]                               # mov ecx, dword [ecx + 0x50]
+                - [0x89, 0x4d, 0x100]                               # mov dword [ebp - 4], ecx
+                - [0x8b, 0x4d, 0x100]                               # mov ecx, dword [ebp + 8]
+                - [0xf7, 0x41, 0x100, 0x100, 0x100, 0x100, 0x100]   # test dword [ecx + 0x14], 0x800000
+                - [0x89, 0x7d, 0x100]                               # mov dword [ebp - 0xc], edi
+                - [0x74, 0x100]                                     # je 0x47eaf9
+                - [0x8b, 0x49, 0x100]                               # mov ecx, dword [ecx + 0x10]
+                - [0x81, 0xe1, 0x199, 0x100, 0x100, 0x100]          # and ecx, 0xfffff
+                - [0x8d, 0x0c, 0x100, 0x100, 0x100, 0x100, 0x100]   # lea ecx, [ecx*4 - 0x40000000]
+                - [0x89, 0x4d, 0x100]                               # mov dword [ebp - 0x24], ecx
+                - [0xeb, 0x100]                                     # jmp 0x47eae8
+                - [0x83, 0x65, 0x100, 0x100]                        # and dword [ebp - 0x24], 0
+                - [0x83, 0xe0, 0x100]                               # and eax, 0x1f
+                - [0xc1, 0xe0, 0x100]                               # shl eax, 5
+                - [0x83, 0x65, 0x100, 0x100]                        # and dword [ebp - 0x30], 0
+                - [0x83, 0x65, 0x100, 0x100]                        # and dword [ebp - 0x10], 0
+                - [0x89, 0x45, 0x100]                               # mov dword [ebp - 0x28], eax
+                - [0x8b, 0x45, 0x100]                               # mov eax, dword [ebp + 0xc]
+                - [0x8d, 0x44, 0x07, 0x100]                         # lea eax, [edi + eax - 1]
+                - [0x0d, 0x100, 0x100, 0x100, 0x100]                # or eax, 0xfff
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 7600
+        max_ver: 7602
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                      # mov     edi,edi
+                - [0x55]                                            # push    ebp
+                - [0x8b, 0xec]                                      # mov     ebp,esp
+                - [0x83, 0xec, 0x100]                               # sub     esp,30h
+                - [0x53]                                            # push    ebx
+                - [0x56]                                            # push    esi
+                - [0x57]                                            # push    edi
+                - [0xff, 0x75, 0x100]                               # push    dword ptr [ebp+10h]
+                - [0x8b, 0xf8]                                      # mov     edi,eax
+                - [0xe8, 0x100, 0x100, 0x100, 0x100]                # call    nt!MiMakeProtectionMask (828c4994)
+                - [0x64, 0x8b, 0x0d, 0x24, 0x01, 0x00, 0x00]        # mov     ecx,dword ptr fs:[124h]
+                - [0x89, 0x4d, 0x100]                               # mov     dword ptr [ebp-8],ecx
+                - [0x8b, 0x49, 0x100]                               # mov     ecx,dword ptr [ecx+50h]
+                - [0x89, 0x4d, 0x100]                               # mov     dword ptr [ebp-4],ecx
+                - [0x8b, 0x4d, 0x100]                               # mov     ecx,dword ptr [ebp+8]
+                - [0xf7, 0x41, 0x100, 0x100, 0x100, 0x100, 0x100]   # test    dword ptr [ecx+14h],800000h
+                - [0x89, 0x7d, 0x100]                               # mov     dword ptr [ebp-0Ch],edi
+                - [0x74, 0x100]                                     # je      nt!MiCommitExistingVad+0x49 (828cace3)
+                - [0x8b, 0x49, 0x100]                               # mov     ecx,dword ptr [ecx+10h]
+                - [0x81, 0xe1, 0x100, 0x100, 0x100, 0x100]          # and     ecx,0FFFFFh
+                - [0x8d, 0x0c, 0x8d, 0x100, 0x100, 0x100, 0x100]    # lea     ecx,[ecx*4-40000000h]
+                - [0x89, 0x4d, 0x100]                               # mov     dword ptr [ebp-24h],ecx
+                - [0xeb, 0x100]                                     # jmp     nt!MiCommitExistingVad+0x4d (828cace7)
+                - [0x83, 0x65, 0x100, 0x100]                        # and     dword ptr [ebp-24h],0
+                - [0x83, 0xe0, 0x100]                               # and     eax,1Fh
+                - [0xc1, 0xe0, 0x100]                               # shl     eax,5
+                - [0x83, 0x65, 0x100, 0x100]                        # and     dword ptr [ebp-30h],0
+                - [0x83, 0x65, 0x100, 0x100]                        # and     dword ptr [ebp-10h],0
+                - [0x89, 0x45, 0x100]                               # mov     dword ptr [ebp-28h],eax
+                - [0x8b, 0x45, 0x100]                               # mov     eax,dword ptr [ebp+0Ch]
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                # mov     edi,edi
+                - [0x55]                                      # push    ebp
+                - [0x8b, 0xec]                                # mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                         # and     esp,0FFFFFFF8h
+                - [0x81, 0xec, 0x100, 0x100, 0x100, 0x100]    # sub     esp,8Ch
+                - [0x8b, 0x45, 0x100]                         # mov     eax,dword ptr [ebp+0Ch]
+                - [0x53]                                      # push    ebx
+                - [0x56]                                      # push    esi
+                - [0x57]                                      # push    edi
+                - [0x8b, 0xfa]                                # mov     edi,edx
+                - [0x8b, 0xd1]                                # mov     edx,ecx
+                - [0x89, 0x7c, 0x24, 0x100]                   # mov     dword ptr [esp+48h],edi
+                - [0x89, 0x54, 0x24, 0x100]                   # mov     dword ptr [esp+3Ch],edx
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]          # cmp     eax,800h
+                - [0x0f, 0x83, 0x100, 0x100, 0x100, 0x100]    # jae     nt!MiCommitExistingVad+0xf08eb (81f9908b)
+                - [0x8b, 0xc8]                                # mov     ecx,eax
+                - [0x83, 0xe1, 0x100]                         # and     ecx,0Fh
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]    # je      nt!MiCommitExistingVad+0x994 (81ea9134)
+                - [0xa8, 0x100]                               # test    al,0F0h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]    # jne     nt!MiCommitExistingVad+0xf08f8 (81f99098)
+                - [0x8a, 0x89, 0x100, 0x100, 0x100, 0x100]    # mov     cl,byte ptr nt!MmUserProtectionToMask1 (81e14288)[ecx]
+                - [0x0f, 0xbe, 0xc9]                          # movsx   ecx,cl
+                - [0x89, 0x4c, 0x24, 0x100]                   # mov     dword ptr [esp+14h],ecx
+                - [0x83, 0xf9, 0x100]                         # cmp     ecx,0FFFFFFFFh
+                - [0x0f, 0x84, 0x100, 0x100, 0x100, 0x100]    # je      nt!MiCommitExistingVad+0xf0912 (81f990b2)
+                - [0xa9, 0x100, 0x100, 0x100, 0x100]          # test    eax,700h
+                - [0x0f, 0x85, 0x100, 0x100, 0x100, 0x100]    # jne     nt!MiCommitExistingVad+0x8d9 (81ea9079)
+                - [0x8b, 0x4a, 0x100]                         # mov     ecx,dword ptr [edx+1Ch]
+                - [0x8b, 0xc1]                                # mov     eax,ecx
+
+    -
+        !intro_update_win_pattern
+        section_hint: NULL
+        min_ver: 17763
+        max_ver: 17763
+        pattern: !code_pattern
+            code:
+                - [0x8b, 0xff]                                # mov     edi,edi
+                - [0x55]                                      # push    ebp
+                - [0x8b, 0xec]                                # mov     ebp,esp
+                - [0x83, 0xe4, 0x100]                         # and     esp,0FFFFFFF8h
+                - [0x83, 0xec, 0x100]                         # sub     esp,7Ch
+                - [0x8b, 0x45, 0x100]                         # mov     eax,dword ptr [ebp+0Ch]
+                - [0x53]                                      # push    ebx
+                - [0x8b, 0xda]                                # mov     ebx,edx
+                - [0x89, 0x5c, 0x24, 0x100]                   # mov     dword ptr [esp+2Ch],ebx
+                - [0x56]                                      # push    esi
+                - [0x8b, 0xf1]                                # mov     esi,ecx
+                - [0x89, 0x74, 0x24, 0x100]                   # mov     dword ptr [esp+2Ch],esi
+                - [0x57]                                      # push    edi
+                - [0x3d, 0x100, 0x100, 0x100, 0x100]          # cmp     eax,800h
+                - [0x72, 0x100]                               # jb      nt!MiCommitExistingVad+0x2c (814e411c)
+                - [0x83, 0xca, 0x100]                         # or      edx,0FFFFFFFFh
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]          # jmp     nt!MiCommitExistingVad+0xc1 (814e41b1)
+                - [0x8b, 0xc8]                                # mov     ecx,eax
+                - [0x83, 0xe1, 0x100]                         # and     ecx,0Fh
+                - [0x74, 0x100]                               # je      nt!MiCommitExistingVad+0x47 (814e4137)
+                - [0xa8, 0x100]                               # test    al,0F0h
+                - [0x74, 0x100]                               # je      nt!MiCommitExistingVad+0x3f (814e412f)
+                - [0x83, 0xca, 0x100]                         # or      edx,0FFFFFFFFh
+                - [0xe9, 0x100, 0x100, 0x100, 0x100]          # jmp     nt!MiCommitExistingVad+0xc1 (814e41b1)
+                - [0x8a, 0x89, 0x100, 0x100, 0x100, 0x100]    # mov     cl,byte ptr nt!MmUserProtectionToMask1 (8148d2e8)[ecx]
+                - [0xeb, 0x100]                               # jmp     nt!MiCommitExistingVad+0x5c (814e414c)
+                - [0x8b, 0xc8]                                # mov     ecx,eax
+                - [0xc1, 0xe9, 0x100]                         # shr     ecx,4
+                - [0x83, 0xe1, 0x100]                         # and     ecx,0Fh
+                - [0x75, 0x100]                               # jne     nt!MiCommitExistingVad+0x56 (814e4146)
+                - [0x83, 0xca, 0x100]                         # or      edx,0FFFFFFFFh
+                - [0xeb, 0x100]                               # jmp     nt!MiCommitExistingVad+0xc1 (814e41b1)
+                - [0x8a, 0x89, 0x100, 0x100, 0x100, 0x100]    # mov     cl,byte ptr nt!MmUserProtectionToMask2 (8148d2d8)[ecx]
+                - [0x0f, 0xbe, 0xd1]                          # movsx   edx,cl
+                - [0x89, 0x54, 0x24, 0x100]                   # mov     dword ptr [esp+14h],edx
