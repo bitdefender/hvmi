@@ -362,6 +362,7 @@ set(DEST_DIR "${CMAKE_INSTALL_PREFIX}")
 set(LIB_DIR "${CMAKE_INSTALL_LIBDIR}")
 set(INC_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
 set(PRIVATE_LIBS "-l${CMAKE_PROJECT_NAME}")
+set(DATA_DIR "${CMAKE_INSTALL_DATADIR}")
 
 CONFIGURE_FILE("${CMAKE_SHARED_LIBRARY_PREFIX}${CMAKE_PROJECT_NAME}.pc.in"
                "${PROJECT_SOURCE_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}${CMAKE_PROJECT_NAME}.pc"
@@ -451,14 +452,16 @@ endif()
 
 if (PYTHON_EXE)
     get_filename_component(PROJECT_EXCEPTION_PATH "${PROJECT_SOURCE_DIR}/exceptions" REALPATH)
-    add_custom_target(exceptions
-        COMMAND python3 exceptions.py --build=${project_exceptions_build} --verbose=2 jsons --output exceptions.bin
+    add_custom_target(exceptions ALL
+        COMMAND python3 exceptions.py --build=${project_exceptions_build} --verbose=2 jsons --output "${${CMAKE_PROJECT_NAME}_BINARY_DIR}/exceptions.bin"
         WORKING_DIRECTORY ${PROJECT_EXCEPTION_PATH})
+    INSTALL(FILES "${${CMAKE_PROJECT_NAME}_BINARY_DIR}/exceptions.bin" DESTINATION "${CMAKE_INSTALL_FULL_DATADIR}/${CMAKE_PROJECT_NAME}")
 endif()
 
 if (PYTHON_EXE)
     get_filename_component(PROJECT_CAMI_PATH "${PROJECT_SOURCE_DIR}/cami" REALPATH)
-    add_custom_target(cami
-        COMMAND python3 scripts/main.py --major ${project_cami_major} --minor ${project_cami_minor} --buildnumber ${project_cami_build} --output intro_live_update.bin
+    add_custom_target(cami ALL
+        COMMAND python3 scripts/main.py --major ${project_cami_major} --minor ${project_cami_minor} --buildnumber ${project_cami_build} --output "${${CMAKE_PROJECT_NAME}_BINARY_DIR}/intro_live_update.bin"
         WORKING_DIRECTORY ${PROJECT_CAMI_PATH})
+    INSTALL(FILES "${${CMAKE_PROJECT_NAME}_BINARY_DIR}/intro_live_update.bin" DESTINATION "${CMAKE_INSTALL_FULL_DATADIR}/${CMAKE_PROJECT_NAME}")
 endif()

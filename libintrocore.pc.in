@@ -1,10 +1,14 @@
 dir_prefix=@DEST_DIR@
 lib=@LIB_DIR@
 include=@INC_DIR@
+data_dir=@DATA_DIR@
 
 prefix=${dir_prefix}
 lib_dir=${dir_prefix}/${lib}
 include_dir=${dir_prefix}/${include}
+
+datarootdir=${dir_prefix}/${data_dir}
+pkgdatadir=${datarootdir}/introcore
 
 Name: introcore
 Description: Hypervisor Memory Introspection
