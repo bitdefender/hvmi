@@ -1,7 +1,7 @@
 {
 	"policiesDir": "@CMAKE_INSTALL_PREFIX@/etc/@CMAKE_PROJECT_NAME@/policies",
-	"exceptionsFile": "@CMAKE_INSTALL_PREFIX@/var/@CMAKE_PROJECT_NAME@/exceptions.bin",
-	"liveUpdateFile": "@CMAKE_INSTALL_PREFIX@/var/@CMAKE_PROJECT_NAME@/intro_live_update.bin",
+	"exceptionsFile": "@INTROCORE_DATADIR@/exceptions.bin",
+	"liveUpdateFile": "@INTROCORE_DATADIR@/intro_live_update.bin",
 	"policyOnly": false,
 	"pageCacheLimit": 512,
 	"useAltp2m": false,
