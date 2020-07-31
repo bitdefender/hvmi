@@ -200,7 +200,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} \
 -Wl,--fatal-warnings \
 -Wl,--warn-common \
 -Wl,--no-undefined \
--Wl,-version-script=${PROJECT_SOURCE_DIR}/introcore/version \
+-Wl,-version-script=\"${PROJECT_SOURCE_DIR}/introcore/version\" \
 -Wl,-z,noexecstack \
 -Wl,-z,relro \
 -Wl,-z,now \
