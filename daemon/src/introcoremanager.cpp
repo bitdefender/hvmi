@@ -1008,7 +1008,7 @@ void IntrocoreManager::generateSessionId()
 	// sessionId_ = ??
 }
 
-bool IntrocoreManager::injectAgent( const Tool /* &agent */ )
+bool IntrocoreManager::injectAgent( const Tool & /* agent */ )
 {
 	bdvmi::logger << bdvmi::ERROR << "Agent injection is not supported yet!" << std::flush;
 
