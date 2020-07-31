@@ -147,7 +147,7 @@ Or invoke Doxygen directly:
 doxygen Doxygen/Doxyfile
 ```
 
-This assumes that you have [Doxygen](https://www.doxygen.nl/index.html) installed and in you're path.
+This assumes that you have [Doxygen](https://www.doxygen.nl/index.html) installed and in your path.
 
 The Doxygen documentation will then be found in `docs/_static/Doxygen/html`.
 
