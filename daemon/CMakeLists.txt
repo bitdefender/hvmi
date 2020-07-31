@@ -79,7 +79,7 @@ configure_file(${${CMAKE_PROJECT_NAME}_SOURCE_DIR}/settings.json.in
 configure_file(${${CMAKE_PROJECT_NAME}_SOURCE_DIR}/config.h.in
 	${${CMAKE_PROJECT_NAME}_BINARY_DIR}/config.h)
 
-install(FILES ${${CMAKE_PROJECT_NAME}_BINARY_DIR}/default.json DESTINATION etc/${CMAKE_PROJECT_NAME}/policies/)
+install(FILES ${${CMAKE_PROJECT_NAME}_SOURCE_DIR}/default.json DESTINATION etc/${CMAKE_PROJECT_NAME}/policies/)
 install(FILES ${${CMAKE_PROJECT_NAME}_BINARY_DIR}/settings.json DESTINATION etc/${CMAKE_PROJECT_NAME}/)
 
 install(TARGETS ${CMAKE_PROJECT_NAME}
