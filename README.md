@@ -23,7 +23,7 @@ For more details check out the [HVMI specification](http://hvmi.readthedocs.io) 
 ## Supported hypervisors
 
 HVMI can work on any hypervisor, as long the proper API is provided (which is documented [here](https://hvmi.readthedocs.io/en/latest/chapters/1-overview.html#prerequisites-from-the-hv)). Currently, it has been integrated and tested with the following hypervisors:
-* [Napoca Hypervisor](https://github.com/napocahv/napoca) - an internal, bare-metal hypervisor that works on Intel CPUs
+* [Napoca Hypervisor](https://github.com/napocahv/napoca) - Bitdefender's bare-metal hypervisor for Intel CPUs
 * [Xen](https://xenbits.xen.org) - the famous open source hypervisor
 * [KVM](https://www.linux-kvm.org/page/Main_Page) - the Linux Kernel Virtual Machine
 
