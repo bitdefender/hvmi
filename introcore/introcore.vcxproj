@@ -88,7 +88,7 @@
       <AdditionalOptions>/ALIGN:0x200</AdditionalOptions>
     </Link>
     <PreBuildEvent>
-      <Command>py -3 $(SolutionDir)windows_build\generate_ver_info.py --meta-file $(SolutionDir)project-meta-info.in --out $(SolutionDir)windows_build\info.json --overwrite &amp;&amp; py -3 $(SolutionDir)windows_build\generate_verh.py --ver-path $(SolutionDir)autogen\ver.h --in-file $(SolutionDir)windows_build\info.json --overwrite</Command>
+      <Command>py -3 "$(SolutionDir)windows_build\generate_ver_info.py" --meta-file "$(SolutionDir)project-meta-info.in" --out "$(SolutionDir)windows_build\info.json" --overwrite &amp;&amp; py -3 "$(SolutionDir)windows_build\generate_verh.py" --ver-path "$(SolutionDir)autogen\ver.h" --in-file "$(SolutionDir)windows_build\info.json" --overwrite</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
@@ -132,7 +132,7 @@
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
     </Link>
     <PreBuildEvent>
-      <Command>py -3 $(SolutionDir)windows_build\generate_ver_info.py --meta-file $(SolutionDir)project-meta-info.in --out $(SolutionDir)windows_build\info.json --overwrite &amp;&amp; py -3 $(SolutionDir)windows_build\generate_verh.py --ver-path $(SolutionDir)autogen\ver.h --in-file $(SolutionDir)windows_build\info.json --overwrite</Command>
+      <Command>py -3 "$(SolutionDir)windows_build\generate_ver_info.py" --meta-file "$(SolutionDir)project-meta-info.in" --out "$(SolutionDir)windows_build\info.json" --overwrite &amp;&amp; py -3 "$(SolutionDir)windows_build\generate_verh.py" --ver-path "$(SolutionDir)autogen\ver.h" --in-file "$(SolutionDir)windows_build\info.json" --overwrite</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
