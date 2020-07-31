@@ -146,7 +146,7 @@ public:
 	mutable std::mutex                                        mutex_;
 	std::string                                               polid_;
 	std::string                                               name_;
-	bool                                                      licensedOnly_{ true }; // registry only
+	bool                                                      policyOnly_{ true };
 	bool                                                      kmEnabled_{ true };
 	bool                                                      umEnabled_{ true };
 	bdvmi::BackendFactory::BackendType                        backend_{ bdvmi::BackendFactory::BACKEND_XEN };

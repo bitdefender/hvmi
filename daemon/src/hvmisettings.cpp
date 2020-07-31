@@ -76,7 +76,7 @@ void HvmiSettings::copyFrom( const HvmiSettings &other )
 	introspectionOptions_    = other.introspectionOptions_;
 	name_                    = other.name_;
 	polid_                   = other.polid_;
-	licensedOnly_            = other.licensedOnly_;
+	policyOnly_              = other.policyOnly_;
 	kmEnabled_               = other.kmEnabled_;
 	umEnabled_               = other.umEnabled_;
 	policyApplied_           = other.policyApplied_;
@@ -106,7 +106,7 @@ void HvmiSettings::reset()
 	protectedProcesses_.clear();
 	polid_.clear();
 	name_.clear();
-	licensedOnly_    = true;
+	policyOnly_      = true;
 	kmEnabled_       = true;
 	policyApplied_   = false;
 	protectionsHash_ = 0;
@@ -173,6 +173,8 @@ bool HvmiSettings::parseSettingsJson( const std::string &contents )
 	useAltp2m_      = settings["useAltp2m"].asBool();
 
 	disableQueryHeap_ = settings["disableQueryHeap"].asBool();
+
+	policyOnly_ = settings["policyOnly"].asBool();
 
 	logUnprotectedProcesses_ = settings["loadUnprotectedProcesses"].asBool();
 

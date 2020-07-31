@@ -193,7 +193,7 @@ bool HvmiDomainHandler::loadPolicy( const std::string &uuid, HvmiSettings &setti
 	if ( !ret && log )
 		bdvmi::logger << bdvmi::WARNING << "[" << uuid << "] No policy available for domain" << std::flush;
 
-	if ( settings_.licensedOnly_ && !ret ) {
+	if ( settings_.policyOnly_ && !ret ) {
 		if ( log )
 			bdvmi::logger << bdvmi::WARNING << "[" << uuid << "] Won't hook unlicensed domain"
 			              << std::flush;
