@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: Build libintrocore and hvmid
 
 on:
   push:
