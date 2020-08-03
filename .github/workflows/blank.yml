@@ -40,6 +40,8 @@ jobs:
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.0.1
     - name: Checkout submodules
-      uses: textbook/git-checkout-submodule-action@master
+      uses: srt32/git-actions@v0.0.3
+      with:
+        args: git submodule update --init --recursive
     - name: Build introcore
       run: MSBuild /t:Rebuild /p:Configuration=Release /p:Platform=x64 hvmi.sln
