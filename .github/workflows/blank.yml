@@ -37,8 +37,8 @@ jobs:
         cd ..
     - name: Install boost
       run: sudo apt install libboost-dev
-    - name: Install libxenctrl
-      run: sudo apt install libxenctrl
+    - name: Install libxen-dev
+      run: sudo apt install libxen-dev
     - name: Checkout libbdvmi
       uses: actions/checkout@master
       with:
