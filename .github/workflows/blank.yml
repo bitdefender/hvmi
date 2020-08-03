@@ -30,6 +30,47 @@ jobs:
         cmake ..
         make -j$(nproc)
         cd ..
+    - name: Install introcore
+      run: |
+        cd _build
+        sudo make install
+        cd ..
+    - name: Checkout libbdvmi
+      uses: actions/checkout@master
+      with:
+        repository: bitdefender/libbdvmi
+        path: libbdvmi
+    - name: Build and install libbdvmi
+      run: |
+        cd libbdvmi
+        ./bootstrap
+        ./configure
+        make -j$(nproc)
+        sudo make install
+        cd ..
+    - name: Checkout libjsoncpp
+      uses: actions/checkout@master
+      with:
+        repository: open-source-parsers/jsoncpp
+        path: jsoncpp
+    - name: Build and install jsoncpp
+      run: |
+        cd jsoncpp
+        mkdir _build
+        cd _build
+        cmake ..
+        make -j$(nproc)
+        sudo make install
+        cd ..
+        cd ..
+    - name: Build hvmid
+      run: |
+        cd dameon
+        mkdir _build
+        cd _build
+        cmake ..
+        make -j$(nproc)
+        cd .. 
 
   Windows-build:
 
