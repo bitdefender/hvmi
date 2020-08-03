@@ -21,8 +21,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Checkout submodules
-      uses: textbook/git-checkout-submodule-action@master
+      with:
+        submodules: 'true'
     - name: Build introcore
       run: |
         mkdir _build
@@ -37,11 +37,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.0.1
-    - name: Checkout submodules
-      uses: srt32/git-actions@v0.0.3
-      with:
-        args: git submodule update --init --recursive
     - name: Build introcore
       run: MSBuild /t:Rebuild /p:Configuration=Release /p:Platform=x64 hvmi.sln
