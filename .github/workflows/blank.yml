@@ -1,0 +1,41 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore: 
+      - '*.md'
+      - 'docs/**'
+      - 'LICENSE'
+  pull_request:
+    branches: [ master ]
+    paths-ignore: 
+      - '*.md'
+      - 'docs/**'
+      - 'LICENSE'
+
+jobs:
+  Linux-build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build introcore
+      run: |
+        mkdir _build
+        cd _build
+        cmake ..
+        make -j$(nproc)
+        cd ..
+
+  Windows-build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.1
+    - name: Build introcore
+      run: MSBuild /t:Rebuild /p:Configuration=Release /p:Platform=x64 hvmi.sln
