@@ -57,7 +57,7 @@ jobs:
       with:
         repository: open-source-parsers/jsoncpp
         path: jsoncpp
-    - name: Build and install jsoncpp
+    - name: Build and install libjsoncpp
       run: |
         cd jsoncpp
         mkdir _build
@@ -69,7 +69,7 @@ jobs:
         cd ..
     - name: Build hvmid
       run: |
-        cd dameon
+        cd daemon
         mkdir _build
         cd _build
         cmake ..
