@@ -16,5 +16,6 @@
 *.filters text eol=crlf
 *.bat text eol=crlf
 
+docs/* linguist-documentation
 introcore/include/*.h linguist-language=C
 introcore/agents/windows/scripts/*.h linguist-language=C
