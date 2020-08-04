@@ -35,10 +35,8 @@ jobs:
         cd _build
         sudo make install
         cd ..
-    - name: Install boost
-      run: sudo apt install libboost-dev
-    - name: Install libxen-dev
-      run: sudo apt install libxen-dev
+    - name: Install dependencies
+      run: sudo apt install -y libjsoncpp-dev libboost-dev libxen-dev
     - name: Checkout libbdvmi
       uses: actions/checkout@master
       with:
@@ -51,21 +49,6 @@ jobs:
         ./configure
         make -j$(nproc)
         sudo make install
-        cd ..
-    - name: Checkout libjsoncpp
-      uses: actions/checkout@master
-      with:
-        repository: open-source-parsers/jsoncpp
-        path: jsoncpp
-    - name: Build and install libjsoncpp
-      run: |
-        cd jsoncpp
-        mkdir _build
-        cd _build
-        cmake ..
-        make -j$(nproc)
-        sudo make install
-        cd ..
         cd ..
     - name: Build hvmid
       run: |
