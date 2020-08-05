@@ -1,4 +1,4 @@
-name: Build libintrocore and hvmid
+name: Build libintrocore, exceptions, cami, and hvmid
 
 on:
   push:
