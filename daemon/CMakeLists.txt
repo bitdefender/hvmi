@@ -36,8 +36,10 @@ endif()
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(BDVMI REQUIRED libbdvmi)
-pkg_check_modules(INTROCORE REQUIRED libintrocore)
 pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+
+pkg_check_modules(INTROCORE REQUIRED libintrocore)
+pkg_get_variable(INTROCORE_DATADIR libintrocore pkgdatadir)
 
 add_executable(${CMAKE_PROJECT_NAME})
 
