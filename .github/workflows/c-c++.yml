@@ -28,7 +28,7 @@ jobs:
         mkdir _build
         cd _build
         cmake ..
-        make -j$(nproc)
+        make introcore -j$(nproc)
         cd ..
     - name: Build exceptions
       run: |
