@@ -30,7 +30,17 @@ jobs:
         cmake ..
         make -j$(nproc)
         cd ..
-    - name: Install introcore
+    - name: Build exceptions
+      run: |
+        cd _build
+        make exceptions
+        cd ..
+    - name: Build cami
+      run: |
+        cd _build
+        make cami
+        cd ..
+    - name: Install
       run: |
         cd _build
         sudo make install
