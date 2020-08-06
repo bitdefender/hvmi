@@ -101,7 +101,7 @@ cd _build
 make install
 ```
 
-This builds the [bddisasm](https://github.com/bitdefender/bddisasm) dependency and then **libintrocore**, which can be found in `bin/x64/Debug` or `bin/x64/Release`.
+This builds the [bddisasm](https://github.com/bitdefender/bddisasm) dependency and then **libintrocore**, the [exception](#Exceptions) and the [guest support mechanism](#Guest-support-mechanism) files. Use `make introcore` to build just **libintrocore**. The resulting binaries will be in `bin/x64/Debug` or `bin/x64/Release`.
 
 #### Generate an SDK
 
