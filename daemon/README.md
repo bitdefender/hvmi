@@ -25,7 +25,7 @@ The daemon also requires the following libraries to be installed:
 Installing is as simple as running the following commands:
 
 ```bash
-cmake -C_build
+cmake -B_build
 cd _build
 make install
 ```
@@ -33,7 +33,7 @@ make install
 This will install the daemon on `/usr/local` hierarchy. This prefix may be modified by setting the CMAKE_INSTALL_PREFIX variable:
 
 ```bash
-cmake -C_build -DCMAKE_INSTALL_PREFIX=/opt/hvmid
+cmake -B_build -DCMAKE_INSTALL_PREFIX=/opt/hvmid
 ```
 
 ## Configuration
