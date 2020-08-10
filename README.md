@@ -27,7 +27,6 @@ HVMI can work on any hypervisor, as long the proper API is provided (which is do
 * [Xen](https://xenbits.xen.org) - the famous open source hypervisor
 * [KVM](https://www.linux-kvm.org/page/Main_Page) - the Linux Kernel Virtual Machine
 
-
 ## Repository structure
 
 - **introcore** - the introcore source code and header files
@@ -42,6 +41,10 @@ HVMI can work on any hypervisor, as long the proper API is provided (which is do
 - **windows_build** - the scripts used during the [Windows build](#Windows-build)
 - **daemon** - an integration example for Xen and KVM
 
+## Quick start guide
+
+- [HVMI demo setup on Xen](https://hvmi.github.io/blog/2020/08/10/getting-started-on-Xen.html).
+- [HVMI demo setup on KVM](https://hvmi.github.io/blog/2020/08/10/getting-started-on-kvm.html).
 
 ## Checkout
 
