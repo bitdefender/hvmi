@@ -1151,7 +1151,6 @@ IntWinObjHandleRootDirTagInMemory(
     DWORD tag = *(DWORD *)Data;
     PROOT_SEARCH_CTX pCtx = Context;
     QWORD objGva = pCtx->RootGva;
-    PCHAR pTag = (CHAR *)(&tag);
     INTSTATUS status;
     QWORD parentDirGva = 0;
     QWORD nameBufferGva = 0;
@@ -1174,8 +1173,7 @@ IntWinObjHandleRootDirTagInMemory(
         goto _check_state_and_exit;
     }
 
-    LOG("[NAMESPACE] Found tag 0x%08x `%c%c%c%c` @ 0x%016llx for object 0x%016llx!\n",
-        tag, pTag[0], pTag[1], pTag[2], pTag[3], Gva, objGva);
+    LOG("[NAMESPACE] Found tag 0x%08x @ 0x%016llx for object 0x%016llx!\n", tag, Gva, objGva);
 
     // We know this page is in memory because we get here only if it already was in memory, or we injected a #PF
     // to bring it in memory
