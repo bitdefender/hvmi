@@ -4,6 +4,7 @@
  */
 #include "hvmidaemon.h"
 #include "hvmisettings.h"
+#include "argparse.h"
 #include <getopt.h>
 #include <signal.h>
 #include <time.h>
@@ -189,7 +190,38 @@ int debug( void )
 
 } // end of anonymous namespace
 
-int main( int /* argc */, char ** /* argv */ )
+int main( int argc, const char **argv )
 {
-	return start();
+	auto parser = argparse::ArgumentParser( argv[0], HVMID_NAME );
+
+	parser.add_argument( "-s", "--start", "Start " HVMID_NAME, false );
+	parser.add_argument( "-k", "--kill", "Stop " HVMID_NAME, false );
+
+	parser.enable_help();
+
+	auto err = parser.parse( argc, argv );
+	if ( err ) {
+		std::cout << err << std::endl;
+		return -1;
+	}
+
+	if ( parser.exists( "help" ) ) {
+		parser.print_help();
+		return 0;
+	}
+
+	if ( parser.exists( "start" ) ) {
+		std::cout << "Starting " << HVMID_NAME << "..." << std::endl;
+		return start();
+	}
+
+	if ( parser.exists( "kill" ) ) {
+		std::cout << "Stopping " << HVMID_NAME << "..." << std::endl;
+		// Nothing to do yet.
+		return 0;
+	}
+
+	parser.print_help();
+
+	return 0;
 }
