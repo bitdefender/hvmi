@@ -9,6 +9,8 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+      time: "17:15"
+      timezone: "Europe/Bucharest"
     commit-message:
       prefix: "dependabot"
       include: "scope"
