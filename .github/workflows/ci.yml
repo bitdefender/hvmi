@@ -1,0 +1,83 @@
+name: Build libintrocore, exceptions, cami, and hvmid
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore: 
+      - '*.md'
+      - 'docs/**'
+      - 'LICENSE'
+  pull_request:
+    branches: [ master ]
+    paths-ignore: 
+      - '*.md'
+      - 'docs/**'
+      - 'LICENSE'
+
+jobs:
+  Linux-build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - name: Build introcore
+      run: |
+        mkdir _build
+        cd _build
+        cmake ..
+        make introcore -j$(nproc)
+        cd ..
+    - name: Build exceptions
+      run: |
+        cd _build
+        make exceptions
+        cd ..
+    - name: Build cami
+      run: |
+        cd _build
+        make cami
+        cd ..
+    - name: Install
+      run: |
+        cd _build
+        sudo make install
+        cd ..
+    - name: Install dependencies
+      run: sudo apt install -y libjsoncpp-dev libboost-dev libxen-dev
+    - name: Checkout libbdvmi
+      uses: actions/checkout@master
+      with:
+        repository: bitdefender/libbdvmi
+        path: libbdvmi
+    - name: Build and install libbdvmi
+      run: |
+        cd libbdvmi
+        ./bootstrap
+        ./configure
+        make -j$(nproc)
+        sudo make install
+        cd ..
+    - name: Build hvmid
+      run: |
+        cd daemon
+        mkdir _build
+        cd _build
+        cmake ..
+        make -j$(nproc)
+        cd .. 
+
+  Windows-build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.1
+    - name: Build introcore
+      run: MSBuild /t:Rebuild /p:Configuration=Release /p:Platform=x64 hvmi.sln
