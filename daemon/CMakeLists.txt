@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
 
-include(FindPkgConfig)
-
 project(hvmid
 	VERSION 0.0
 	DESCRIPTION "Hypervisor Memory Introspection Daemon"
 	LANGUAGES CXX)
+
+include(FindPkgConfig)
+include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
