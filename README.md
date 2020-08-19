@@ -45,6 +45,7 @@ HVMI can work on any hypervisor, as long the proper API is provided (which is do
 
 - [HVMI demo setup on Xen](https://hvmi.github.io/blog/2020/08/10/getting-started-on-Xen.html).
 - [HVMI demo setup on KVM](https://hvmi.github.io/blog/2020/08/10/getting-started-on-kvm.html).
+- [Adding custom exceptions](https://hvmi.github.io/blog/2020/08/19/exceptions.html).
 
 ## Checkout
 
