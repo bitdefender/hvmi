@@ -333,21 +333,13 @@ int main( int argc, const char **argv )
 			return -1;
 		}
 
-		std::cout << "Waiting for the daemon to shutdown gracefully";
+		std::cout << "Waiting for the daemon to shutdown gracefully..." << std::flush;
 
 		for ( int t = 0; t < 60; t++ ) {
 
 			if ( kill( pid, 0 ) == -1 ) {
-				std::cout << "done" << std::endl;
+				std::cout << " Done" << std::endl;
 				return 0;
-			}
-
-			if ( t % 4 == 3 )
-				std::cout << "\b\b\b   \b\b\b";
-			else {
-				std::cout << ".";
-
-				std::cout.flush();
 			}
 
 			sleep( 1 );
