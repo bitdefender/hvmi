@@ -6,8 +6,8 @@
 
 """
 
-import pydis
-from pydis.disasm import *
+import pybddisasm
+from pybddisasm.bddisasm import *
 from collections import namedtuple
 from functools import partial
 import r2wrapper
