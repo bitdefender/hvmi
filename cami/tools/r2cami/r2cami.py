@@ -146,6 +146,12 @@ um_fields = [
     CamiFieldGroup('Peb', [
         CamiField('64Size', '_PEB',   'sizeof', None),
         CamiField('32Size', '_PEB32', 'sizeof', None)
+        ]),
+    CamiFieldGroup('Teb', [
+        CamiField('64Size', '_TEB',   'sizeof', None),
+        CamiField('32Size', '_TEB32', 'sizeof', None),
+        CamiField('Wow64SaveArea', None, 'constant', [0x1488, 0x1488]),
+        CamiField('Wow64StackInSaveArea', None, 'constant', [0xc8, 0xc8]),
         ])
     ]
 
@@ -225,7 +231,7 @@ def get_fields_support(fields, ntkrnl, ntdll):
                     b = ntdll.robj.read_bytes(f"pdb.{field.name}", 128)
                     value = r2functions.get_syscall_number(b, ntdll.guest64)
             except LookupError as e:
-                print(f"Will ignore exception ({str(e)}) for {str(field)} as it may not be present", file=sys.stderr)
+                print(f"Failed to find field ({str(e)}) for {str(field)} it may not be present for this os, or it might be present under a diffent name, check the pdb and modify the CamiField structures as necessary.", file=sys.stderr)
 
             print(f"{' ' * 12}{field.name}: {hex(value) if isinstance(value, int) else value}")
 

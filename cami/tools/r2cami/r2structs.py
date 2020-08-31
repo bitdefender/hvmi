@@ -10,6 +10,7 @@ import r2wrapper
 from collections import namedtuple
 from functools import lru_cache
 import sys
+import re
 
 StructSearcher = namedtuple('StructSearcher', 'unnamed index entry')
 
@@ -36,7 +37,15 @@ class StructFactory():
         for f in reversed(s['members']):
             sp = f['member_type'].split(' ')
 
-            if sp[0] in ['struct', 'union']:
+            if sp[0] in ['struct', 'union'] and '*' not in sp[1]:
+                # TODO: maybe handle arrays. we don't need to right now since we don't and likely won't
+                # ever need to get the offset of, for exampe, STRUCT.SomeArrayOfStructs[12].SomeField.
+                # If we will need to, just get the offset of `SomeArrayOfStructs`, the index (12), and 
+                # the offset of `SomeField`.
+                # All in all, handling arrays is quite complicated and really not needed for the purpose
+                # of this project...
+                r = re.compile(r'\[.*\]')
+                sp[1] = re.sub(r, '', sp[1])
                 ss = self.get_struct_searcher(sp[1], i - u)
                 u += ss.unnamed
                 struct.add_struct_field(f, self.get_struct_from_struct_searcher(ss))
@@ -76,7 +85,10 @@ class StructType():
         bit_cnt = int(bit_cnt)
 
         if len(self.fields) != 0 and isinstance(self.fields[0].type, BitfieldType) and self.fields[0].offset == off:
-            bit_idx = self.fields[0].type.bit_idx - bit_cnt
+            if self.fields[0].type.bit_idx == 0:
+                bit_idx = 0
+            else:
+                bit_idx = self.fields[0].type.bit_idx - bit_cnt
         else:
             bit_idx = size * 8 - bit_cnt
 
