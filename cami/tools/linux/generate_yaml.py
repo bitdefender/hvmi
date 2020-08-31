@@ -1,58 +1,60 @@
 #!/usr/bin/python
 import json
 import sys
-from collections import OrderedDict
+import subprocess
 
 bindings = [
 	{
 		"IntroName": "Info",
-		"KernelName": "",
-		"Fields": [
-		# 	{
-		# 		"IntroName": "ThreadSize",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasModuleLayout",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasVdsoImageStruct",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasSmallSlack",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasKsymRelative",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasKsymAbsolutePercpu",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasKsymSize",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasAlternateSyscall",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasVmaAdjustExpand",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasVdsoFixed",
-		# 		"KernelName": "",
-		# 	},
-		# 	{
-		# 		"IntroName": "HasKsymReducedSize",
-		# 		"KernelName": "",
-		# 	},
-		]
+		"KernelName": None,
+        "Fields": [
+        {
+            "IntroName": "ThreadSize",
+            "Lambda": (lambda input_dict: input_dict["__THREAD_SIZE__"])
+        },
+        {
+            "IntroName": "HasModuleLayout",
+            "Lambda" : (lambda input_dict: "core_layout" in input_dict["struct module"])
+        },
+        {
+            "IntroName": "HasVdsoImageStruct",
+            "Lambda": (lambda input_dict: input_dict["__HAS_VDSO_IMAGE__"])
+        },
+        {
+            "IntroName": "HasSmallSlack",
+            "Value": 0,
+            "Comment": "Unused."
+        },
+        {
+            "IntroName": "HasKsymRelative",
+            "Config": "CONFIG_KALLSYMS_BASE_RELATIVE",
+        },
+        {
+            "IntroName": "HasKsymAbsolutePercpu",
+            "Config": "CONFIG_KALLSYMS_ABSOLUTE_PERCPU",
+        },
+        {
+            "IntroName": "HasKsymSize",
+            "Lambda": (lambda input_dict: input_dict["__HAS_KSYM_SIZE__"])
+        },
+        {
+            "IntroName": "HasAlternateSyscall",
+            "Lambda": (lambda input_dict: input_dict["__HAS_ALTERNATE_SYSCALL__"])
+        },
+        {
+            "IntroName": "HasVmaAdjustExpand",
+            "Value": 0,
+            "Comment": "Unused."
+        },
+        {
+            "IntroName": "HasVdsoFixed",
+            "Config": "CONFIG_X86_VSYSCALL_EMULATION"
+        },
+        {
+            "IntroName": "HasKsymReducedSize",
+            "Lambda": (lambda input_dict: input_dict["__HAS_KSYM_REDUCED_SIZE__"])
+        }
+        ]
 	},
 	{
 		"IntroName": "Module",
@@ -380,6 +382,18 @@ bindings = [
 				"IntroName": "ExitSignal",
 				"KernelName": "exit_signal",
 			},
+            {
+                "IntroName": "InExecve",
+                "KernelName": "in_execve"
+            },
+            {
+                "IntroName": "InExecveBit",
+                "Lambda": (lambda input_dict: get_bit_pos(input_dict, "struct task_struct", "in_execve"))
+            },
+            {
+                "IntroName": "ThreadStructSp",
+                "Lambda": (lambda input_dict: input_dict["struct thread_struct"]["sp"])
+            },
 			{
 				"IntroName": "AltStackSp",
 				"KernelName": "sas_ss_sp",
@@ -544,78 +558,115 @@ bindings = [
 		"IntroName": "NsProxy",
 		"KernelName": "struct nsproxy",
 		"Fields": [
-			# {
-			# 	"IntroName": "CountOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "UtsOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "IpcOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "MntOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "PidOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "NetOffset",
-			# 	"KernelName": "",
-			# },
+			{
+				"IntroName": "CountOffset",
+				"KernelName": "count",
+			},
+			{
+				"IntroName": "UtsOffset",
+				"KernelName": "uts_ns",
+			},
+			{
+				"IntroName": "IpcOffset",
+				"KernelName": "ipc_ns",
+			},
+			{
+				"IntroName": "MntOffset",
+				"KernelName": "mnt_ns",
+			},
+			{
+				"IntroName": "PidOffset",
+				"KernelName": "pid_ns_for_children",
+			},
+			{
+				"IntroName": "NetOffset",
+				"KernelName": "net_ns",
+			},
 		]
 	},
 	{
 		"IntroName": "Ungrouped",
-		"KernelName": "",
-		"Fields": [
-			# {
-			# 	"IntroName": "FileDentryOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "ProtoNameOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "SignalListHeadOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "SocketAllocVfsInodeOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "Running",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "FilePathOffset",
-			# 	"KernelName": "",
-			# },
-			# {
-			# 	"IntroName": "SignalNrThreadsOffset",
-			# 	"KernelName": "",
-			# },
-		]
-	},
+		"KernelName": None,
+        "Fields": [
+            {
+                "IntroName": "FileDentryOffset",
+                "Chain": [("struct file", "f_path"), ("struct path", "dentry")]
+            },
+            {
+                "IntroName": "ProtoNameOffset",
+                "Chain": [("struct proto", "name")]
+            },
+            {
+                "IntroName": "SignalListHeadOffset",
+                "Chain": [("struct signal_struct", "thread_head")]
+            },
+            {
+                "IntroName": "SocketAllocVfsInodeOffset",
+                "Chain": [("struct socket_alloc", "vfs_inode")]
+            },
+            {
+                "IntroName": "Running",
+                "Lambda": (lambda input_dict: input_dict["__SYSTEM_STATE_RUNNING__"])
+            },
+            {
+                "IntroName": "FilePathOffset",
+                "Chain": [("struct file", "f_path")]
+            },
+            {
+                "IntroName": "SignalNrThreadsOffset",
+                "Chain": [("struct signal_struct", "nr_threads")]
+            },
+
+        ]
+    },
 ]
 
-def create_bindings(input_dict):
+def get_bit_pos(input_dict, structure, bit):
+    # This is a little awkward because we assume the dictionary is sorted. No one can guarantee this. But it works.
+
+    bitfield_offset = input_dict[structure][bit]
+    pos = 0
+    for member, offset in input_dict[structure].items():
+        if member == bit:
+            break
+        if offset == bitfield_offset:
+            pos += 1
+        if offset > bitfield_offset:
+            raise Exception("Something is wrong.")
+
+    return pos
+
+def is_config_set(cfg_file, config):
+    line = "^%s=y$" % config
+    return not subprocess.call(['/bin/grep', '-q', line, cfg_file])
+
+def create_bindings(input_dict, config):
     result = []
     for struct in bindings:
-        st = struct["KernelName"]
         f = []
         for field in struct["Fields"]:
-            try:
-                f.append((field["IntroName"], input_dict[struct["KernelName"]][field["KernelName"]]))
-            except KeyError:
-                pass
+            t = (field["IntroName"],)
+            if "Value" in field:
+                t += (field["Value"],)
+            elif "KernelName" in field:
+                try:
+                    t += (input_dict[struct["KernelName"]][field["KernelName"]],)
+                except KeyError:
+                    t += (0, )
+                    pass
+            elif "Lambda" in field:
+                t += (field["Lambda"](input_dict),)
+            elif "Config" in field:
+                t += (is_config_set(config, field["Config"]),)
+            elif "Chain" in field:
+                offset = 0
+                for level in field["Chain"]:
+                    offset += input_dict[level[0]][level[1]]
+                t += (offset,)
+            else:
+                raise Exception("Something is not ok with this: ", field)
+            f.append(t)
+
         result.append((struct["IntroName"], f))
     return result
 
@@ -627,39 +678,45 @@ def generate_hooks(functions):
         result += "\t\thandler: 0\n\t\tskip_on_boot: 0\n\n"
     return result
 
-
-
 def generate_yaml_string(content, version):
-    result = "#!intro_update_lix_supported_os\n"
+    result = "!intro_update_lix_supported_os\n"
     result += "version: " + version + "\n\n"
 
-    result += "fields: !opaque_structures\n\ttype: !lix_fields\n\tos_structs:\n"
+    result += "fields: !opaque_structures\n\ttype: lix_fields\n\tos_structs:\n"
 
     for struct in content:
         result += "\t\t" + struct[0] + ": !opaque_fields\n"
         for field in struct[1]:
-            result += "\t\t\t" + field[0] + ": 0x%04x\n" % (field[1])
+            result += "\t\t\t" + field[0] + ": 0x%04x%s\n" % (field[1], " # " + field[2] if len(field) > 2 else "")
 
     return result
 
 def main():
-    if len(sys.argv) < 3:
-        print("Use %s <input file> <output file>", sys.argv[1])
+    if len(sys.argv) < 4:
+        print("Use %s <input file> <output file> <config file>" % sys.argv[0])
         return
 
     inp = sys.argv[1]
     outp = sys.argv[2]
+    cfg = sys.argv[3]
+
+    if cfg.endswith(".gz"):
+        print("Please decompress %s first" % cfg)
+        return
 
     with open(inp, "r") as f:
         input_js = json.load(f)
 
-    bindings = create_bindings(input_js)
+    bindings = create_bindings(input_js, cfg)
+
     result = generate_yaml_string(bindings, input_js["_KERNEL_VERSION_"])
     result += generate_hooks(input_js["_FUNCTIONS_"])
 
-    print("done")
+    result = result.replace('\t', '    ')
 
     with open(outp, "w") as f:
         f.write(result)
+
+    print("Output written to %s" % outp)
 
 main()
