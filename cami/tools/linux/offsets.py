@@ -31,7 +31,6 @@ functions = [
     "crash_kexec",
     "__access_remote_vm",
     "mprotect_fixup",
-    "do_munmap",
     "vma_adjust",
 ]
 
@@ -64,13 +63,13 @@ class Offsets(gdb.Command):
 
         structs = OrderedDict()
 
+        output = {}
+
         names = gdb.execute("info types", to_string=True)
 
         rx = re.compile("struct [a-zA-Z_][A-Za-z0-9_]*")
         structs = rx.findall(names)
-        print(len(structs))
 
-        output = {}
         for struct in structs:
             try:
                 output[struct] = self.get_fields(struct)
@@ -83,7 +82,35 @@ class Offsets(gdb.Command):
 
         rx = re.compile("[0-9]+\.[0-9]+\.[0-9]+[^ ]*")
         ver = rx.findall(ver)
+
         output["_KERNEL_VERSION_"] = ver[0] + "*"
+
+        try:
+            vdso = gdb.execute("ptype vdso_image_64", to_string=True)
+            output["__HAS_VDSO_IMAGE__"] = vdso.startswith("type = const struct vdso_image")
+        except gdb.error:
+            output["__HAS_VDSO_IMAGE__"] = False
+
+        try:
+            sizes = gdb.execute("ptype kallsyms_sizes", to_string=True)
+            output["__HAS_KSYM_SIZE__"] = not sizes.startswith("No symbol \"kallsyms_sizes\"")
+        except gdb.error:
+            output["__HAS_KSYM_SIZE__"] = False
+
+        try:
+            altsyscall = gdb.execute("ptype do_syscall_64", to_string=True)
+            output["__HAS_ALTERNATE_SYSCALL__"] = not altsyscall.startswith("No symbol \"do_syscall_64\"")
+        except gdb.error:
+            output["__HAS_ALTERNATE_SYSCALL__"] = False
+
+        ksym_reduced_size = gdb.execute("ptype kallsyms_markers", to_string=True)
+        output["__HAS_KSYM_REDUCED_SIZE__"] = ksym_reduced_size.startswith("type = const unsigned int")
+
+        system_state_running = gdb.execute("p/d SYSTEM_RUNNING", to_string=True)
+        output["__SYSTEM_STATE_RUNNING__"] = int(system_state_running.split('=')[1])
+
+        thread_size = gdb.execute("p/d sizeof(init_thread_union)", to_string=True)
+        output["__THREAD_SIZE__"] = int(thread_size.split('=')[1])
 
         output["_FUNCTIONS_"] = []
 
