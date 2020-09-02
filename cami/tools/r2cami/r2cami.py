@@ -17,6 +17,8 @@ CamiNtoskrnl = namedtuple('CamiNtoskrnl', 'robj struct_factory ntbuildnumber kpt
 CamiNtdll = namedtuple('CamiNtdll', 'robj guest64')
 CamiFieldGroup = namedtuple('CamiFieldGroup', 'name fields')
 CamiField = namedtuple('CamiField', 'name struct type value')
+CamiFunction = namedtuple('CamiFunction', 'name args32 args64')
+CamiArguments = namedtuple('CamiArgument', 'minver list')
 
 km_fields = [
     CamiFieldGroup('Process', [
@@ -156,34 +158,137 @@ um_fields = [
     ]
 
 functions = [
-    'KeBugCheck2',
-    'MiInsertVad',
-    'KiDispatchException',
-    'KiDisplayBlueScreen',
-    'MiCommitExistingVad',
-    'MiDeleteVirtualAddresses',
-    'MiFinishVadDeletion',
-    'MiGetWsAndInsertVad',
-    'MiInitializeLoadedModuleList',
-    'MiInsertPrivateVad',
-    'MiInsertVad',
-    'MiProcessLoaderEntry',
-    'MiUnloadSystemImage',
-    'MmCleanProcessAddressSpace',
-    'MmCopyVirtualMemory',
-    'NtQueueApcThreadEx',
-    'NtSetSystemPowerState',
-    'PspInsertProcess',
-    'PspSetContextThreadInternal',
-    'PspWow64SetContextThread',
-    'RtlpVirtualUnwind1',
-    'RtlpVirtualUnwind2',
-    'RtlpVirtualUnwind3',
-    'RtlpVirtualUnwind4',
-    'RtlpVirtualUnwind5',
-    'RtlpVirtualUnwind6',
-    'RtlpVirtualUnwind7',
-    'RtlpVirtualUnwind8',
+    CamiFunction('KeBugCheck2', None, None),
+    CamiFunction('MiInsertVad', 
+        [
+            CamiArguments(18363, ['DET_ARG_RCX', 'DET_ARG_RDX'])
+        ],
+        None
+        ),
+    CamiFunction('KiDispatchException',
+        [
+            CamiArguments(0, ['DET_ARG_STACK1', 'DET_ARG_STACK2', 'DET_ARG_STACK3', 'DET_ARG_STACK4'])
+        ],
+        None
+        ),
+    CamiFunction('KiDisplayBlueScreen', None, None),
+    CamiFunction('MiCommitExistingVad',
+        [
+            CamiArguments(9600, ['DET_ARG_RCX', 'DET_ARG_RDX', 'DET_ARG_STACK1', 'DET_ARG_STACK2']),
+            CamiArguments(0, ['DET_ARG_STACK1', 'DET_ARG_STACK2', 'DET_ARG_STACK3', 'DET_ARG_STACK4'])
+        ],
+        None
+        ),
+    CamiFunction('MiDeleteVirtualAddresses',
+        [
+            CamiArguments(9600, ['DET_ARG_RCX', 'DET_ARG_RDX']),
+            CamiArguments(9200, ['DET_ARG_STACK1', 'DET_ARG_RCX']),
+            CamiArguments(0, ['DET_ARG_STACK1', 'DET_ARG_STACK2'])
+        ],
+        None
+        ),
+    CamiFunction('MiFinishVadDeletion',
+        [
+            CamiArguments(0, ['DET_ARG_RDX', 'DET_ARG_STACK1'])
+        ],
+        [
+            CamiArguments(0, ['DET_ARG_RDX', 'DET_ARG_R8'])
+        ],
+        ),
+    CamiFunction('MiGetWsAndInsertVad',
+        [
+            CamiArguments(9600, ['DET_ARG_RCX']),
+            CamiArguments(9200, ['DET_ARG_RAX']),
+            CamiArguments(0, ['DET_ARG_RDI'])
+        ],
+        None
+        ),
+    CamiFunction('MiInitializeLoadedModuleList', None, None),
+    CamiFunction('MiInsertPrivateVad',
+        [
+            CamiArguments(9600, ['DET_ARG_RCX']),
+            CamiArguments(9200, ['DET_ARG_STACK1']),
+            CamiArguments(0, ['DET_ARG_RDI'])
+        ],
+        None
+        ),
+    CamiFunction('MiInsertVad',
+        [
+            CamiArguments(18363, ['DET_ARG_RCX', 'DET_ARG_RDX']),
+        ],
+        None
+        ),
+    CamiFunction('MiProcessLoaderEntry',
+        [
+            CamiArguments(9600, ['DET_ARG_RCX', 'DET_ARG_RDX']),
+            CamiArguments(9200, ['DET_ARG_RSI', 'DET_ARG_STACK1']),
+            CamiArguments(0, ['DET_ARG_STACK1', 'DET_ARG_STACK2'])
+        ],
+        None
+        ),
+    CamiFunction('MiUnloadSystemImage',
+        [
+            CamiArguments(9600, ['DET_ARG_RCX']),
+            CamiArguments(0, ['DET_ARG_STACK1'])
+        ],
+        None
+        ),
+    CamiFunction('MmCleanProcessAddressSpace',
+        [
+            CamiArguments(9600, ['DET_ARG_RCX']),
+            CamiArguments(9200, ['DET_ARG_STACK1']),
+            CamiArguments(0, ['DET_ARG_RAX'])
+        ],
+        None
+        ),
+    CamiFunction('MmCopyVirtualMemory',
+        [
+            CamiArguments(0, ['DET_ARG_STACK4', 'DET_ARG_STACK5', 'DET_ARG_STACK6', 'DET_ARG_STACK7', 'DET_ARG_STACK8'])
+        ],
+        [
+            CamiArguments(0, ['DET_ARG_RCX', 'DET_ARG_RDX', 'DET_ARG_R8', 'DET_ARG_R9', 'DET_ARG_STACK7'])
+        ]
+        ),
+    CamiFunction('NtQueueApcThreadEx',
+        [
+            CamiArguments(0, ['DET_ARG_RCX', 'DET_ARG_STACK10', 'DET_ARG_STACK11', 'DET_ARG_RAX'])
+        ],
+        [
+            CamiArguments(0, ['DET_ARG_RCX',  'DET_ARG_R8', 'DET_ARG_R9', 'DET_ARG_RAX'])
+        ]
+        ),
+    CamiFunction('NtSetSystemPowerState', None, None),
+    CamiFunction('PspInsertProcess',
+        [
+            CamiArguments(9600, ['DET_ARG_RCX', 'DET_ARG_RDX', 'DET_ARG_STACK3']),
+            CamiArguments(9200, ['DET_ARG_RDI', 'DET_ARG_STACK1', 'DET_ARG_STACK4']),
+            CamiArguments(0, ['DET_ARG_RAX', 'DET_ARG_STACK1', 'DET_ARG_STACK5'])
+        ],
+        [
+            CamiArguments(9200, ['DET_ARG_RCX', 'DET_ARG_RDX', 'DET_ARG_STACK6']),
+            CamiArguments(0, ['DET_ARG_RCX', 'DET_ARG_RDX', 'DET_ARG_STACK5'])
+        ]
+        ),
+    CamiFunction('PspSetContextThreadInternal',
+        [
+            CamiArguments(19041, ['DET_ARG_RCX', 'DET_ARG_RDX']),
+            CamiArguments(18362, ['DET_ARG_STACK3', 'DET_ARG_STACK4']),
+            CamiArguments(10586, ['DET_ARG_RCX', 'DET_ARG_RDX']),
+            CamiArguments(10000, ['DET_ARG_STACK3', 'DET_ARG_STACK4']),
+            CamiArguments(9600, ['DET_ARG_RCX', 'DET_ARG_RDX']),
+            CamiArguments(0, ['DET_ARG_STACK3', 'DET_ARG_STACK4']),
+        ],
+        None
+        ),
+    CamiFunction('PspWow64SetContextThread', None, None),
+    CamiFunction('RtlpVirtualUnwind1', None, None),
+    CamiFunction('RtlpVirtualUnwind2', None, None),
+    CamiFunction('RtlpVirtualUnwind3', None, None),
+    CamiFunction('RtlpVirtualUnwind4', None, None),
+    CamiFunction('RtlpVirtualUnwind5', None, None),
+    CamiFunction('RtlpVirtualUnwind6', None, None),
+    CamiFunction('RtlpVirtualUnwind7', None, None),
+    CamiFunction('RtlpVirtualUnwind8', None, None)
     ]
 
 syscalls = [
@@ -286,12 +391,23 @@ def get_syscall(krnl):
     print(f"{' ' * 4}!syscall_pattern")
     print(f"{' ' * 4}id: [ {'SYSCALL_SIG_FLAG_KPTI,' if krnl.kpti else ''} IG_GUEST_WINDOWS ]")
     print(f"{' ' * 4}flags: [ {'LOC_SYSCALL' if krnl.guest64 else 'LOC_SYSENTER'} ]")
+    print(f"{' ' * 4}offset: 0")
     print(f"{' ' * 4}pattern: !code_pattern")
     print(f"{' ' * 8}code:")
 
     get_function_pattern(pattern)
 
-def get_function(krnl, name):
+def get_function(krnl, function):
+    name = function.name
+
+    fargs = function.args64 if krnl.guest64 else function.args32
+    args = None
+    if fargs is not None:
+        for a in fargs:
+            if a.minver <= krnl.ntbuildnumber:
+                args = a
+                break
+
     try:
         pattern = r2functions.get_pattern_signature(krnl.robj.read_bytes(f"pdb.{name}", 128), krnl.robj.info.bin.bits)
         section = krnl.robj.section(f"pdb.{name}").name
@@ -303,6 +419,17 @@ def get_function(krnl, name):
     print(f"{' ' * 0}!intro_update_win_function")
     print(f"{' ' * 0}name: {name}")
     print(f"{' ' * 0}guest64: {krnl.guest64}")
+
+    if args is not None:
+        print(f"{' ' * 0}arguments:")
+        print(f"{' ' * 4}-")
+        print(f"{' ' * 8}!intro_update_win_args")
+        print(f"{' ' * 8}min_ver: {krnl.ntbuildnumber}")
+        print(f"{' ' * 8}max_ver: {krnl.ntbuildnumber}")
+        print(f"{' ' * 8}args:")
+        for a in args.list:
+            print(f"{' ' * 12}- {a}")
+
     print(f"{' ' * 0}patterns:")
     print(f"{' ' * 4}-")
     print(f"{' ' * 8}!intro_update_win_pattern")
