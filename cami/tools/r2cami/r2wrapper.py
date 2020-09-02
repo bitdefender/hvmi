@@ -68,7 +68,7 @@ class R2Wrapper:
         return json.loads(s)
 
     def read_bytes(self, addr, size):
-        b = bytes.fromhex(self.pipe.cmd(f"p8 {size} @ {addr}"))
+        b = bytes.fromhex(self.pipe.cmd(f"p8 {size} @ {addr}").strip())
         if len(b) != size:
             raise LookupError(f"Failed to read {size} bytes from {addr}")
         return b
