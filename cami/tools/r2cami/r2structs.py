@@ -21,7 +21,7 @@ class StructFactory():
 
     def get_struct_searcher(self, name, unnamed_index=0):
         unnamed = name in ['<unnamed-tag>', '<anonymous-tag>']
-        it = reversed(list(enumerate(self.robj.types[:unnamed_index]))) if unnamed else enumerate(self.robj.types)
+        it = reversed(list(enumerate(self.robj.types[:unnamed_index] if unnamed else self.robj.types)))
 
         for i, e in it:
             if e['type'] == 'structure' and e['name'] == name and e['size'] != 0:
@@ -60,9 +60,34 @@ class StructFactory():
     def get_struct(self, name):
         return self.get_struct_from_struct_searcher(self.get_struct_searcher(name))
 
-BasicType = namedtuple('BasicType', 'name size')
-BitfieldType = namedtuple('BitfieldType', 'bit_idx bit_cnt bit_msk')
-Field = namedtuple('Field', 'offset name type')
+class Field():
+
+    def __init__(self, offset, name, type):
+        self.offset = offset
+        self.name = name
+        self.type = type
+
+    def __repr__(self):
+        return f"Field(offset={self.offset}, name={self.name}, type={str(self.type)})"
+
+
+class BasicType():
+    
+    def __init__(self, name, size):
+        self.name = name
+        self.size = size
+
+    def __repr__(self):
+        return f"BasicType(name={self.name}, size={self.size})"
+
+class BitfieldType():
+
+    def __init__(self, bit_idx, bit_cnt):
+        self.bit_idx = bit_idx
+        self.bit_cnt = bit_cnt
+
+    def __repr__(self):
+        return f"BitfieldType(bit_idx={self.bit_idx}, bit_cnt={self.bit_cnt})"
 
 class StructType():
 
@@ -84,17 +109,13 @@ class StructType():
         off = int(field['offset'])
         bit_cnt = int(bit_cnt)
 
-        if len(self.fields) != 0 and isinstance(self.fields[0].type, BitfieldType) and self.fields[0].offset == off:
-            if self.fields[0].type.bit_idx == 0:
-                bit_idx = 0
-            else:
-                bit_idx = self.fields[0].type.bit_idx - bit_cnt
-        else:
-            bit_idx = size * 8 - bit_cnt
+        for f in self.fields:
+            if not isinstance(f.type, BitfieldType) or f.offset != off:
+                break
 
-        bit_msk = ((1 << int(bit_cnt)) - 1) << bit_idx
+            f.type.bit_idx += bit_cnt
 
-        f = Field(off, field['member_name'], BitfieldType(bit_idx, bit_cnt, bit_msk))
+        f = Field(off, field['member_name'], BitfieldType(0, bit_cnt))
         self.fields.insert(0, f)
 
     def gen_fields(self, names):

@@ -158,26 +158,26 @@ um_fields = [
     ]
 
 functions = [
-    CamiFunction('KeBugCheck2', None, None),
+    CamiFunction('KeBugCheck2', [], []),
     CamiFunction('MiInsertVad', 
         [
             CamiArguments(18363, ['DET_ARG_RCX', 'DET_ARG_RDX'])
         ],
-        None
+        []
         ),
     CamiFunction('KiDispatchException',
         [
             CamiArguments(0, ['DET_ARG_STACK1', 'DET_ARG_STACK2', 'DET_ARG_STACK3', 'DET_ARG_STACK4'])
         ],
-        None
+        []
         ),
-    CamiFunction('KiDisplayBlueScreen', None, None),
+    CamiFunction('KiDisplayBlueScreen', [], []),
     CamiFunction('MiCommitExistingVad',
         [
             CamiArguments(9600, ['DET_ARG_RCX', 'DET_ARG_RDX', 'DET_ARG_STACK1', 'DET_ARG_STACK2']),
             CamiArguments(0, ['DET_ARG_STACK1', 'DET_ARG_STACK2', 'DET_ARG_STACK3', 'DET_ARG_STACK4'])
         ],
-        None
+        []
         ),
     CamiFunction('MiDeleteVirtualAddresses',
         [
@@ -185,7 +185,7 @@ functions = [
             CamiArguments(9200, ['DET_ARG_STACK1', 'DET_ARG_RCX']),
             CamiArguments(0, ['DET_ARG_STACK1', 'DET_ARG_STACK2'])
         ],
-        None
+        []
         ),
     CamiFunction('MiFinishVadDeletion',
         [
@@ -201,22 +201,22 @@ functions = [
             CamiArguments(9200, ['DET_ARG_RAX']),
             CamiArguments(0, ['DET_ARG_RDI'])
         ],
-        None
+        []
         ),
-    CamiFunction('MiInitializeLoadedModuleList', None, None),
+    CamiFunction('MiInitializeLoadedModuleList', [], []),
     CamiFunction('MiInsertPrivateVad',
         [
             CamiArguments(9600, ['DET_ARG_RCX']),
             CamiArguments(9200, ['DET_ARG_STACK1']),
             CamiArguments(0, ['DET_ARG_RDI'])
         ],
-        None
+        []
         ),
     CamiFunction('MiInsertVad',
         [
             CamiArguments(18363, ['DET_ARG_RCX', 'DET_ARG_RDX']),
         ],
-        None
+        []
         ),
     CamiFunction('MiProcessLoaderEntry',
         [
@@ -224,14 +224,14 @@ functions = [
             CamiArguments(9200, ['DET_ARG_RSI', 'DET_ARG_STACK1']),
             CamiArguments(0, ['DET_ARG_STACK1', 'DET_ARG_STACK2'])
         ],
-        None
+        []
         ),
     CamiFunction('MiUnloadSystemImage',
         [
             CamiArguments(9600, ['DET_ARG_RCX']),
             CamiArguments(0, ['DET_ARG_STACK1'])
         ],
-        None
+        []
         ),
     CamiFunction('MmCleanProcessAddressSpace',
         [
@@ -239,7 +239,7 @@ functions = [
             CamiArguments(9200, ['DET_ARG_STACK1']),
             CamiArguments(0, ['DET_ARG_RAX'])
         ],
-        None
+        []
         ),
     CamiFunction('MmCopyVirtualMemory',
         [
@@ -257,7 +257,7 @@ functions = [
             CamiArguments(0, ['DET_ARG_RCX',  'DET_ARG_R8', 'DET_ARG_R9', 'DET_ARG_RAX'])
         ]
         ),
-    CamiFunction('NtSetSystemPowerState', None, None),
+    CamiFunction('NtSetSystemPowerState', [], []),
     CamiFunction('PspInsertProcess',
         [
             CamiArguments(9600, ['DET_ARG_RCX', 'DET_ARG_RDX', 'DET_ARG_STACK3']),
@@ -278,17 +278,17 @@ functions = [
             CamiArguments(9600, ['DET_ARG_RCX', 'DET_ARG_RDX']),
             CamiArguments(0, ['DET_ARG_STACK3', 'DET_ARG_STACK4']),
         ],
-        None
+        []
         ),
-    CamiFunction('PspWow64SetContextThread', None, None),
-    CamiFunction('RtlpVirtualUnwind1', None, None),
-    CamiFunction('RtlpVirtualUnwind2', None, None),
-    CamiFunction('RtlpVirtualUnwind3', None, None),
-    CamiFunction('RtlpVirtualUnwind4', None, None),
-    CamiFunction('RtlpVirtualUnwind5', None, None),
-    CamiFunction('RtlpVirtualUnwind6', None, None),
-    CamiFunction('RtlpVirtualUnwind7', None, None),
-    CamiFunction('RtlpVirtualUnwind8', None, None)
+    CamiFunction('PspWow64SetContextThread', [], []),
+    CamiFunction('RtlpVirtualUnwind1', [], []),
+    CamiFunction('RtlpVirtualUnwind2', [], []),
+    CamiFunction('RtlpVirtualUnwind3', [], []),
+    CamiFunction('RtlpVirtualUnwind4', [], []),
+    CamiFunction('RtlpVirtualUnwind5', [], []),
+    CamiFunction('RtlpVirtualUnwind6', [], []),
+    CamiFunction('RtlpVirtualUnwind7', [], []),
+    CamiFunction('RtlpVirtualUnwind8', [], [])
     ]
 
 syscalls = [
@@ -325,10 +325,10 @@ def get_fields_support(fields, ntkrnl, ntdll):
                     value = field.value[0] if ntkrnl.guest64 else field.value[1]
                 if field.type == 'bitfield':
                     b = struct_factory.get_struct(field.struct).get_field(field.value).type
-                    value = b.bit_msk
+                    value = ((1 << b.bit_cnt) - 1) << b.bit_idx
                 if field.type == 'bitmask':
                     b = struct_factory.get_struct(field.struct).get_field(field.value).type
-                    value = b.bit_msk >> b.bit_idx
+                    value = ((1 << b.bit_cnt) - 1)
                 if field.type == 'bitpos':
                     b = struct_factory.get_struct(field.struct).get_field(field.value).type
                     value = b.bit_idx
@@ -399,14 +399,7 @@ def get_syscall(krnl):
 
 def get_function(krnl, function):
     name = function.name
-
-    fargs = function.args64 if krnl.guest64 else function.args32
-    args = None
-    if fargs is not None:
-        for a in fargs:
-            if a.minver <= krnl.ntbuildnumber:
-                args = a
-                break
+    args = next((a for a in (function.args64 if krnl.guest64 else function.args32) if a.minver <= krnl.ntbuildnumber), None)
 
     try:
         pattern = r2functions.get_pattern_signature(krnl.robj.read_bytes(f"pdb.{name}", 128), krnl.robj.info.bin.bits)
