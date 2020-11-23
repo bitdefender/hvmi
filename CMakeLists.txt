@@ -138,7 +138,6 @@ endif()
 
 include_directories(
   ${DISASM_DIRECTORY}/inc
-  ${DISASM_DIRECTORY}/inc/bdshemu
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/introcore/agents
   ${PROJECT_SOURCE_DIR}/introcore/src/guests/linux/detours
