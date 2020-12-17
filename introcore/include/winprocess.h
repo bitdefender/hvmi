@@ -16,6 +16,7 @@
 #include "winguest.h"
 #include "update_guests.h"
 #include "windpi.h"
+#include "winsecdesc.h"
 
 struct _WIN_PROCESS_OBJECT;
 
@@ -42,7 +43,8 @@ typedef enum _WINPROC_GUEST_EXITS
     winProcExitWriteMemory  = 0x02,     ///< Exits caused by "MmCopyVirtualMemory".
     winProcExitReadMemory   = 0x04,     ///< Exits caused by "MmCopyVirtualMemory".
     winProcExitThreadCtx    = 0x08,     ///< Exits caused by "PspSetContextThreadInternal".
-    winProcExitQueueApc     = 0x10      ///< Exits caused by "NtQueueApcThreadEx".
+    winProcExitQueueApc     = 0x10,     ///< Exits caused by "NtQueueApcThreadEx".
+    winProcExitSetProcInfo  = 0x20,     ///< Exits caused by "NtSetInformationProcess".
 } WINPROC_GUEST_EXITS;
 
 
@@ -163,6 +165,8 @@ typedef struct _WIN_PROCESS_OBJECT
 
             /// @brief TRUE if any Exploit Guard mitigation option is set for this process.
             DWORD           ExploitGuardEnabled : 1;
+
+            DWORD           Outswapped : 1;             ///< TRUE if the process is outswapped.
         };
     };
 
@@ -211,7 +215,9 @@ typedef struct _WIN_PROCESS_OBJECT
             DWORD       ProtCreation: 1;
 
             DWORD       ProtDoubleAgent : 1;        ///< Protect the process against double agent attacks.
-            DWORD       ProtReserved2 : 18;         ///< RESERVED.
+            DWORD       ProtScanCmdLine : 1;        ///< Scan the cmd line of the process.
+            DWORD       ProtInstrument : 1;         ///< Protect the process agains instrumentation callback attacks.
+            DWORD       ProtReserved2 : 16;         ///< RESERVED.
             /// @brief  Any event inside the process will trigger the injection of  the remediation tool.
             DWORD       ProtRemediate : 1;
 
@@ -287,6 +293,12 @@ typedef struct _WIN_PROCESS_OBJECT
         BOOLEAN             ParentHasTokenPrivsAltered;
 
         BOOLEAN             ParentThreadSuspicious;     ///< The parent thread start address was considered suspicious.
+
+        /// @brief The parent process has an altered security descriptor pointer.
+        BOOLEAN             ParentHasAlteredSecDescPtr;
+
+        /// @brief The parent process has an altered ACL (SACL/DACL).
+        BOOLEAN             ParentHasEditedAcl;
     } CreationInfo;
 
     DPI_EXTRA_INFO          DpiExtraInfo;   ///< Represents the gathered extra info while checking the DPI heuristics.
@@ -299,19 +311,27 @@ typedef struct _WIN_PROCESS_OBJECT
     /// In that case,  we need to handle & protect  both of them.
     PWIN_PROCESS_SUBSYSTEM Subsystemx64;
 
-    void                   *TokenHook;      ///< Hook object for the ept hook over nt!_TOKEN Privileges field.
+    void                    *TokenHook;      ///< Hook object for the ept hook over nt!_TOKEN Privileges field.
+
+    /// @brief  Hook object for notifications over the swap-in/swap-out of the current process TOKEN.
+    /// We need to place this hook in order to verify on translation modifications of the current TOKEN if it
+    /// is still assigned to the current process. The token might get deallocated in the mean-time and the page
+    /// can be used, for example, for mapping other physical pages, thus leading to translation violations when
+    /// the hashes of the contents are checked. For this purpose we will verify on every translation modification event
+    /// if the current token is still used, and re-establish the hook over the token if it was previously de-allocated.
+    void                   *TokenSwapHook;
 
     /// @brief  Saved value of the Privileges Present bitfield inside the nt!_TOKEN structure assigned to the current
     /// process.
-    QWORD                  OriginalPresentPrivs;
+    QWORD                   OriginalPresentPrivs;
 
     /// @brief  Saved value of the Privileges Enabled bitfield inside the nt!_TOKEN structure assigned to the current
     /// process.
-    QWORD                  OriginalEnabledPrivs;
+    QWORD                   OriginalEnabledPrivs;
 
     /// @brief  Signals whether the next privileges check on integrity should be skipped for the current process.
     /// Is set if, for example, we could not fetch the privileges when the process was created.
-    BOOLEAN                SkipPrivsNextCheck;
+    BOOLEAN                 SkipPrivsNextCheck;
 
     /// @brief  Set to TRUE when a token privilege change has been detected.
     /// This is useful for DPI, in the case where a write has been detected over the privileges, but because of the
@@ -319,7 +339,34 @@ typedef struct _WIN_PROCESS_OBJECT
     /// DPI will not raise an alert on process creation due to the fact that the mechanism doesn't see any change.
     /// For this purpose, we'll analyze every process creation in DPI from the moment the privileges have changed
     /// and a detection took place on integrity.
-    BOOLEAN                PrivsChangeDetected;
+    BOOLEAN                 PrivsChangeDetected;
+
+    /// @brief  Set to TRUE when the difference between Enabled and Present privileges is just one bit.
+    /// As on some OS versions, when a privilege is removed for a token belonging to a process, firstly the kernel
+    /// removes the Present bit, and on the next instruction it removes the Enabled bit, it will cause a possible
+    /// race condition. If the timer exit comes just between those instructions, we will wrongfully give a detection.
+    /// For this purpose, we'll set this variable if there is just one bit difference, and we expect on the next
+    /// timer check that the difference is not present anymore. However, if there's one bit difference again on the
+    /// next exit, then it is likely due to a malicious behavior.
+    BOOLEAN                 PrivsChangeOneBit;
+
+    struct  
+    {
+        /// @brief  Security descriptor address.
+        QWORD                   SecurityDescriptorGva;
+
+        /// @brief  The entire security descriptor contents.
+        BYTE                    RawBuffer[INTRO_SECURITY_DESCRIPTOR_SIZE];
+
+        /// @brief  The used actual size of the RawBuffer.
+        DWORD                   RawBufferSize;
+
+        /// @brief  The System Access Control List header.
+        ACL                     Sacl;
+
+        /// @brief  The Discretionary Access Control List header.
+        ACL                     Dacl;
+    } SecurityDescriptor;
 
 } WIN_PROCESS_OBJECT, *PWIN_PROCESS_OBJECT;
 
@@ -395,17 +442,41 @@ IntWinProcHandleCopyMemory(
     );
 
 INTSTATUS
+IntWinProcSwapIn(
+    _In_  void *Detour
+    );
+
+INTSTATUS
+IntWinProcSwapOut(
+    _In_  void *Detour
+    );
+
+INTSTATUS
 IntWinProcPatchCopyMemoryDetour(
     _In_ QWORD FunctionAddress,
     _In_ void *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 INTSTATUS
 IntWinProcPatchPspInsertProcess86(
     _In_ QWORD FunctionAddress,
     _In_ void *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
+    );
+
+INTSTATUS
+IntWinProcPatchSwapOut64(
+    _In_ QWORD FunctionAddress,
+    _In_ void *Handler,
+    _In_ void *Descriptor
+    );
+
+INTSTATUS
+IntWinProcPatchSwapOut32(
+    _In_ QWORD FunctionAddress,
+    _In_ void *Handler,
+    _In_ void *Descriptor
     );
 
 INTSTATUS
@@ -496,6 +567,18 @@ IntWinProcUpdateProtectedProcess(
     _In_ const void *Name,
     _In_ const CAMI_STRING_ENCODING Encoding,
     _In_ const CAMI_PROT_OPTIONS *Options
+    );
+
+INTSTATUS
+IntWinProcHandleInstrument(
+    _In_ void *Detour
+    );
+
+INTSTATUS
+IntWinProcPrepareInstrument(
+    _In_ QWORD FunctionAddress,
+    _In_ void *Handler,
+    _In_ void *Descriptor
     );
 
 #endif // _WINPROCESS_H_

@@ -64,6 +64,8 @@ class EnumObjects(Enum):
     intObjDpiWinTokenPrivs = auto()
     intObjDpiWinThreadStart = auto()
     intObjDpiWinHeapSpray = auto()
+    intObjDpiWinSecDesc = auto()
+    intObjDpiWinAclEdit = auto()
 
 
 class StateObject(Enum):
@@ -127,6 +129,8 @@ description_objects = {
     EnumObjects.intObjDpiWinTokenPrivs : "Windows DPI Token Privs Object",
     EnumObjects.intObjDpiWinThreadStart : "Windows DPI Start Thread Object",
     EnumObjects.intObjDpiWinHeapSpray : "Windows DPI Heap Spray Object",
+    EnumObjects.intObjDpiWinSecDesc : "Windows DPI Security Descriptor Object",
+    EnumObjects.intObjDpiWinAclEdit : "Windows DPI Acl Edit Object",
 }
 
 
@@ -271,6 +275,8 @@ class Deserializer:
                 EnumObjects.intObjDpiWinTokenPrivs : { 1 : self._dpi_win_tokens_privs },
                 EnumObjects.intObjDpiWinThreadStart : { 1 : self._dpi_win_thread_start },
                 EnumObjects.intObjDpiWinHeapSpray : { 1 : self._dpi_win_heap_spray },
+                EnumObjects.intObjDpiWinSecDesc : { 1 : self._dpi_win_sec_desc },
+                EnumObjects.intObjDpiWinAclEdit : { 1 : self._dpi_win_acl_edit },
      }
 
     def _description(self, enum):
@@ -718,6 +724,22 @@ class Deserializer:
 
         fmt = "%dB" % 0x1000
         obj._max_heap_val_page_content = self._read_data(fmt, offset)
+        offset += struct.calcsize(fmt)
+
+        return obj
+
+    def _dpi_win_sec_desc(self):
+        offset = 0
+        fmt = "<QQQQQQQ"
+        obj = DpiWinSecDesc(*self._read_data(fmt, offset))
+        offset += struct.calcsize(fmt)
+
+        return obj
+
+    def _dpi_win_acl_edit(self):
+        offset = 0
+        fmt = "<QQQQ"
+        obj = DpiWinAclEdit(*self._read_data(fmt, offset))
         offset += struct.calcsize(fmt)
 
         return obj

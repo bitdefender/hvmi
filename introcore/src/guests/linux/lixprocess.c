@@ -14,7 +14,7 @@
 #include "lixvdso.h"
 #include "kernvm.h"
 #include "lixksym.h"
-
+#include "lixcmdline.h"
 
 #define LIX_MM_PROT_MASK                BIT(63) ///< The bit used to mark a memory space as protected.
 
@@ -449,7 +449,7 @@ IntLixGetInitTask(
             char comm[LIX_COMM_SIZE] = {0};
 
             // 1. init_task->real_parent = init_task
-            if (offset + LIX_FIELD(TaskStruct, RealParent) >= PAGE_SIZE)
+            if (offset + LIX_FIELD(TaskStruct, RealParent) + 8 > PAGE_SIZE)
             {
                 status = IntKernVirtMemFetchQword(ts + LIX_FIELD(TaskStruct, RealParent), &parent);
                 if (!INT_SUCCESS(status))
@@ -469,7 +469,7 @@ IntLixGetInitTask(
             }
 
             // 2. init_task->parent = init_task
-            if (offset + LIX_FIELD(TaskStruct, Parent) >= PAGE_SIZE)
+            if (offset + LIX_FIELD(TaskStruct, Parent) + 8 > PAGE_SIZE)
             {
                 status = IntKernVirtMemFetchQword(ts + LIX_FIELD(TaskStruct, RealParent), &parent);
                 if (!INT_SUCCESS(status))
@@ -489,7 +489,7 @@ IntLixGetInitTask(
             }
 
             // 3. init_task->mm = 0
-            if (offset + LIX_FIELD(TaskStruct, Mm) >= PAGE_SIZE)
+            if (offset + LIX_FIELD(TaskStruct, Mm) + 8 > PAGE_SIZE)
             {
                 status = IntKernVirtMemFetchQword(ts + LIX_FIELD(TaskStruct, Mm), &mm);
                 if (!INT_SUCCESS(status))
@@ -510,7 +510,7 @@ IntLixGetInitTask(
             }
 
             // 4. init_task->signal = kernel_ptr
-            if (offset + LIX_FIELD(TaskStruct, Signal) >= PAGE_SIZE)
+            if (offset + LIX_FIELD(TaskStruct, Signal) + 8 > PAGE_SIZE)
             {
                 status = IntKernVirtMemFetchQword(ts + LIX_FIELD(TaskStruct, Signal), &signal);
                 if (!INT_SUCCESS(status))
@@ -540,10 +540,12 @@ IntLixGetInitTask(
 
             // Here we don't really want to include the NULL terminator because we are only interested in matching
             // the "swapper" pattern. It may or may not transform into something like "swapper/0".
-            if (0 != memcmp(comm, "swapper", 7))
+            if (0 != memcmp(comm, "swapper", sizeof("swapper") - 1))
             {
                 continue;
             }
+
+            comm[sizeof(comm) - 1] = 0;
 
             TRACE("[LIXTASK] Found init_task @ 0x%016llx with name %s\n", ts, comm);
 
@@ -1548,7 +1550,7 @@ IntLixTaskFetchCmdLine(
 {
     INTSTATUS status;
     QWORD vmaStart, vmaEnd, iter, file;
-    DWORD argc, curLength;
+    DWORD argc, curLength, allocationSize;
     BYTE *pMapping = NULL;
 
     status = IntVirtMemMap(BinprmGva, LIX_FIELD(Binprm, Sizeof), gGuest.Mm.SystemCr3, 0, &pMapping);
@@ -1579,6 +1581,12 @@ IntLixTaskFetchCmdLine(
 
     IntVirtMemUnmap(&pMapping);
 
+    if ((vmaStart | vmaEnd) & PAGE_OFFSET)
+    {
+        ERROR("[ERROR] VMA limits are not PAGE_SIZE aligned: start=0x%llx end = 0x%llx", vmaStart, vmaEnd);
+        return INT_STATUS_INVALID_DATA_STATE;
+    }
+
     if (vmaStart >= vmaEnd)
     {
         ERROR("[ERROR] Start of vma_struct %llx is bigger or equal that the end %llx!\n", vmaStart, vmaEnd);
@@ -1603,7 +1611,10 @@ IntLixTaskFetchCmdLine(
         return INT_STATUS_NOT_FOUND;
     }
 
-    Process->CmdLine = HpAllocWithTag(vmaEnd - iter, IC_TAG_PCMD);
+    // vmaEnd - vmaStart is always <= 1GB
+    allocationSize = (DWORD)(vmaEnd - iter);
+
+    Process->CmdLine = HpAllocWithTag(allocationSize, IC_TAG_PCMD);
     if (NULL == Process->CmdLine)
     {
         IntVirtMemUnmap(&pMapping);
@@ -1661,8 +1672,14 @@ IntLixTaskFetchCmdLine(
         }
     }
 
+    // Avoid the off-by-one if the commandline page is corrupted.
+    if (curLength >= allocationSize)
+    {
+        curLength = allocationSize - 1;
+    }
+
     Process->CmdLine[curLength] = 0;
-    Process->CmdLineLength = curLength + 1;
+    Process->CmdLineLength = curLength;
 
     return INT_STATUS_SUCCESS;
 }
@@ -3061,6 +3078,23 @@ _action_not_allowed:
         IntLixTaskDeactivateProtection(pTask);
 
         pTask->Protected = FALSE;
+    }
+
+    if (pTask->Protection.Mask & PROC_OPT_PROT_SCAN_CMD_LINE)
+    {
+        status = IntLixTaskFetchCmdLine(pTask, binprm);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntLixTaskFetchCmdLine failed with status: 0%08x\n", status);
+        }
+        else
+        {
+            status = IntLixCmdLineInspect(pTask);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntLixCmdLineInspect failed with status: 0%08x\n", status);
+            }
+        }
     }
 
     if (IntLixTaskMustLog(pTask, pTask->Protected != 0))
@@ -4511,13 +4545,18 @@ IntLixTaskGetAgentsAsCli(
         }
 
         len = snprintf(cmd, Length, "%s %d ", pTask->Path ? pTask->Path->Name : pTask->Comm, pTask->Pid);
-        Length -= len;
-        cmd += len;
+        if (len < 0)
+        {
+            return INT_STATUS_INVALID_DATA_VALUE;
+        }
 
-        if ((int)Length < 0)
+        if ((DWORD)len >= Length)
         {
             return INT_STATUS_DATA_BUFFER_TOO_SMALL;
         }
+
+        Length -= len;
+        cmd += len;
     }
 
     return INT_STATUS_SUCCESS;
@@ -4630,7 +4669,7 @@ IntLixTaskDumpTree(
         char newComm[LIX_COMM_SIZE] = {0};
 
         status = IntKernVirtMemRead(Task->Gva + LIX_FIELD(TaskStruct, Comm),
-                                    sizeof(newComm),
+                                    sizeof(newComm) - 1,
                                     newComm,
                                     NULL);
         if (!INT_SUCCESS(status))

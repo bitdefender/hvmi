@@ -26,6 +26,8 @@ IntNetAddrToStr(
 ///
 {
     DWORD written = 0;
+    int ret;
+    int rem = INTRONET_MIN_BUFFER_SIZE;
 
     if (NULL == Address || NULL == String)
     {
@@ -34,8 +36,16 @@ IntNetAddrToStr(
 
     if (introNetAfIpv4 == Family)
     {
-        written = snprintf(String, INTRONET_MIN_BUFFER_SIZE, "%d.%d.%d.%d",
-                           Address->Ipv4[0], Address->Ipv4[1], Address->Ipv4[2], Address->Ipv4[3]);
+        ret = snprintf(String, rem, "%d.%d.%d.%d",
+                       Address->Ipv4[0], Address->Ipv4[1], Address->Ipv4[2], Address->Ipv4[3]);
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            return 0;
+        }
+
+        written += ret;
+        rem -= ret;
     }
     else if (introNetAfIpv6 == Family)
     {
@@ -43,7 +53,15 @@ IntNetAddrToStr(
         BOOLEAN first = TRUE;
         WORD toPrint = 0;
 
-        written = snprintf(String, INTRONET_MIN_BUFFER_SIZE, "[");
+        ret = snprintf(String, rem, "[");
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            return ret;
+        }
+
+        written += ret;
+        rem -= ret;
 
         // Iterate up to 14 since we don't want to print the last two BYTEs inside this loop.
         for (DWORD i = 0; i < 14; i += 2)
@@ -52,13 +70,29 @@ IntNetAddrToStr(
 
             if (0 != toPrint)
             {
-                format = first ? "%04x:" : ":%04x";
+                format = first ? "%04x" : ":%04x";
 
-                written += snprintf(String + written, INTRONET_MIN_BUFFER_SIZE - written, format, toPrint);
+                ret = snprintf(String + written, rem, format, toPrint);
+                if (ret < 0 || ret >= rem)
+                {
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                    return 0;
+                }
+
+                written += ret;
+                rem -= ret;
             }
             else if (first)
             {
-                written += snprintf(String + written, INTRONET_MIN_BUFFER_SIZE - written, ":");
+                ret = snprintf(String + written, rem, ":");
+                if (ret < 0 || ret >= rem)
+                {
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                    return 0;
+                }
+
+                written += ret;
+                rem -= ret;
             }
 
             first = FALSE;
@@ -67,7 +101,15 @@ IntNetAddrToStr(
         format = ":%x]";
         toPrint = Address->Ipv6[14] << 8 | Address->Ipv6[15];
 
-        written += snprintf(String + written, INTRONET_MIN_BUFFER_SIZE - written, format, toPrint);
+        ret = snprintf(String + written, rem, format, toPrint);
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            return 0;
+        }
+
+        written += ret;
+        rem -= ret;
     }
 
     return written;

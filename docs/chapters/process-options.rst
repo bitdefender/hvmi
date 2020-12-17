@@ -76,6 +76,11 @@ Injection protection
     - | Prevents module loads before **kernel32.dll**, in processes that load **kernel32.dll** (e.g. the processes from subsystem native will not load **kernel32.dll** at all).
       | It is used for **double agent** detection and prevention.
 
+  * - **PROC_OPT_PROT_INSTRUMENT**
+    - **yes**
+    - **no**
+    - Injection_
+    - Enable injection protection inside the target process, using the instrumentation callback **NtSetInformationProcess** technique (Windows).
 Exploit protection
 ------------------
 

@@ -170,11 +170,11 @@ IntPeValidateHeader(
     WORD subsystem = 0, machine = 0;
     DWORD timeDateStamp = 0, sizeOfImage = 0;
     DWORD entryPoint = 0, numberOfSections = 0;
-    DWORD actualSectionSize = 0, secOff = 0;
+    DWORD actualSectionSize = 0;
     DWORD sectionAlign = 0, fileAlign = 0;
     QWORD imageBase = 0;
     OPTIONAL_HEADER_INFO opthdrInfo = { 0 };
-    QWORD e_lfanew;
+    QWORD e_lfanew, secOff = 0;
 
     if ((ImageBase & PAGE_OFFSET) != 0)
     {
@@ -219,7 +219,7 @@ IntPeValidateHeader(
         goto leave;
     }
 
-    e_lfanew = (QWORD)pDosHeader->e_lfanew;
+    e_lfanew = (DWORD)pDosHeader->e_lfanew;
     if (e_lfanew >= size)
     {
         status = INT_STATUS_INVALID_OBJECT_TYPE;
@@ -245,7 +245,7 @@ IntPeValidateHeader(
         }
 
         // Safe cast, we know that e_lfanew is a valid RVA
-        secOff = (DWORD)e_lfanew + 4 + sizeof(IMAGE_FILE_HEADER) + pNth64->FileHeader.SizeOfOptionalHeader;
+        secOff = e_lfanew + 4 + sizeof(IMAGE_FILE_HEADER) + pNth64->FileHeader.SizeOfOptionalHeader;
         timeDateStamp = pNth64->FileHeader.TimeDateStamp;
         numberOfSections = pNth64->FileHeader.NumberOfSections;
         machine = pNth64->FileHeader.Machine;
@@ -273,7 +273,7 @@ IntPeValidateHeader(
         }
 
         // Safe cast, we know that e_lfanew is a valid RVA
-        secOff = (DWORD)e_lfanew + 4 + sizeof(IMAGE_FILE_HEADER) + pNth32->FileHeader.SizeOfOptionalHeader;
+        secOff = e_lfanew + 4 + sizeof(IMAGE_FILE_HEADER) + pNth32->FileHeader.SizeOfOptionalHeader;
         timeDateStamp = pNth32->FileHeader.TimeDateStamp;
         numberOfSections = pNth32->FileHeader.NumberOfSections;
         machine = pNth32->FileHeader.Machine;
@@ -330,8 +330,8 @@ IntPeValidateHeader(
 
     if (secOff + sizeof(IMAGE_SECTION_HEADER) * numberOfSections > size)
     {
-        ERROR("[ERROR] Sections headers point out of the mapping. SectionOffset: 0x%08x; NrOfSections: %d; "
-              "MaxSize: 0x%08lx; MappingSize: 0x%08x. Image base: 0x%016llx\n",
+        ERROR("[ERROR] Sections headers point out of the mapping. SectionOffset: 0x%08llx; NrOfSections: %d; "
+              "MaxSize: 0x%08llx; MappingSize: 0x%08x. Image base: 0x%016llx\n",
               secOff, numberOfSections, secOff + sizeof(IMAGE_SECTION_HEADER) * numberOfSections, size, ImageBase);
         status = INT_STATUS_INVALID_OBJECT_TYPE;
         goto leave;
@@ -590,7 +590,7 @@ IntPeGetDirectory(
 
     if (peInfo.Image64Bit)
     {
-        QWORD e_lfanew = pDosHeader->e_lfanew;
+        QWORD e_lfanew = (DWORD)pDosHeader->e_lfanew;
 
         if (e_lfanew + sizeof(IMAGE_NT_HEADERS64) <= PAGE_SIZE)
         {
@@ -613,7 +613,7 @@ IntPeGetDirectory(
     }
     else
     {
-        QWORD e_lfanew = pDosHeader->e_lfanew;
+        QWORD e_lfanew = (DWORD)pDosHeader->e_lfanew;
 
         if (e_lfanew + sizeof(IMAGE_NT_HEADERS32) <= PAGE_SIZE)
         {
@@ -2512,6 +2512,8 @@ IntPeParseUnwindData(
         i = 0; // Sometimes we need to skip the next codes (they're passed as info to this code)
         while (i < countOfCodes)
         {
+            BYTE unwindOp = pUnwindInfoMap->UnwindCode[i].UnwindOp;
+
             // We check for version (1 on Win7, 2 on Win8) in case we somehow don't skip enough codes
             if (pUnwindInfoMap->Version != 1 && pUnwindInfoMap->Version != 2)
             {
@@ -2532,7 +2534,7 @@ IntPeParseUnwindData(
             }
 
             // see http://msdn.microsoft.com/en-US/library/ck9asaa9%28v=vs.80%29.aspx for details
-            switch (pUnwindInfoMap->UnwindCode[i].UnwindOp)
+            switch (unwindOp)
             {
             case 0: // UWOP_PUSH_NONVOL (1)
                 if (saveExtraSpace)
@@ -2647,13 +2649,13 @@ _get_chained_info:
         hasChainedUnwind = (pUnwindInfoMap->Flags == UNW_FLAG_CHAININFO);
 
         unwindInfoAddress =
-            ALIGN_DOWN(ImageBase + * (DWORD *)((PBYTE)pUnwindInfoMap + (pUnwindInfoMap->CountOfCodes * 2ull) + 12),
+            ALIGN_DOWN(ImageBase + * (DWORD *)((PBYTE)pUnwindInfoMap + (countOfCodes * 2ull) + 12),
                        sizeof(DWORD));
 
         // Get the actual function start if we have a chain
         if (hasChainedUnwind && BeginAddress != NULL)
         {
-            *BeginAddress = *(DWORD *)((PBYTE)pUnwindInfoMap + (pUnwindInfoMap->CountOfCodes * 2ull) + 4);
+            *BeginAddress = *(DWORD *)((PBYTE)pUnwindInfoMap + (countOfCodes * 2ull) + 4);
         }
     } while (hasChainedUnwind);
 
@@ -2796,6 +2798,8 @@ IntPeParseUnwindDataInBuffer(
 
     do
     {
+        DWORD countOfCodes;
+
         // Although we checked before with unwindInfoSize, better safe than sorry.
         if ((QWORD)unwindInfoRva + sizeof(*pUnwindInfo) > BufferSize)
         {
@@ -2811,11 +2815,13 @@ IntPeParseUnwindDataInBuffer(
 
         pUnwindInfo = (INTRO_UNWIND_INFO *)(Buffer + unwindInfoRva);
 
+        countOfCodes = pUnwindInfo->CountOfCodes;
+
         // Make sure we mapped enough
-        if (pUnwindInfo->CountOfCodes > MAX_UNWIND_CODES)
+        if (countOfCodes > MAX_UNWIND_CODES)
         {
             WARNING("[WARNING] Function with %d codes at RVA %08x in driver 0x%016llx with unwind info 0x%04x\n",
-                    pUnwindInfo->CountOfCodes, RuntimeFunction->BeginAddress, ImageBase, unwindInfoRva);
+                    countOfCodes, RuntimeFunction->BeginAddress, ImageBase, unwindInfoRva);
             return INT_STATUS_NOT_SUPPORTED;
         }
 
@@ -2827,9 +2833,10 @@ IntPeParseUnwindDataInBuffer(
         // If the FrameRegister is not NULL then another register is used as a stack frame with a FrameOffset
         // But this doesn't change anything for what we want to do since the return address is still on RSP.
         i = 0; // Sometimes we need to skip the next codes (they're passed as info to this code)
-        while (i < pUnwindInfo->CountOfCodes)
+        while (i < countOfCodes)
         {
             BOOLEAN saveExtraSpace;
+            BYTE unwindOp = pUnwindInfo->UnwindCode[i].UnwindOp;
 
             // We check for version (1 on Win7, 2 on Win8) in case we somehow don't skip enough codes
             if (pUnwindInfo->Version != 1 && pUnwindInfo->Version != 2)
@@ -2851,7 +2858,7 @@ IntPeParseUnwindDataInBuffer(
             }
 
             // see http://msdn.microsoft.com/en-US/library/ck9asaa9%28v=vs.80%29.aspx for details
-            switch (pUnwindInfo->UnwindCode[i].UnwindOp)
+            switch (unwindOp)
             {
             case 0: // UWOP_PUSH_NONVOL (1)
                 if (saveExtraSpace)
@@ -2966,7 +2973,7 @@ _get_chained_info:
         hasChainedUnwind = (pUnwindInfo->Flags == UNW_FLAG_CHAININFO);
 
         unwindInfoRva =
-            ALIGN_DOWN(*(DWORD *)((BYTE *)pUnwindInfo + (pUnwindInfo->CountOfCodes * 2ull) + 12), sizeof(DWORD));
+            ALIGN_DOWN(*(DWORD *)((BYTE *)pUnwindInfo + (countOfCodes * 2ull) + 12), sizeof(DWORD));
 
         // We want to verify only if it has chained unwind, as the next RVA will most probably be invalid and we
         // shouldn't bother as we don't get anything from the buffer anymore.
@@ -2979,7 +2986,7 @@ _get_chained_info:
         // Get the actual function start if we have a chain
         if (hasChainedUnwind && BeginAddress != NULL)
         {
-            *BeginAddress = *(DWORD *)((BYTE *)pUnwindInfo + (pUnwindInfo->CountOfCodes * 2ull) + 4);
+            *BeginAddress = *(DWORD *)((BYTE *)pUnwindInfo + (countOfCodes * 2ull) + 4);
         }
     } while (hasChainedUnwind);
 

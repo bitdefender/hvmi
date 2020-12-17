@@ -571,6 +571,7 @@ IntWinObjHandleDriverDirectoryEntryInMemory(
     DWORD sizeToRead;
     INTSTATUS status;
     PWINOBJ_SWAPCTX pSwapCtx = Context;
+    SIZE_T iterationCount = 0;
 
     UNREFERENCED_PARAMETER(Cr3);
     UNREFERENCED_PARAMETER(Gva);
@@ -609,41 +610,93 @@ IntWinObjHandleDriverDirectoryEntryInMemory(
         }
     }
 
-    // It should be 0 for the last entry in the linked list, but let's try to not inject a #PF on some random numbers
-    if (IS_KERNEL_POINTER_WIN(gGuest.Guest64, next))
+    while (IS_KERNEL_POINTER_WIN(gGuest.Guest64, next))
     {
-        WINOBJ_SWAPCTX *pNextCtx;
-        void *swapHandle = NULL;
-
-        pNextCtx = HpAllocWithTag(sizeof(*pNextCtx), IC_TAG_WINOBJ_SWAP);
-        if (NULL == pNextCtx)
+        union
         {
-            return INT_STATUS_INSUFFICIENT_RESOURCES;
+            OBJECT_DIRECTORY_ENTRY64    as64;
+            OBJECT_DIRECTORY_ENTRY32    as32;
+        } entry = { 0 };
+
+        iterationCount++;
+
+        status = IntVirtMemRead(next, sizeToRead, 0, &entry, NULL);
+        if (status == INT_STATUS_PAGE_NOT_PRESENT || status == INT_STATUS_NO_MAPPING_STRUCTURES)
+        {
+            // The page is not present, fallback to swap mem read.
+            WINOBJ_SWAPCTX *pNextCtx;
+            void *swapHandle = NULL;
+
+            pNextCtx = HpAllocWithTag(sizeof(*pNextCtx), IC_TAG_WINOBJ_SWAP);
+            if (NULL == pNextCtx)
+            {
+                return INT_STATUS_INSUFFICIENT_RESOURCES;
+            }
+
+            pNextCtx->Id = __LINE__;
+            pNextCtx->ObjectGva = next;
+            InsertTailList(&gSwapHandles, &pNextCtx->Link);
+
+            status = IntSwapMemReadData(0,
+                                        next,
+                                        sizeToRead,
+                                        SWAPMEM_OPT_BP_FAULT,
+                                        pNextCtx,
+                                        0,
+                                        IntWinObjHandleDriverDirectoryEntryInMemory,
+                                        NULL,
+                                        &swapHandle);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntSwapMemReadData failed: 0x%08x\n", status);
+                RemoveEntryList(&pNextCtx->Link);
+                HpFreeAndNullWithTag(&pNextCtx, IC_TAG_WINOBJ_SWAP);
+            }
+            else if (NULL != swapHandle)
+            {
+                gPendingDrivers++;
+                pNextCtx->SwapHandle = swapHandle;
+            }
+
+            break;
+        }
+        else if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntVirtMemRead failed: 0x%08x\n", status);
+            break;
         }
 
-        pNextCtx->Id = __LINE__;
-        pNextCtx->ObjectGva = next;
-        InsertTailList(&gSwapHandles, &pNextCtx->Link);
-
-        status = IntSwapMemReadData(0,
-                                    next,
-                                    sizeToRead,
-                                    SWAPMEM_OPT_BP_FAULT,
-                                    pNextCtx,
-                                    0,
-                                    IntWinObjHandleDriverDirectoryEntryInMemory,
-                                    NULL,
-                                    &swapHandle);
-        if (!INT_SUCCESS(status))
+        // If we get here, the page is present.
+        if (gGuest.Guest64)
         {
-            ERROR("[ERROR] IntSwapMemReadData failoed: 0x%08x\n", status);
-            RemoveEntryList(&pNextCtx->Link);
-            HpFreeAndNullWithTag(&pNextCtx, IC_TAG_WINOBJ_SWAP);
+            next = entry.as64.Chain;
+            drvObjGva = entry.as64.Object;
         }
-        else if (NULL != swapHandle)
+        else
         {
-            gPendingDrivers++;
-            pNextCtx->SwapHandle = swapHandle;
+            next = entry.as32.Chain;
+            drvObjGva = entry.as32.Object;
+        }
+
+        if (IntWinDrvObjIsValidDriverObject(drvObjGva))
+        {
+            PWIN_DRIVER_OBJECT pDrvObj = NULL;
+
+            status = IntWinDrvObjCreateFromAddress(drvObjGva, TRUE, &pDrvObj);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntWinDrvObjCreateDriverObject failed for 0x%016llx: 0x%08x\n", drvObjGva, status);
+            }
+            else
+            {
+                gFoundDrivers++;
+            }
+        }
+
+        if (iterationCount >= 1024)
+        {
+            CRITICAL("[WARNING] Maximum iteration count reached. Will stop the list iteration at 0x%016llx\n", next);
+            break;
         }
     }
 
@@ -1460,8 +1513,7 @@ IntWinObjIsTypeObject(
 ///     - the TypeList.Flink must be a valid kernel pointer
 ///     - the pool tag of the allocation must be WIN_POOL_TAG_OBJECT_7 for Windows 7 and
 ///     WIN_POOL_TAG_OBJECT for newer version
-///     - the allocation must be from non paged pool (the PoolType field of the _POOL_HEADER
-///     structure must have the #NonPagedPool bit set)
+///     - the allocation must be from the non paged pool with the type #NonPagedPoolMustSucceed
 ///     - the PoolType field of the _POOL_HEADER can not be #DontUseThisType
 ///     - the PoolType field of the _POOL_HEADER can not be #DontUseThisTypeSession
 ///
@@ -1558,10 +1610,32 @@ IntWinObjIsTypeObject(
 
     poolType = gGuest.Guest64 ? poolHeader.Header64.PoolType : poolHeader.Header32.PoolType;
 
-    // An _OBJECT_TYPE is always in the paged pool and it never uses a "DontUseThisType" pool allocation
-    if (0 != (BIT(NonPagedPool) & poolType) &&
-        DontUseThisType != poolType &&
-        DontUseThisTypeSession != poolType)
+    {
+        BOOLEAN oldMatch = FALSE;
+        BOOLEAN newMatch = FALSE;
+
+        if (0 != (BIT(NonPagedPool) & poolType) &&
+            DontUseThisType != poolType &&
+            DontUseThisTypeSession != poolType)
+        {
+            oldMatch = TRUE;
+        }
+
+        // An _OBJECT_TYPE is allocated with the NonPagedPoolMustSucceed pool type.
+        if (poolType != NonPagedPoolMustSucceed)
+        {
+            newMatch = FALSE;
+        }
+
+        if (oldMatch != newMatch)
+        {
+            CRITICAL("[CRITICAL] [ERROR] old (%u) != new (%u) pool type = 0x%08x GLA = 0x%016llx\n",
+                     oldMatch, newMatch, poolType, Gva);
+        }
+    }
+
+    // An _OBJECT_TYPE is allocated with the NonPagedPoolMustSucceed pool type.
+    if (poolType != NonPagedPoolMustSucceed)
     {
         return INT_STATUS_NOT_FOUND;
     }

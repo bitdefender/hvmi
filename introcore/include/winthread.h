@@ -63,14 +63,14 @@ INTSTATUS
 IntWinThrPrepareApcHandler(
     _In_ QWORD FunctionAddress,
     _Inout_ void *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 INTSTATUS
 IntWinThrPatchThreadHijackHandler(
     _In_ QWORD FunctionAddress,
     _Inout_ void *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 #endif // _WINTHREAD_H_

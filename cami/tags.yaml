@@ -73,6 +73,7 @@ lix_fields:
             - NameOffset
             - DinameOffset
             - InodeOffset
+            - HashListOffset
 
     -
       Name: MmStruct
@@ -241,6 +242,7 @@ win_km_fields:
         - ClientSecurity
         - TrapFrame
         - Win32StartAddress
+        - PreviousMode
 
     -
       Name: DrvObj
@@ -256,6 +258,8 @@ win_km_fields:
       Members:
         - CurrentThread
         - UserTime
+        - Prcb
+        - PrcbInterruptObject
 
     -
       Name: PoolDescriptor
@@ -294,6 +298,11 @@ win_km_fields:
         - EtwDbgDataSiloOffset
         - EtwSignatureOffset
         - SubsectionCtlArea
+        - HalPerfCntFunctionOffset
+        - RspOffsetOnZwCall
+        - HalIntCtrlTypeMaxOffset
+        - HalIntCtrlTypeMinOffset
+        - SharedUserDataSize
 
     -
       Name: EprocessFlags
@@ -304,6 +313,7 @@ win_km_fields:
         - 3Crashed
         - VmDeleted
         - HasAddrSpace
+        - OutSwapped
 
     -
       Name: VadShort

@@ -26,7 +26,7 @@ IntDumpArchRegs(
 TIMER_FRIENDLY
 __nonnull() void
 IntDumpBuffer(
-    _In_reads_bytes_(Length) void *Buffer,
+    _In_reads_bytes_(Length) const void *Buffer,
     _In_opt_ QWORD Gva,
     _In_ DWORD Length,
     _In_opt_ DWORD RowLength,

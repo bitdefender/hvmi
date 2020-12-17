@@ -1,0 +1,22 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        {
+            "flags": "integrity",
+            "victim": "ProductTypeIsValid",
+            "object_type": "sud-modification",
+            "signatures": [
+                "sig-producttypeisvalid"
+            ]
+        },
+        
+        {
+            "flags": "integrity",
+            "victim": "MitigationPolicies",
+            "object_type": "sud-modification",
+            "signatures": [
+                "sig-mitigationpolicies"
+            ]
+        }
+    ]
+}

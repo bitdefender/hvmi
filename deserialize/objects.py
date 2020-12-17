@@ -50,6 +50,8 @@ class IntroObjectTypeEnum(IntEnum):
     ProcessCreationDpi = auto()
     TokenPrivs = auto()
     SharedUserData = auto()
+    SecDesc = auto()
+    AclEdit = auto()
     Test = auto()
     Unknown = auto()
 
@@ -106,6 +108,8 @@ description_intro_type = {
     IntroObjectTypeEnum.ProcessCreationDpi : "ProcessCreationDpi",
     IntroObjectTypeEnum.TokenPrivs : "Token Privs",
     IntroObjectTypeEnum.SharedUserData : "Shared User Data",
+    IntroObjectTypeEnum.SecDesc : "Security Descriptor",
+    IntroObjectTypeEnum.AclEdit : "Acl Edit",
     IntroObjectTypeEnum.Unknown : "Unknown",
     }
 
@@ -686,6 +690,70 @@ class DpiWinPivotedStack:
             str += f"\t ES = {es:08x}\n"
             str += f"\t FS = {fs:08x}\n"
             str += f"\t GS = {gs:08x}\n"
+
+        return str
+
+class DpiWinSecDesc:
+    def __init__(self, stolen_from, old_ptr, new_ptr, old_sacl, old_dacl, new_sacl, new_dacl):
+        self._stolen_from = stolen_from
+        self._old_ptr = old_ptr
+        self._new_ptr = new_ptr
+        self._old_sacl = struct.unpack('bbhhh', old_sacl.to_bytes(8, byteorder='little'))
+        self._old_dacl = struct.unpack('bbhhh', old_dacl.to_bytes(8, byteorder='little'))
+        self._new_sacl = struct.unpack('bbhhh', new_sacl.to_bytes(8, byteorder='little'))
+        self._new_dacl = struct.unpack('bbhhh', new_dacl.to_bytes(8, byteorder='little'))
+
+        self._object_type = None
+
+    def __repr__(self):
+        str = f"\t Stolen from EPROCESS: 0x{self._stolen_from:016x}\n"
+
+        str += f"\t Old pointer value: 0x{self._old_ptr:016x}\n"
+        str += f"\t New pointer value: 0x{self._new_ptr:016x}\n"
+
+        str += f"\t Old SACL AclRevison:0x{self._old_sacl[0]:02x}"
+        str += f" AclSize:0x{(self._old_sacl[2]):04x}"
+        str += f" AceCount:0x{(self._old_sacl[3]):04x}\n"
+
+        str += f"\t New SACL AclRevison:0x{self._new_sacl[0]:02x}"
+        str += f" AclSize:0x{(self._new_sacl[2]):04x}"
+        str += f" AceCount:0x{(self._new_sacl[3]):04x}\n"
+
+        str += f"\t Old DACL AclRevison:0x{self._old_dacl[0]:02x}"
+        str += f" AclSize:0x{(self._old_dacl[2]):04x}"
+        str += f" AceCount:0x{(self._old_dacl[3]):04x}\n"
+
+        str += f"\t New DACL AclRevison:0x{self._new_dacl[0]:02x}"
+        str += f" AclSize:0x{(self._new_dacl[2]):04x}"
+        str += f" AceCount:0x{(self._new_dacl[3]):04x}\n"
+
+        return str
+
+class DpiWinAclEdit:
+    def __init__(self, old_sacl, old_dacl, new_sacl, new_dacl):
+        self._old_sacl = struct.unpack('bbhhh', old_sacl.to_bytes(8, byteorder='little'))
+        self._old_dacl = struct.unpack('bbhhh', old_dacl.to_bytes(8, byteorder='little'))
+        self._new_sacl = struct.unpack('bbhhh', new_sacl.to_bytes(8, byteorder='little'))
+        self._new_dacl = struct.unpack('bbhhh', new_dacl.to_bytes(8, byteorder='little'))
+
+        self._object_type = None
+
+    def __repr__(self):
+        str = f"\t Old SACL AclRevison:0x{self._old_sacl[0]:02x}"
+        str += f" AclSize:0x{(self._old_sacl[2]):04x}"
+        str += f" AceCount:0x{(self._old_sacl[3]):04x}\n"
+
+        str += f"\t New SACL AclRevison:0x{self._new_sacl[0]:02x}"
+        str += f" AclSize:0x{(self._new_sacl[2]):04x}"
+        str += f" AceCount:0x{(self._new_sacl[3]):04x}\n"
+
+        str += f"\t Old DACL AclRevison:0x{self._old_dacl[0]:02x}"
+        str += f" AclSize:0x{(self._old_dacl[2]):04x}"
+        str += f" AceCount:0x{(self._old_dacl[3]):04x}\n"
+
+        str += f"\t New DACL AclRevison:0x{self._new_dacl[0]:02x}"
+        str += f" AclSize:0x{(self._new_dacl[2]):04x}"
+        str += f" AceCount:0x{(self._new_dacl[3]):04x}\n"
 
         return str
 

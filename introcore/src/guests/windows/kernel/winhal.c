@@ -8,6 +8,7 @@
 #include "decoder.h"
 #include "hook.h"
 #include "winpe.h"
+#include "swapmem.h"
 
 #define HAL_HEAP_PROT_PAGES_EXEC    0x20    ///< The number of HAL heap pages to protect against executions
 
@@ -322,13 +323,7 @@ no_vmcall:
 
         pEptViol->Header.Flags = IntAlertCoreGetFlags(INTRO_OPT_PROT_KM_HAL_HEAP_EXEC, reason);
 
-        pEptViol->Violation = INTRO_EPT_EXECUTE;
-        pEptViol->HookStartPhysical = Hook->GpaPage;
-        pEptViol->HookStartVirtual = gva & PAGE_MASK;
-        pEptViol->VirtualPage = gva & PAGE_MASK;
-        pEptViol->Offset = Address & PAGE_OFFSET;
-        pEptViol->Victim.Type = introObjectTypeHalHeap;
-        pEptViol->ZoneTypes = ZONE_EXECUTE;
+        IntAlertEptFillFromVictimZone(&victim, pEptViol);
 
         IntAlertFillCpuContext(TRUE, &pEptViol->Header.CpuContext);
 
@@ -500,8 +495,8 @@ IntWinHalHandleDispatchTableWrite(
                 // specifying it in the reason while the BETA flag is specified in the alert.
                 reason = introReasonAllowed;
 
-                // we let the modifications happen if BETA alerts are enabled and we don't want to SPAM the same
-                // alert every time
+                // We let the modifications happen if BETA alerts are enabled and we don't want to SPAM the same
+                // alert every time.
                 status = IntIntegrityRecalculate(IntegrityRegion);
                 if (!INT_SUCCESS(status))
                 {
@@ -555,6 +550,167 @@ _cleanup_and_exit:
     }
 
     return status;
+}
+
+
+static void
+IntWinHalSendPerfCntIntegrityAlert(
+    _In_ EXCEPTION_VICTIM_ZONE *Victim,
+    _In_ EXCEPTION_KM_ORIGINATOR *Originator,
+    _In_ INTRO_ACTION Action,
+    _In_ INTRO_ACTION_REASON Reason
+    )
+///
+/// @brief Sends an #introEventIntegrityViolation for detections of writes over HalPerformanceCounter.
+///
+/// @param[in]  Victim      Victim information.
+/// @param[in]  Originator  Originator information.
+/// @param[in]  Action      The action taken.
+/// @param[in]  Reason      The reason for which Action was taken.
+///
+{
+    INTSTATUS status;
+    PEVENT_INTEGRITY_VIOLATION pIntViol;
+
+    pIntViol = &gAlert.Integrity;
+    memzero(pIntViol, sizeof(*pIntViol));
+
+    pIntViol->BaseAddress = Victim->Integrity.StartVirtualAddress;
+    pIntViol->VirtualAddress = Victim->Integrity.StartVirtualAddress + Victim->Integrity.Offset;
+    pIntViol->Victim.Type = Victim->Object.Type;
+    pIntViol->Size = Victim->Integrity.TotalLength;
+
+    pIntViol->Header.Flags |= IntAlertCoreGetFlags(INTRO_OPT_PROT_KM_HAL_PERF_CNT, Reason);
+
+    // Force de-activation of ALERT_FLAG_NOT_RING0. We're always in ring0.
+    pIntViol->Header.Flags &= ~ALERT_FLAG_NOT_RING0;
+
+    if (gGuest.KernelBetaDetections)
+    {
+        pIntViol->Header.Flags |= ALERT_FLAG_BETA;
+    }
+
+    pIntViol->Header.Flags |= ALERT_FLAG_ASYNC;
+
+    pIntViol->Header.Action = Action;
+    pIntViol->Header.Reason = Reason;
+    pIntViol->Header.MitreID = idRootkit;
+
+    memcpy(pIntViol->Victim.Name, VICTIM_HAL_PERFORMANCE_COUNTER, sizeof(VICTIM_HAL_PERFORMANCE_COUNTER));
+
+    IntAlertFillWriteInfo(Victim, &pIntViol->WriteInfo);
+
+    IntAlertFillWinKmModule(Originator->Original.Driver, &pIntViol->Originator.Module);
+
+    IntAlertFillCpuContext(FALSE, &pIntViol->Header.CpuContext);
+
+    // We can't know from what CPU the write was, but we know where the integrity check failed
+    pIntViol->Header.CpuContext.Valid = FALSE;
+
+    IntAlertFillWinProcessByCr3(pIntViol->Header.CpuContext.Cr3, &pIntViol->Header.CurrentProcess);
+
+    IntAlertFillVersionInfo(&pIntViol->Header);
+
+    status = IntNotifyIntroEvent(introEventIntegrityViolation, pIntViol, sizeof(*pIntViol));
+    if (!INT_SUCCESS(status))
+    {
+        WARNING("[WARNING] IntNotifyIntroEvent failed: 0x%08x\n", status);
+    }
+}
+
+
+static INTSTATUS
+IntWinHalHandlePerfCounterModification(
+    _Inout_ INTEGRITY_REGION *IntegrityRegion
+    )
+///
+/// @brief Integrity callback for detections of modifications over HalPerformanceCounter.
+///
+/// When a modification is detected over HalPerformanceCounter protected area (more specifically, over the
+/// protected function which gets called on KeQueryPerformanceCounter) on the timer check, this function will 
+/// get called. In this function, all the detection logic is made for the HalPerformanceCounter protection,
+/// as well as the decision whether this modification is legitimate or not. If the modification is deemed as not
+/// legitimate and the policy implies blocking of such attempts, the old value will be overwritten over the
+/// modified zone.
+///
+/// @param[in, out] IntegrityRegion The #INTEGRITY_REGION describing the protected zone.
+///
+/// @retval #INT_STATUS_SUCCESS On success.
+///
+{
+    EXCEPTION_VICTIM_ZONE victim = { 0 };
+    EXCEPTION_KM_ORIGINATOR originator = { 0 };
+    INTSTATUS status;
+    DWORD offset = 0;
+    BOOLEAN exitAfterInformation = FALSE;
+    INTRO_ACTION_REASON reason;
+    INTRO_ACTION action;
+
+    STATS_ENTER(statsExceptionsKern);
+
+    action = introGuestNotAllowed;
+    reason = introReasonUnknown;
+
+    status = IntExceptGetVictimIntegrity(IntegrityRegion, &offset, &victim);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] Failed getting integrity zone: 0x%08x\n", status);
+        reason = introReasonInternalError;
+        exitAfterInformation = TRUE;
+    }
+
+    status = IntExceptGetOriginatorFromModification(&victim, &originator);
+    if (status == INT_STATUS_EXCEPTION_BLOCK)
+    {
+        reason = introReasonNoException;
+        exitAfterInformation = TRUE;
+    }
+    else if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] Failed getting originator: 0x%08x\n", status);
+        reason = introReasonInternalError;
+        exitAfterInformation = TRUE;
+    }
+
+    if (exitAfterInformation)
+    {
+        IntExceptKernelLogInformation(&victim, &originator, action, reason);
+    }
+    else
+    {
+        IntExcept(&victim, &originator, exceptionTypeKm, &action, &reason, introEventIntegrityViolation);
+    }
+
+    STATS_EXIT(statsExceptionsKern);
+
+    if (IntPolicyCoreTakeAction(INTRO_OPT_PROT_KM_HAL_PERF_CNT, &action, &reason))
+    {
+        IntWinHalSendPerfCntIntegrityAlert(&victim, &originator, action, reason);
+    }
+
+    IntPolicyCoreForceBetaIfNeeded(INTRO_OPT_PROT_KM_HAL_PERF_CNT, &action);
+
+    if (action == introGuestAllowed)
+    {
+        IntIntegrityRecalculate(IntegrityRegion);
+    }
+    else if (action == introGuestNotAllowed)
+    {
+        IntPauseVcpus();
+
+        status = IntKernVirtMemWrite(gHalData.HalPerfCounterAddress + WIN_KM_FIELD(Ungrouped, HalPerfCntFunctionOffset),
+                                     gGuest.WordSize,
+                                     IntegrityRegion->OriginalContent);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntKernVirtMemPatchWordSize failed: 0x%08x\n", status);
+        }
+
+        IntResumeVcpus();
+    }
+
+    return INT_STATUS_SUCCESS;
+
 }
 
 
@@ -829,6 +985,85 @@ IntWinHalUnprotectHalDispatchTable(
 }
 
 
+INTSTATUS
+IntWinHalProtectHalPerfCounter(
+    void
+    )
+///
+/// @brief Enables protection on HalPerformanceCounter function pointer.
+///
+/// The protected region contains the function which is called when KeQueryPerformanceCounter gets
+/// called inside the guest OS.
+///
+/// @retval #INT_STATUS_SUCCESS                     On success.
+/// @retval #INT_STATUS_ALREADY_INITIALIZED_HINT    If the protection is already initialized.
+/// @retval #INT_STATUS_NOT_INITIALIZED_HINT        If the HalPerformanceCounter has not yet been found.
+/// 
+{
+    INTSTATUS status;
+
+    if (gHalData.HalPerfIntegrityObj != NULL)
+    {
+        return INT_STATUS_ALREADY_INITIALIZED_HINT;
+    }
+
+    if (0 == gHalData.HalPerfCounterAddress)
+    {
+        return INT_STATUS_NOT_INITIALIZED_HINT;
+    }
+
+    TRACE("[HAL] Adding HalPerformanceCounter hook at %llx...\n", gHalData.HalPerfCounterAddress);
+
+    status = IntIntegrityAddRegion(gHalData.HalPerfCounterAddress + WIN_KM_FIELD(Ungrouped, HalPerfCntFunctionOffset),
+                                   gGuest.WordSize,
+                                   introObjectTypeHalPerfCounter,
+                                   NULL,
+                                   IntWinHalHandlePerfCounterModification,
+                                   TRUE,
+                                   &gHalData.HalPerfIntegrityObj);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntIntegrityAddRegion failed: 0x%x\n", status);
+        return status;
+    }
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+INTSTATUS
+IntWinHalUnprotectHalPerfCounter(
+    void
+    )
+///
+/// @brief Removes the protection on HalPerformanceCounter.
+///
+/// @retval #INT_STATUS_SUCCESS                 On success.
+/// @retval #INT_STATUS_NOT_INITIALIZED_HINT    If the protection was not enabled beforehand.
+///
+{
+    INTSTATUS status;
+
+    if (gHalData.HalPerfIntegrityObj == NULL)
+    {
+        return INT_STATUS_NOT_INITIALIZED_HINT;
+    }
+
+    TRACE("[HAL] Removing HalPerformanceCounter hook...\n");
+
+    status = IntIntegrityRemoveRegion(gHalData.HalPerfIntegrityObj);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntIntegrityRemoveRegion failed: 0x%08X\n", status);
+        return status;
+    }
+
+    gHalData.HalPerfIntegrityObj = NULL;
+
+    return status;
+}
+
+
 static BOOLEAN
 IntWinHalIsIntController(
     _In_ QWORD CheckedAddress,
@@ -849,8 +1084,6 @@ IntWinHalIsIntController(
 /// @returns    True if CheckedAddress points to the HAL interrupt controller; False if it does not.
 ///
 {
-#define MAX_INT_CTRL_TYPE_OFFSET    (gGuest.Guest64 ? 0xf0 : 0x6c)
-#define MIN_INT_CTRL_TYPE_OFFSET    (gGuest.Guest64 ? 0xc0 : 0x60)
 #define MAX_INT_CTRL_COUNT          20
 
     INTSTATUS status;
@@ -906,7 +1139,7 @@ IntWinHalIsIntController(
     // The list of functions spans until the type (2).
     BOOLEAN foundFunctions = FALSE;
     for (functionPointer = CheckedAddress + 4ull * gGuest.WordSize;
-         functionPointer <= CheckedAddress + MAX_INT_CTRL_TYPE_OFFSET;
+         functionPointer <= CheckedAddress + WIN_KM_FIELD(Ungrouped, HalIntCtrlTypeMaxOffset);
          functionPointer += gGuest.WordSize)
     {
         status = IntKernVirtMemRead(functionPointer, gGuest.WordSize, &halFunction, NULL);
@@ -943,7 +1176,8 @@ IntWinHalIsIntController(
     }
 
     functionOffset = functionPointer - CheckedAddress;
-    if (functionOffset < MIN_INT_CTRL_TYPE_OFFSET || functionOffset > MAX_INT_CTRL_TYPE_OFFSET)
+    if (functionOffset < WIN_KM_FIELD(Ungrouped, HalIntCtrlTypeMinOffset) ||
+        functionOffset > WIN_KM_FIELD(Ungrouped, HalIntCtrlTypeMaxOffset))
     {
         return FALSE;
     }
@@ -955,6 +1189,703 @@ IntWinHalIsIntController(
 #undef MAX_INT_CTRL_COUNT  
 #undef MAX_INT_CTRL_TYPE_OFFSET
 #undef MIN_INT_CTRL_TYPE_OFFSET
+}
+
+
+BOOLEAN
+IntWinHalIsHalPerf(
+    _In_ QWORD HalPerfCandidate
+    )
+///
+/// @brief  Verifies if the given pointer is the HalPerformanceCounter
+///
+/// The checks done on the given pointer are:
+///     1. The pointer must be inside the Hal Heap.
+///     2. Verify if there is a LIST_ENTRY at the beginning of the structure. The list must
+///     contain the current pointer and should have all the pointers inside the Hal Heap, but
+///     only one in the owner Hal module - which should be HalpRegisteredTimers.
+///     3. At the protected zone offset - that is the offset from where KeQueryPerformanceCounter
+///     gets the function address before calling it - there should be a pointer inside the Hal
+///     owner driver.
+///
+/// @returns    TRUE if the given candidate passes all the checks, FALSE otherwise.
+///
+{
+#define MAX_LIST_ITERATIONS_HAL_PERF    20
+    QWORD nextList;
+    DWORD numberOfOutsideHalHeap = 0;
+    QWORD halPerfFunctionPtr = 0;
+    BOOLEAN foundList = FALSE;
+    INTSTATUS status;
+
+    if (HalPerfCandidate < gHalData.HalHeapAddress ||
+        HalPerfCandidate >= gHalData.HalHeapAddress + gHalData.HalHeapSize)
+    {
+        return FALSE;
+    }
+
+    nextList = HalPerfCandidate;
+
+    for (DWORD i = 0; i < MAX_LIST_ITERATIONS_HAL_PERF; i++)
+    {
+        status = IntKernVirtMemFetchWordSize(nextList, &nextList);
+        if (!INT_SUCCESS(status))
+        {
+            return FALSE;
+        }
+
+        if (nextList < gHalData.HalHeapAddress ||
+            nextList >= gHalData.HalHeapAddress + gHalData.HalHeapSize)
+        {
+            numberOfOutsideHalHeap++;
+        }
+
+        if (numberOfOutsideHalHeap > 1)
+        {
+            return FALSE;
+        }
+
+        if (nextList == HalPerfCandidate)
+        {
+            foundList = TRUE;
+            break;
+        }
+    }
+
+    if (!foundList)
+    {
+        return FALSE;
+    }
+
+    status = IntKernVirtMemFetchWordSize(HalPerfCandidate + WIN_KM_FIELD(Ungrouped, HalPerfCntFunctionOffset),
+                                         &halPerfFunctionPtr);
+    if (!INT_SUCCESS(status))
+    {
+        return FALSE;
+    }
+
+    if (halPerfFunctionPtr < gHalData.OwnerHalModule->BaseVa ||
+        halPerfFunctionPtr >= gHalData.OwnerHalModule->BaseVa + gHalData.OwnerHalModule->Size)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+    
+#undef MAX_LIST_ITERATIONS_HAL_PERF
+}
+
+
+static INTSTATUS
+IntWinHalFindPerformanceCounterInternal(
+    void
+    )
+///
+/// @brief  Finds and protects if needed the HalPerformanceCounter structure.
+///
+/// This function will search the HalPerformanceCounter by the following heuristic:
+/// Firstly, fetch the KeQueryPerformanceCounter address and decode the first instructions.
+/// Among these instructions there should be an instructions of the form "mov reg, [mem]",
+/// where the memory should represent either the rip relative address of HalpPerformanceCounter
+/// variable on x64, either the absolute address on x86. For the pointer found at that address
+/// we call #IntWinHalIsHalPerf in order to make additional checks.
+/// Note that this function should only be called when all the needed data was already fetched.
+/// This means that the Hal module should already be read in HalBuffer from #gHalData. For OSes
+/// where the NT represent the Hal owner (such as 20h1), reading HalBuffer a priori is not needed.
+///
+/// @returns    #INT_STATUS_SUCCESS on success, #INT_STATUS_NOT_FOUND if HalPerformanceCounter
+///             was not found or other appropriate statuses for other errors.
+///
+{
+#define MAX_INSTRUCTIONS_SEARCH     10
+    DWORD rva;
+    INTSTATUS status;
+    INSTRUX instrux = { 0 };
+    DWORD csType = gGuest.Guest64 ? IG_CS_TYPE_64B : IG_CS_TYPE_32B;
+    QWORD halPerfPtr = 0;
+    BYTE *buff;
+    DWORD buffSize;
+    QWORD currentRip = 0;
+    QWORD instruxOffset = 0;
+
+    if (gGuest.KernelVa == gHalData.OwnerHalModule->BaseVa)
+    {
+        buff = gWinGuest->KernelBuffer;
+        buffSize = gWinGuest->KernelBufferSize;
+    }
+    else
+    {
+        buff = gHalData.HalBuffer;
+        buffSize = gHalData.HalBufferSize;
+    }
+
+    status = IntPeFindExportByNameInBuffer(gHalData.OwnerHalModule->BaseVa,
+                                           buff,
+                                           buffSize,
+                                           "KeQueryPerformanceCounter",
+                                           &rva);
+                                   
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntPeFindExportByName failed: 0x%08x\n", status);
+        return status;
+    }
+
+    currentRip = gHalData.OwnerHalModule->BaseVa + rva;
+    instruxOffset = rva;
+
+    for (size_t i = 0; i < MAX_INSTRUCTIONS_SEARCH; i++)
+    {
+        if (instruxOffset + ND_MAX_INSTRUCTION_LENGTH >= buffSize)
+        {
+            ERROR("[ERROR] The instruction at 0x%016llx resides outside the buffer!", currentRip);
+            return INT_STATUS_INVALID_DATA_SIZE;
+        }
+
+        status = IntDecDecodeInstructionFromBuffer(buff + instruxOffset,
+                                                   buffSize - instruxOffset,
+                                                   csType,
+                                                   &instrux);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntDecDecodeInstructionFromBuffer failed: 0x%08x\n", status);
+            return status;
+        }
+
+        currentRip += instrux.Length;
+        instruxOffset += instrux.Length;
+
+        if (instrux.Instruction == ND_INS_MOV &&
+            instrux.ExpOperandsCount == 2 &&
+            instrux.Operands[1].Type == ND_OP_MEM)
+        {
+            QWORD possibleHalPerf = 0;
+
+            // On x64 instruction is of the form mov reg, [rip relative address]
+            if (gGuest.Guest64 && !instrux.Operands[1].Info.Memory.IsRipRel)
+            {
+                continue;
+            }
+
+            // On x86 instruction is of the form mov reg, [address]. Note that address is the displacement
+            // and the instruction is not considered to use absolute addresses, so IsDirect is not set.
+            if (!gGuest.Guest64 &&
+                (instrux.Operands[1].Info.Memory.HasBase ||
+                instrux.Operands[1].Info.Memory.HasIndex ||
+                !instrux.Operands[1].Info.Memory.HasDisp))
+            {
+                continue;
+            }
+
+            if (instrux.Operands[1].Info.Memory.IsRipRel)
+            {
+                halPerfPtr = currentRip + instrux.Operands[1].Info.Memory.Disp;
+            }
+            else
+            {
+                halPerfPtr = instrux.Operands[1].Info.Memory.Disp;
+            }
+
+            status = IntKernVirtMemFetchWordSize(halPerfPtr, &possibleHalPerf);
+            if (!INT_SUCCESS(status))
+            {
+                WARNING("[WARNING] IntKernVirtMemFetchWordSize failed: 0x%08x\n", status);
+                continue;
+            }
+
+            if (!IntWinHalIsHalPerf(possibleHalPerf))
+            {
+                continue;
+            }
+
+            TRACE("[INFO] Found HalPerformanceCounter at 0x%016llx!\n", possibleHalPerf);
+
+            gHalData.HalPerfCounterAddress = possibleHalPerf;
+
+            break;
+        }
+    }
+
+    if (0 == gHalData.HalPerfCounterAddress)
+    {
+        return INT_STATUS_NOT_FOUND;
+    }
+
+    if (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_HAL_PERF_CNT)
+    {
+        status = IntWinHalProtectHalPerfCounter();
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinHalProtectHalPerfCounter failed: 0x%08x\n", status);
+        }
+    }
+
+    return status;
+#undef MAX_INSTRUCTIONS_SEARCH
+}
+
+
+static INTSTATUS
+IntWinHalFinishRead(
+    void
+    )
+///
+/// @brief  This is the function called when the Hal is completely read.
+///
+/// Here should be initializations of protections which are dependent on the Hal driver contents.
+/// For example, on HalPerformanceCounter protection, we need to fetch the KeQueryPerformanceCounter
+/// export from the EAT, and then decode it, thus the whole Hal is needed in order to initialize this
+/// protection.
+///
+/// @returns    #INT_STATUS_SUCCESS on success, or other appropriate error statuses if the function fails.
+{
+    INTSTATUS status;
+
+    status = IntWinHalFindPerformanceCounterInternal();
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinHalFindPerformanceCounterInternal failed: 0x%08x\n", status);
+    }
+
+    return status;
+}
+
+
+static void
+IntWinHalCancelRead(
+    void
+    )
+///
+/// @brief  Cancels the Hal module read.
+///
+/// This function cancels all the pending page faults that were scheduled in order to read the
+/// #WIN_HAL_DATA.HalBuffer.
+///
+{
+    INTSTATUS status;
+    LIST_ENTRY *initEntry;
+
+    if (NULL == gHalData.HalBuffer)
+    {
+        return;
+    }
+
+    initEntry = gHalData.InitSwapHandles.Flink;
+    while (initEntry != &gHalData.InitSwapHandles)
+    {
+        PWIN_INIT_SWAP pInitSwap = CONTAINING_RECORD(initEntry, WIN_INIT_SWAP, Link);
+        initEntry = initEntry->Flink;
+
+        status = IntSwapMemRemoveTransaction(pInitSwap->SwapHandle);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntSwapMemRemoveTransaction failed for %llx:%x: 0x%08x\n",
+                  pInitSwap->VirtualAddress, pInitSwap->Size, status);
+        }
+
+        RemoveEntryList(&pInitSwap->Link);
+
+        HpFreeAndNullWithTag(&pInitSwap, IC_TAG_WSWP);
+    }
+}
+
+
+static INTSTATUS
+IntWinHalSectionInMemory(
+    _Inout_ WIN_INIT_SWAP *Context,
+    _In_ QWORD Cr3,
+    _In_ QWORD VirtualAddress,
+    _In_ QWORD PhysicalAddress,
+    _In_reads_bytes_(DataSize) void *Data,
+    _In_ DWORD DataSize,
+    _In_ DWORD Flags
+    )
+///
+/// @brief      Handles the swap in of a Hal section done while the #WIN_HAL_DATA.HalBuffer is read
+///
+/// This is the IntSwapMemRead handler set by #IntWinHalReadHal that will read a Hal section into the
+/// Hal buffer. It will set the appropriate part of the #WIN_HAL_DATA.HalBuffer with the data obtained from the
+/// guest and will decrement the #WIN_HAL_DATA.RemainingSections counter. It will also remove Context from the
+/// #WIN_HAL_DATA.InitSwapHandles list and will free it.
+///
+/// @param[in]  Context         The init swap handle used for this section
+/// @param[in]  Cr3             Ignored
+/// @param[in]  VirtualAddress  Ignored
+/// @param[in]  PhysicalAddress Ignored
+/// @param[in]  Data            The data read from the Hal
+/// @param[in]  DataSize        The size of the Data buffer
+/// @param[in]  Flags           A combination of flags describing the way in which the data was read. This function
+///                             checks only for the #SWAPMEM_FLAG_ASYNC_CALL flag. If it is present, it means that it
+///                             was invoked asynchronously, in which case it will pause the VCPUs in order to ensure
+///                             consistency of the data. If the #WIN_HAL_DATA.RemainingSections is set to 0 by this
+///                             callback while #SWAPMEM_FLAG_ASYNC_CALL is set, it will also initialize the protections
+///                             that rely on the Hal module, by calling #IntWinHalFinishRead.
+///
+/// @returns    #INT_STATUS_SUCCESS if successful, or an appropriate INTSTATUS error value
+///
+{
+    PWIN_INIT_SWAP pSwp;
+    QWORD va;
+    INTSTATUS status;
+
+    UNREFERENCED_PARAMETER(Cr3);
+    UNREFERENCED_PARAMETER(VirtualAddress);
+    UNREFERENCED_PARAMETER(PhysicalAddress);
+
+    if (Flags & SWAPMEM_FLAG_ASYNC_CALL)
+    {
+        IntPauseVcpus();
+    }
+
+    status = INT_STATUS_SUCCESS;
+
+    pSwp = Context;
+    va = pSwp->VirtualAddress;
+
+    // Remove the context. The caller knows this may happen & won't use it after IntSwapMemReadData
+    RemoveEntryList(&pSwp->Link);
+    HpFreeAndNullWithTag(&pSwp, IC_TAG_WSWP);
+
+    if (0 == gHalData.RemainingSections)
+    {
+        ERROR("[ERROR] Callback came after we have no more sections to read...\n");
+        status = INT_STATUS_INVALID_INTERNAL_STATE;
+        goto resume_and_exit;
+    }
+
+    memcpy(gHalData.HalBuffer + va, Data, DataSize);
+
+    gHalData.RemainingSections--;
+
+    if ((0 == gHalData.RemainingSections) && (Flags & SWAPMEM_FLAG_ASYNC_CALL))
+    {
+        TRACE("[HAL] All sections from hal were read into buffer\n");
+
+        status = IntWinHalFinishRead();
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinHalFinishRead failed: 0x%08x\n", status);
+        }
+    }
+
+resume_and_exit:
+    if (Flags & SWAPMEM_FLAG_ASYNC_CALL)
+    {
+        IntResumeVcpus();
+    }
+
+    return status;
+}
+
+
+static INTSTATUS
+IntWinHalReadHal(
+    void
+    )
+///
+/// @brief      Reads the whole Hal image in memory, including swapped-out sections
+///
+/// This will allocate and fill #WIN_HAL_DATA.HalBuffer. For the swapped-out sections, IntSwapMemRead will be used
+/// with #IntWinHalSectionInMemory as the swap-in handler. Discardable sections will be filled with 0, as those
+/// can not be brought back into memory. If all the sections are already present in memory, this function will try
+/// to initialize the protections which rely on the Hal module, by calling #IntWinHalFinishRead. If not, this step
+/// is left to the last invocation of the #IntWinHalSectionInMemory callback. Once #IntWinHalFinishRead is called
+/// the Hal buffer can be safely used.
+///
+///
+/// @retval     #INT_STATUS_SUCCESS in case of success. Note that even if this function exits with a success status,
+///             the hal buffer is not necessarily valid yet, as parts of it may be read in an asynchronous manner.
+/// @retval     #INT_STATUS_INVALID_OBJECT_TYPE if the MZPE validation of the headers fails.
+/// @retval     #INT_STATUS_NOT_SUPPORTED if a section header can not be parsed.
+/// @retval     #INT_STATUS_INSUFFICIENT_RESOURCES if not enough memory is available.
+/// @retval     #INT_STATUS_INVALID_INTERNAL_STATE if an internal error is encountered.
+///
+{
+    INTSTATUS status;
+    INTRO_PE_INFO peInfo = { 0 };
+    DWORD secCount, secStartOffset;
+    IMAGE_DOS_HEADER *pDosHeader = (IMAGE_DOS_HEADER *)gHalData.OwnerHalModule->Win.MzPeHeaders;
+
+    InitializeListHead(&gHalData.InitSwapHandles);
+
+    status = IntPeValidateHeader(gHalData.OwnerHalModule->BaseVa,
+                                 (BYTE *)pDosHeader,
+                                 PAGE_SIZE,
+                                 &peInfo,
+                                 0);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntPeValidateHeader failed: 0x%08x\n", status);
+        return status;
+    }
+
+    if (gGuest.Guest64 != peInfo.Image64Bit)
+    {
+        ERROR("[ERROR] Inconsistent MZPE image!\n");
+        return INT_STATUS_INVALID_OBJECT_TYPE;
+    }
+
+    if (peInfo.Image64Bit)
+    {
+        PIMAGE_NT_HEADERS64 pNth64;
+        BOOLEAN unmapNtHeaders = FALSE;
+
+        if ((QWORD)(DWORD)pDosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS64) < PAGE_SIZE)
+        {
+            // We are in the same page, so it's safe to use this
+            pNth64 = (PIMAGE_NT_HEADERS64)((size_t)pDosHeader + pDosHeader->e_lfanew);
+        }
+        else
+        {
+            status = IntVirtMemMap(gHalData.OwnerHalModule->BaseVa + pDosHeader->e_lfanew, sizeof(*pNth64),
+                                   gGuest.Mm.SystemCr3, 0, &pNth64);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] Failed mapping VA 0x%016llx to host: 0x%08x\n",
+                      gHalData.OwnerHalModule->BaseVa + pDosHeader->e_lfanew, status);
+                return status;
+            }
+
+            unmapNtHeaders = TRUE;
+        }
+
+        secCount = 0xffff & pNth64->FileHeader.NumberOfSections;
+        secStartOffset = pDosHeader->e_lfanew + 4 + sizeof(IMAGE_FILE_HEADER) +
+            pNth64->FileHeader.SizeOfOptionalHeader;
+
+        if (unmapNtHeaders)
+        {
+            IntVirtMemUnmap(&pNth64);
+        }
+    }
+    else
+    {
+        PIMAGE_NT_HEADERS32 pNth32;
+        BOOLEAN unmapNtHeaders = FALSE;
+
+        if ((QWORD)(DWORD)pDosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS32) < PAGE_SIZE)
+        {
+            // We are in the same page, so it's safe to use this
+            pNth32 = (PIMAGE_NT_HEADERS32)((size_t)pDosHeader + pDosHeader->e_lfanew);
+        }
+        else
+        {
+            status = IntVirtMemMap(gHalData.OwnerHalModule->BaseVa + pDosHeader->e_lfanew, sizeof(*pNth32),
+                                   gGuest.Mm.SystemCr3, 0, &pNth32);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] Failed mapping VA 0x%016llx to host: 0x%08x\n",
+                      gGuest.KernelVa + pDosHeader->e_lfanew, status);
+                return status;
+            }
+
+            unmapNtHeaders = TRUE;
+        }
+
+        secCount = 0xffff & pNth32->FileHeader.NumberOfSections;
+        secStartOffset = pDosHeader->e_lfanew + 4 + sizeof(IMAGE_FILE_HEADER) +
+            pNth32->FileHeader.SizeOfOptionalHeader;
+
+        if (unmapNtHeaders)
+        {
+            IntVirtMemUnmap(&pNth32);
+        }
+    }
+
+    if (secStartOffset >= PAGE_SIZE)
+    {
+        ERROR("[ERROR] Sections get outside the first page. We don't support this yet!\n");
+        return INT_STATUS_NOT_SUPPORTED;
+    }
+
+    if (secStartOffset + secCount * sizeof(IMAGE_SECTION_HEADER) > PAGE_SIZE)
+    {
+        ERROR("[ERROR] Sections get outside the first page. We don't support this yet!\n");
+        return INT_STATUS_NOT_SUPPORTED;
+    }
+
+    if (peInfo.SizeOfImage < PAGE_SIZE)
+    {
+        ERROR("[ERROR] SizeOfImage too small: %d!\n", peInfo.SizeOfImage);
+        return INT_STATUS_INVALID_OBJECT_TYPE;
+    }
+
+    gHalData.HalBufferSize = peInfo.SizeOfImage;
+    gHalData.HalBuffer = HpAllocWithTag(peInfo.SizeOfImage, IC_TAG_HALB);
+    if (NULL == gHalData.HalBuffer)
+    {
+        return INT_STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    memcpy(gHalData.HalBuffer, gHalData.OwnerHalModule->Win.MzPeHeaders, PAGE_SIZE);
+
+    gHalData.RemainingSections = secCount;
+
+    for (DWORD i = 0; i < secCount; i++)
+    {
+        DWORD secActualSize;
+
+        PIMAGE_SECTION_HEADER pSec = (PIMAGE_SECTION_HEADER)(gHalData.HalBuffer + secStartOffset +
+                                                             i * sizeof(IMAGE_SECTION_HEADER));
+
+        secActualSize = ROUND_UP(pSec->Misc.VirtualSize, PAGE_SIZE);
+
+        if (0 == pSec->VirtualAddress)
+        {
+            ERROR("[ERROR] We cannot have a section starting at 0!\n");
+
+            return INT_STATUS_NOT_SUPPORTED;
+        }
+
+        if (0 == pSec->Misc.VirtualSize)
+        {
+            ERROR("[ERROR] We cannot have a section starting at 0!\n");
+
+            return INT_STATUS_NOT_SUPPORTED;
+        }
+
+        // Make sure the section fits within the allocated buffer. We must avoid cases where the SizeOfImage or
+        // section headers are maliciously altered.
+        if ((pSec->VirtualAddress >= peInfo.SizeOfImage) ||
+            (secActualSize > peInfo.SizeOfImage) ||
+            (pSec->VirtualAddress + secActualSize > peInfo.SizeOfImage))
+        {
+            ERROR("[ERROR] Section %d seems corrupted: sizeOfImage = 0x%x, secstart = 0x%x, secsize = 0x%x\n",
+                  i, peInfo.SizeOfImage, pSec->VirtualAddress, pSec->Misc.VirtualSize);
+
+            return INT_STATUS_INVALID_OBJECT_TYPE;
+        }
+
+        if (pSec->Characteristics & IMAGE_SCN_MEM_DISCARDABLE)
+        {
+            memset(gHalData.HalBuffer + pSec->VirtualAddress, 0, secActualSize);
+
+            gHalData.RemainingSections--;
+        }
+        else if (pSec->Characteristics & IMAGE_SCN_MEM_NOT_PAGED)
+        {
+            // The section will be present, so read it now
+            status = IntKernVirtMemRead(gHalData.OwnerHalModule->BaseVa + pSec->VirtualAddress,
+                                        secActualSize,
+                                        gHalData.HalBuffer + pSec->VirtualAddress,
+                                        NULL);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntKernVirtMemRead failed for 0x%016llx -> 0x%016llx %s: 0x%08x\n",
+                      gHalData.OwnerHalModule->BaseVa + pSec->VirtualAddress,
+                      gHalData.OwnerHalModule->BaseVa + pSec->VirtualAddress + secActualSize,
+                      pSec->Name, status);
+
+                return status;
+            }
+
+            gHalData.RemainingSections--;
+        }
+        else
+        {
+            DWORD retSize = 0;
+
+            // Use the swap mechanism only if we can't directly read the memory; this avoids unnecessary
+            // recursive function calls.
+            status = IntKernVirtMemRead(gHalData.OwnerHalModule->BaseVa + pSec->VirtualAddress,
+                                        secActualSize,
+                                        gHalData.HalBuffer + pSec->VirtualAddress,
+                                        &retSize);
+            if (!INT_SUCCESS(status))
+            {
+                PWIN_INIT_SWAP pSwp = NULL;
+                void *swapHandle = NULL;
+
+                pSwp = HpAllocWithTag(sizeof(*pSwp), IC_TAG_WSWP);
+                if (NULL == pSwp)
+                {
+                    return INT_STATUS_INSUFFICIENT_RESOURCES;
+                }
+
+                pSwp->VirtualAddress = pSec->VirtualAddress;
+                pSwp->Size = secActualSize;
+
+                InsertTailList(&gHalData.InitSwapHandles, &pSwp->Link);
+
+                WARNING("Section %d / %d is not in memory, will do a swap mem read\n", i, secCount);
+
+                status = IntSwapMemReadData(0,
+                                            gHalData.OwnerHalModule->BaseVa + pSec->VirtualAddress,
+                                            secActualSize,
+                                            SWAPMEM_OPT_BP_FAULT,
+                                            pSwp,
+                                            0,
+                                            IntWinHalSectionInMemory,
+                                            NULL,
+                                            &swapHandle);
+                if (!INT_SUCCESS(status))
+                {
+                    ERROR("[ERROR] IntSwapMemReadData failed: 0x%08x\n", status);
+                    return status;
+                }
+
+                // The callback will be called async, save the handle in case an uninit will come
+                if (NULL != swapHandle)
+                {
+                    pSwp->SwapHandle = swapHandle;
+                }
+            }
+            else
+            {
+                if (retSize != secActualSize)
+                {
+                    ERROR("We requested %08x bytes, but got %08x!\n", secActualSize, retSize);
+                    return INT_STATUS_INVALID_INTERNAL_STATE;
+                }
+
+                gHalData.RemainingSections--;
+            }
+        }
+    }
+
+    // We managed to read everything here, so continue the initialization
+    if (0 == gHalData.RemainingSections)
+    {
+        TRACE("[HAL] All sections were present in memory!\n");
+
+        status = IntWinHalFinishRead();
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinHalFinishRead failed: 0x%08x\n", status);
+        }
+    }
+
+    return status;
+
+}
+
+
+static INTSTATUS
+IntWinHalFindPerformanceCounter(
+    void
+    )
+///
+/// @brief Starts the process of finding the HalPerformanceCounter.
+///
+/// On OSes for which the kernel is also the Hal owner, such as 20h1, this function will find synchronously
+/// the HalPerformanceCounter structure, as the Hal buffer is equivalent with the already read Kernel Buffer.
+/// Otherwise, the searching of HalPerformanceCounter might be asynchronous, as some sections in the Hal module
+/// might be swapped out. A call to #IntWinHalReadHal will be made in order to read the present sections and
+/// inject page faults on the swapped out ones. If no sections are swapped out, then
+/// #IntWinHalFindPerformanceCounterInternal will be called synchronously in this case too. Otherwise, the
+/// protection on HalPerformanceCounter will be initialized only when the paged-out sections are swapped in.
+///
+/// @returns    #INT_STATUS_SUCCESS on success, or an appropriate INTSTATUS error value if there was an error.
+///
+{
+    if (gHalData.OwnerHalModule->BaseVa == gGuest.KernelVa)
+    {
+        return IntWinHalFindPerformanceCounterInternal();
+    }
+    else
+    {
+        return IntWinHalReadHal();
+    }
 }
 
 
@@ -989,7 +1920,7 @@ IntWinHalFindInterruptController(
     if (!INT_SUCCESS(status) || nrSec == 0)
     {
         ERROR("[ERROR] IntPeGetSectionHeadersByName failed: 0x%08x, number of sections: %d\n", status, nrSec);
-        // status may be a succesful one, but if no sections were found we return an error status to signal that
+        // status may be a successful one, but if no sections were found we return an error status to signal that
         // HalInterruptController is not valid
         status = INT_STATUS_NOT_FOUND;
         goto exit;
@@ -1326,7 +2257,8 @@ IntWinHalCreateHalData(
 
     if (gGuest.OSVersion < WIN_BUILD_8)
     {
-        TRACE("[HAL] Hal Intterrupt Controller does not exist on Windows version %d!\n", gGuest.OSVersion);
+        TRACE("[HAL] Hal Interrupt Controller/Performance Counter does not exist on Windows version %d!\n",
+              gGuest.OSVersion);
         goto _skip_hal_heap;
     }
 
@@ -1343,6 +2275,13 @@ IntWinHalCreateHalData(
 
         gHalData.HalIntCtrlAddress = halInterruptController;
         TRACE("[HAL] Found HalInterruptController at 0x%016llx\n", gHalData.HalIntCtrlAddress);
+    }
+
+    status = IntWinHalFindPerformanceCounter();
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinHalFindPerformanceCounter failed: 0x%08x\n", status);
+        goto _skip_hal_heap;
     }
 
 _skip_hal_heap:
@@ -1438,6 +2377,20 @@ IntWinHalUpdateProtection(
         IntWinHalUnprotectHalIntCtrl();
     }
 
+    if (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_HAL_PERF_CNT)
+    {
+        status = IntWinHalProtectHalPerfCounter();
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinHalProtectHalPerfCounter failed: 0x%08x\n", status);
+            return status;
+        }
+    }
+    else
+    {
+        IntWinHalUnprotectHalPerfCounter();
+    }
+
     return INT_STATUS_SUCCESS;
 }
 
@@ -1454,4 +2407,13 @@ IntWinHalUninit(
     IntWinHalUnprotectHalHeapExecs();
 
     IntWinHalUnprotectHalIntCtrl();
+
+    IntWinHalUnprotectHalPerfCounter();
+
+    IntWinHalCancelRead();
+
+    if (NULL != gHalData.HalBuffer)
+    {
+        HpFreeAndNullWithTag(&gHalData.HalBuffer, IC_TAG_HALB);
+    }
 }

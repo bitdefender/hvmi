@@ -18,7 +18,8 @@ IntWinApiFindFunctionRva(
     _In_ WIN_UNEXPORTED_FUNCTION *Patterns,
     _In_ QWORD ModuleBase,
     _In_ BOOLEAN IgnoreSectionHint,
-    _Out_ DWORD *FunctionRva    
+    _Out_ DWORD *FunctionRva,
+    _Out_opt_ DETOUR_ARGS **Arguments
     )
 ///
 /// @brief  Searches for a function in a module, based on the given patterns.
@@ -28,17 +29,18 @@ IntWinApiFindFunctionRva(
 /// it will search through all the sections, otherwise just on the section hint present in the
 /// descriptor, if any.
 ///
-/// @param[in]  Patterns            Contains information about the patterns which describe the 
+/// @param[in]  Patterns            Contains information about the patterns which describe the
 ///                                 searched function.
 /// @param[in]  ModuleBase          The module base where the patterns are searched for.
 /// @param[in]  IgnoreSectionHint   If this parameter is set to TRUE, all the sections in the given
 ///                                 module are scanned for the given patterns.
 /// @param[out] FunctionRva         The relative address to the module base where the function
 ///                                 was found.
+/// @param[in]  Arguments           The arguments assigned for the found pattern, if any.
 ///
 /// @retval     #INT_STATUS_SUCCESS     On success.
 /// @retval     #INT_STATUS_NOT_FOUND   If the given patterns could not be found.
-/// 
+///
 {
     INTSTATUS status = INT_STATUS_NOT_FOUND;
 
@@ -62,8 +64,17 @@ IntWinApiFindFunctionRva(
                                                 FunctionRva);
         }
 
-        if (INT_SUCCESS(status))
+        if (INT_SUCCESS(status) && Arguments != NULL)
         {
+            if (pPattern->Arguments.Argc != 0)
+            {
+                *Arguments = &pPattern->Arguments;
+            }
+            else
+            {
+                *Arguments = NULL;
+            }
+
             break;
         }
     }
@@ -92,6 +103,7 @@ IntWinApiHook(
 {
     INTSTATUS status = INT_STATUS_UNSUCCESSFUL;
     PAPI_HOOK_HANDLER pHandler = NULL;
+    DETOUR_ARGS *pArgs = NULL;
     DWORD functionRva = 0;
     QWORD functionRip = 0;
     QWORD moduleBase = 0;
@@ -146,7 +158,8 @@ IntWinApiHook(
         status = IntWinApiFindFunctionRva(HookDescriptor->Patterns,
                                           moduleBase,
                                           FALSE,
-                                          &functionRva);
+                                          &functionRva,
+                                          &pArgs);
 
         // If we failed to find any pattern for the given routine, retry the search ignoring
         // OS version or section hint restrictions.
@@ -157,7 +170,8 @@ IntWinApiHook(
             status = IntWinApiFindFunctionRva(HookDescriptor->Patterns,
                                               moduleBase,
                                               TRUE,
-                                              &functionRva);
+                                              &functionRva,
+                                              &pArgs);
         }
     }
     if (!INT_SUCCESS(status))
@@ -165,6 +179,12 @@ IntWinApiHook(
         ERROR("[ERROR] Function '%s' not found inside module '%s': 0x%08x\n",
               HookDescriptor->FunctionName, utf16_for_log(HookDescriptor->ModuleName), status);
         return status;
+    }
+
+    if (pArgs != NULL)
+    {
+        HookDescriptor->Arguments.Argc = pArgs->Argc;
+        memcpy(HookDescriptor->Arguments.Argv, pArgs->Argv, sizeof(HookDescriptor->Arguments.Argv[0]) * HookDescriptor->Arguments.Argc);
     }
 
     functionRip = functionRva + moduleBase;

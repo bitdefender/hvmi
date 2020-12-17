@@ -82,6 +82,23 @@ typedef struct _DPI_EXTRA_INFO
         QWORD StartAddress;             ///< The address on which the parent's thread started execution.
         QWORD ShellcodeFlags;           ///< Contains the flags of the starting page detected through shemu.
     } DpiThreadStartExtraInfo;
+
+    struct
+    {
+        /// @brief If the parent security descriptor has been stolen, this variable may indicate (in case we find it)
+        /// the victim process (where security descriptor has been stolen from) - it can be NULL.
+        QWORD SecDescStolenFromEproc;
+
+        QWORD OldPtrValue;              ///< Old value.
+        QWORD NewPtrValue;              ///< New value.
+
+        ACL OldSacl;                    ///< The old SACL header.
+        ACL OldDacl;                    ///< The old DACL header.
+
+        ACL NewSacl;                    ///< The new SACL header.
+        ACL NewDacl;                    ///< The new DACL header.
+    } DpiSecDescAclExtraInfo;
+
 } DPI_EXTRA_INFO, *PDPI_EXTRA_INFO;
 
 void

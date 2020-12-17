@@ -46,7 +46,7 @@ IntDumpArchRegs(
 TIMER_FRIENDLY
 __nonnull() void
 IntDumpBuffer(
-    _In_reads_bytes_(Length) void *Buffer,
+    _In_reads_bytes_(Length) const void *Buffer,
     _In_opt_ QWORD Gva,
     _In_ DWORD Length,
     _In_opt_ DWORD RowLength,
@@ -116,6 +116,12 @@ IntDumpBuffer(
         char rest[sizeof(QWORD)];
 
         ret = snprintf(l, sizeof(line), "%016llx:", Gva + i);
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            break;
+        }
+
         rem -= ret;
         l += ret;
 
@@ -153,6 +159,12 @@ IntDumpBuffer(
                 break;
             }
 
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                break;
+            }
+
             rem -= ret;
             l += ret;
         }
@@ -160,12 +172,24 @@ IntDumpBuffer(
         if (DumpAscii)
         {
             ret = snprintf(l, rem, " ");
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                break;
+            }
+
             rem -= ret;
             l += ret;
 
             for (size_t j = 0; j < (size_t)RowLength * ElementLength; j++)
             {
                 ret = snprintf(l, rem, "%c", (i + j >= Length) ? 'x' : IS_ASCII(buf[i + j]) ? buf[i + j] : '.');
+                if (ret < 0 || ret >= rem)
+                {
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                    break;
+                }
+
                 rem -= ret;
                 l += ret;
             }
@@ -313,6 +337,12 @@ IntDisasmBuffer(
         NdToText(&instrux, rip, sizeof(temp), temp);
 
         ret = snprintf(line, rem, "0x%llx ", rip);
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            break;
+        }
+
         rem -= ret;
         line += ret;
 
@@ -321,18 +351,29 @@ IntDisasmBuffer(
             if (i < instrux.Length)
             {
                 ret = snprintf(line, rem, "%02x", instrux.InstructionBytes[i]);
-                rem -= ret;
-                line += ret;
             }
             else
             {
                 ret = snprintf(line, rem, "  ");
-                rem -= ret;
-                line += ret;
             }
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                break;
+            }
+
+            rem -= ret;
+            line += ret;
         }
 
         ret = snprintf(line, rem, "    %s", temp);
+        if (ret < 0 || ret >= rem)
+            {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            break;
+        }
+
         rem -= ret;
         line += ret;
 
@@ -366,6 +407,12 @@ IntDisasmBuffer(
                 else
                 {
                     ret = snprintf(line, rem, " (%s)", temp);
+                }
+
+                if (ret < 0 || ret >= rem)
+                {
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                    break;
                 }
 
                 line += ret;
@@ -442,6 +489,12 @@ IntDisasmGva(
         NdToText(&instrux, rip, sizeof(temp), temp);
 
         ret = snprintf(line, rem, "0x%llx ", rip);
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            break;
+        }
+
         rem -= ret;
         line += ret;
 
@@ -450,18 +503,29 @@ IntDisasmGva(
             if (i < instrux.Length)
             {
                 ret = snprintf(line, rem, "%02x", instrux.InstructionBytes[i]);
-                rem -= ret;
-                line += ret;
             }
             else
             {
                 ret = snprintf(line, rem, "  ");
-                rem -= ret;
-                line += ret;
             }
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                break;
+            }
+
+            rem -= ret;
+            line += ret;
         }
 
         ret = snprintf(line, rem, "    %s", temp);
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            break;
+        }
+
         rem -= ret;
         line += ret;
 
@@ -495,6 +559,12 @@ IntDisasmGva(
                 else
                 {
                     ret = snprintf(line, rem, " (%s)", temp);
+                }
+
+                if (ret < 0 || ret >= rem)
+                {
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                    break;
                 }
 
                 line += ret;
@@ -654,6 +724,7 @@ IntDumpCodeAndRegs(
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntGetCurrentMode failed: 0x%08x\n", status);
+        IntPhysMemUnmap(&pPage);
         return status;
     }
 

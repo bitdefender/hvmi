@@ -720,14 +720,6 @@ send_notification:
 
         pInjEvent->Header.Flags = IntAlertProcGetFlags(PROC_OPT_PROT_SET_THREAD_CTX, pProcVictim, reason, 0);
 
-        // If the the destination process is a system process, a flag will be set
-        if (pProcVictim->SystemProcess)
-        {
-            pInjEvent->Header.Flags |= ALERT_FLAG_SYSPROC;
-        }
-
-        pInjEvent->Header.Flags |= ALERT_FLAG_NOT_RING0;
-
         // Set the internal information
         pInjEvent->DestinationVirtualAddress = kthreadVictim;
         pInjEvent->SourceVirtualAddress = kthreadOriginator;
@@ -964,16 +956,9 @@ send_notification:
         else
         {
             pInjEvent->DumpValid = TRUE;
-
             pInjEvent->CopySize = sizeof(pInjEvent->RawDump);
 
-            IntDumpBuffer(pInjEvent->RawDump,
-                          0,
-                          sizeof(pInjEvent->RawDump),
-                          16,
-                          sizeof(BYTE),
-                          0,
-                          0);
+            IntDumpBuffer(pInjEvent->RawDump, 0, sizeof(pInjEvent->RawDump), 16, sizeof(BYTE), 0, 0);
         }
 
         IntAlertFillCpuContext(FALSE, &pInjEvent->Header.CpuContext);
@@ -1013,14 +998,6 @@ send_notification:
 
         pInjEvent->Header.Flags = IntAlertProcGetFlags(PROC_OPT_PROT_QUEUE_APC, pVictimProc, reason, 0);
 
-        // If the the destination process is a system process, a flag will be set
-        if (pVictimProc->SystemProcess)
-        {
-            pInjEvent->Header.Flags |= ALERT_FLAG_SYSPROC;
-        }
-
-        pInjEvent->Header.Flags |= ALERT_FLAG_NOT_RING0;
-
         // Set the internal information
         pInjEvent->DestinationVirtualAddress = rip;
         pInjEvent->SourceVirtualAddress = victimThread;
@@ -1059,28 +1036,28 @@ INTSTATUS
 IntWinThrPatchThreadHijackHandler(
     _In_ QWORD FunctionAddress,
     _Inout_ void *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This functions is responsible for patching the detour that handles the "PspSetContextThreadInternal".
 /// @ingroup    group_detours
 ///
-/// This function is invoked every time "PspSetContextThreadInternal" is called (a thread context is modified)
-/// but before the actual handler #IntWinThrHandleThreadHijack, its purpose being to modify the hook code
-/// (see winhkhnd.c).
+/// This function is called before the hook is placed into memory in order to "patch" the addresses of guest functions
+/// or guest file offsets that are used by the hook handler. Specifically, this patches the offsets of the AttachedProcess
+/// and Process fields of _KTHREAD and the Spare field of _KPROCESS, but also patches the "retn" instruction accordingly.
 ///
-/// @param[in]  FunctionAddress         The address of the function.
-/// @param[in]  Handler                 An #API_HOOK_HANDLER structure.
-/// @param[in]  HandlerAddress          The address of the handler.
+/// @param[in]  FunctionAddress       The address of the function.
+/// @param[in]  Handler               An #API_HOOK_HANDLER structure.
+/// @param[in]  Descriptor            Pointer to a structure that describes the hook and the detour handler.
 ///
-/// @retval     #INT_STATUS_SUCCESS             On success.
+/// @retval     #INT_STATUS_SUCCESS   Always.
 ///
 {
 
     PAPI_HOOK_HANDLER pHandler;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     pHandler = (PAPI_HOOK_HANDLER)Handler;
 
@@ -1131,19 +1108,20 @@ INTSTATUS
 IntWinThrPrepareApcHandler(
     _In_ QWORD FunctionAddress,
     _Inout_ void *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This functions is responsible for patching the detour that handles the "NtQueueApcThreadEx".
 /// @ingroup    group_detours
 ///
-/// This function is invoked every time "NtQueueApcThreadEx" is called (and APC has been queued)
-/// but before the actual handler #IntWinThrHandleQueueApc, its purpose being to modify the hook code
-/// (see winhkhnd.h).
+/// This function is called before the hook is placed into memory in order to "patch" the addresses of guest functions
+/// or guest file offsets that are used by the hook handler. Specifically, this patches the addresses of PsThreadType,
+/// ObReferenceObjectByHandle, ObDereferenceObject and the offsets of the AttachedProcess and Process fields of _KTHREAD
+/// and the Spare field of _KPROCESS, but also patches the "retn" instruction accordingly.
 ///
 /// @param[in]  FunctionAddress         The address of the function.
 /// @param[in]  Handler                 An #API_HOOK_HANDLER structure.
-/// @param[in]  HandlerAddress          The address of the handler.
+/// @param[in]  Descriptor              Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @retval     #INT_STATUS_SUCCESS             On success.
 ///
@@ -1159,7 +1137,7 @@ IntWinThrPrepareApcHandler(
           offsetPsThreadType, offsetAttachedProcess, offsetProcess, offsetSpare;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     threadType = referenceObj = derefObj = NULL;
     threadType32 = referenceObj32 = derefObj32 = NULL;

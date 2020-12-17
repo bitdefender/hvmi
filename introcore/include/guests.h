@@ -197,6 +197,10 @@ typedef struct _VCPU_STATE
 
     BOOLEAN         RepOptDisabled; ///< The state of the rep optimization feature
     BOOLEAN         Initialized;    ///< True if the VCPU is initialized and used by the guest, False if it is not
+    BOOLEAN         SingleStep;     ///< True if th VCPU is currently single-stepping the current instruction.
+    BOOLEAN         AllowOnExec;    ///< True if we returned introGuestAllowed on an execution alert.
+    QWORD           AllowOnExecRip; ///< The RIP which was allowed to execute on an exec violation.
+    QWORD           AllowOnExecGpa; ///< The GPA which was allowed to execute on an exec violation.
 } VCPU_STATE, *PVCPU_STATE;
 
 ///

@@ -1374,7 +1374,8 @@ IntWinVadRemoveProcessTree(
 static INTSTATUS
 IntWinVadFetchVadFromMemory(
     _In_ QWORD VadGva,
-    _Out_ VAD *Vad
+    _Out_ VAD *Vad,
+    _In_ BOOLEAN FailOnCorruptRange
     )
 ///
 /// @brief  Reads a _MMVAD structure from the Windows kernel and creates a corresponding #VAD structure.
@@ -1382,12 +1383,16 @@ IntWinVadFetchVadFromMemory(
 /// This function does not initialize any fields related to the optional #VAD.Path field. For that, the
 /// #IntWinVadFetchImageName function must be used.
 ///
-/// @param[in]  VadGva  The guest virtual address of the _MMVAD structure.
-/// @param[out] Vad     On success, will be initialized with the relevant information about the VAD, except the
-///                     Path.
+/// @param[in]  VadGva              The guest virtual address of the _MMVAD structure.
+/// @param[out] Vad                 On success, will be initialized with the relevant information about the VAD,
+///                                 except the Path.
+/// @param[in]  FailOnCorruptRange  Exit with an error if the range described by StartPage and EndPage is not a valid
+///                                 range (EndPage must not be less than StartPage).
 ///
 /// @retval     #INT_STATUS_SUCCESS in case of success.
 /// @retval     #INT_STATUS_INSUFFICIENT_RESOURCES if the VAD structure could not be mapped.
+/// @retval     #INT_STATUS_INVALID_DATA_STATE if FailOnCorruptRange is TRUE, and the range described by StartPage and
+///             EndPage is not valid.
 ///
 {
     BYTE *vadBuffer = IntWinVadMapShortVad(VadGva);
@@ -1432,11 +1437,12 @@ IntWinVadFetchVadFromMemory(
     Vad->StartPage = startVpn << 12;
     Vad->EndPage = endVpn << 12;
 
-    if (Vad->EndPage < Vad->StartPage)
+    if (FailOnCorruptRange && Vad->EndPage < Vad->StartPage)
     {
-        WARNING("[WARNING] VAD EndPage is before StartPage: start = 0x%016llx, end = 0x%016llx, vad at 0x%016llx!\n",
-                Vad->StartPage, Vad->EndPage, VadGva);
-        Vad->EndPage = Vad->StartPage;
+        ERROR("[ERROR] VAD EndPage is before StartPage: start = 0x%016llx, end = 0x%016llx, vad at 0x%016llx\n",
+              Vad->StartPage, Vad->EndPage, VadGva);
+        IntVirtMemUnmap(&vadBuffer);
+        return INT_STATUS_INVALID_DATA_STATE;
     }
 
     // The Flags field can have different sizes, so read it into a QWORD
@@ -1610,7 +1616,8 @@ IntWinVadCreateObject(
         return INT_STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    status = IntWinVadFetchVadFromMemory(VadGva, pVad);
+    // We want to fail if the memory range described by this VAD is not valid.
+    status = IntWinVadFetchVadFromMemory(VadGva, pVad, TRUE);
     if (!INT_SUCCESS(status))
     {
         HpFreeAndNullWithTag(&pVad, IC_TAG_VAD);
@@ -1679,7 +1686,8 @@ IntWinVadShortDump(
         return INT_STATUS_INVALID_PARAMETER_1;
     }
 
-    status = IntWinVadFetchVadFromMemory(VadNodeGva, &vad);
+    // We simply dump guest memory, we do not care if the range is valid or not.
+    status = IntWinVadFetchVadFromMemory(VadNodeGva, &vad, FALSE);
     if (!INT_SUCCESS(status))
     {
         return status;
@@ -1843,7 +1851,9 @@ IntWinVadFindNodeInGuestSpace(
 ///
 {
     INTSTATUS status;
-    VAD vad = {0};
+    VAD vad = { 0 };
+    // Workaround for Windows 7/8: the first level isn't in fact a VAD, and we have to follow the right branch.
+    const BOOLEAN notAVad = (gGuest.OSVersion <= 9200) && (0 == Level);
 
     if (!IS_KERNEL_POINTER_WIN(gGuest.Guest64, VadRoot))
     {
@@ -1858,15 +1868,17 @@ IntWinVadFindNodeInGuestSpace(
 
     VadRoot = RTL_BALANCED_NODE_PARENT_TO_PTR(VadRoot);
 
-    status = IntWinVadFetchVadFromMemory(VadRoot, &vad);
+    // If this is not actually a VAD we allow errors in the memory range that it describes. We are interested only in
+    // the Left and Right branch values. In the other cases we want to bail out if the range is not valid, because
+    // our search algorithm will no longer work if Start > End.
+    status = IntWinVadFetchVadFromMemory(VadRoot, &vad, !notAVad);
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntWinVadFetchVadFromMemory failed: 0x%08x\n", status);
         return 0;
     }
 
-    // Workaround for Windows 7/8: the first level isn't in fact a VAD, and we have to follow the right branch.
-    if ((gGuest.OSVersion <= 9200) && (0 == Level))
+    if (notAVad)
     {
         return IntWinVadFindNodeInGuestSpace(vad.Right, StartPage, EndPage, Level + 1, 0, TRUE);
     }
@@ -1935,7 +1947,9 @@ IntWinVadInOrderRecursiveTraversal(
     QWORD left;
     QWORD right;
     INTSTATUS failStatus = INT_STATUS_SUCCESS;
-    VAD vad = {0};
+    VAD vad = { 0 };
+    // Workaround for Windows 7/8: the first level isn't in fact a VAD.
+    const BOOLEAN notAVad = (gGuest.OSVersion <= 9200) && (0 == Level);
 #define MAX_LEVEL 64
 
     if (!IS_KERNEL_POINTER_WIN(gGuest.Guest64, VadNodeGva))
@@ -1956,12 +1970,14 @@ IntWinVadInOrderRecursiveTraversal(
 
     // On OSs with _MM_AVL_TABLE in the root, we should convert it to ptr by stripping the last 2 bits.
     // Otherwise the structure might be off by some bits and invalid data could be read from the guest.
-    if (gGuest.OSVersion <= 9200 && 0 == Level)
+    if (notAVad)
     {
         VadNodeGva = RTL_BALANCED_NODE_PARENT_TO_PTR(VadNodeGva);
     }
 
-    status = IntWinVadFetchVadFromMemory(VadNodeGva, &vad);
+    // If this is not actually a VAD we allow errors in the memory range that it describes. We are interested only in
+    // the Left and Right branch values.
+    status = IntWinVadFetchVadFromMemory(VadNodeGva, &vad, !notAVad);
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntWinVadFetchVadFromMemory failed for 0x%016llx: 0x%08x\n", VadNodeGva, status);
@@ -1980,7 +1996,7 @@ IntWinVadInOrderRecursiveTraversal(
         }
     }
 
-    if (gGuest.OSVersion <= 9200 && 0 == Level)
+    if (notAVad)
     {
         // Windows 7 and Windows 8 hold in _EPROCESS.VadRoot a _MM_AVL_TABLE struct. It's Parent points to itself,
         // the children may be NULL or valid tree nodes, skip the callback for the fake root
@@ -2944,7 +2960,7 @@ INTSTATUS
 IntWinPatchVadHandleCommit(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This is the #PFUNC_PreDetourCallback for the MiCommitExistingVad guest API detour.
@@ -2958,7 +2974,7 @@ IntWinPatchVadHandleCommit(
 /// @param[in]      FunctionAddress Guest virtual address of the hooked function. Ignored.
 /// @param[in, out] Handler         The hook handler structure. This will have the #API_HOOK_HANDLER.Code byte array
 ///                                 changed.
-/// @param[in]      HandlerAddress  The guest virtual address at which the handler code will be written. Ignored.
+/// @param[in]      Descriptor      Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @returns    #INT_STATUS_SUCCESS is always returned.
 ///
@@ -2966,7 +2982,7 @@ IntWinPatchVadHandleCommit(
     API_HOOK_HANDLER *pHandler = Handler;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     if (gGuest.Guest64)
     {
@@ -3442,7 +3458,8 @@ IntWinVadIsInTree(
         return FALSE;
     }
 
-    status = IntWinVadFetchVadFromMemory(Vad->VadGva, &dummy);
+    // We allow possible corrupt ranges.
+    status = IntWinVadFetchVadFromMemory(Vad->VadGva, &dummy, FALSE);
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] Could not fetch VAD 0x%016llx from memory: 0x%08x\n", Vad->VadGva, status);
@@ -3459,8 +3476,8 @@ IntWinVadIsInTree(
         return FALSE;
     }
 
-    // Red is bit 0 and Balance is bit 1
-    status = IntWinVadFetchVadFromMemory(dummy.Parent & (~3), &parent);
+    // Red is bit 0 and Balance is bit 1. We allow possible corrupt ranges.
+    status = IntWinVadFetchVadFromMemory(dummy.Parent & (~3), &parent, FALSE);
     if (!INT_SUCCESS(status))
     {
         WARNING("[WARNING] IntWinVadFetchVadFromMemory failed for parent 0x%016llx: 0x%08x\n",
@@ -3495,7 +3512,7 @@ INTSTATUS
 IntWinVadPatchInsertPrivate(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This is the #PFUNC_PreDetourCallback for the MiInsertPrivateVad guest API detour.
@@ -3507,7 +3524,7 @@ IntWinVadPatchInsertPrivate(
 /// @param[in]      FunctionAddress Guest virtual address of the hooked function. Ignored.
 /// @param[in, out] Handler         The hook handler structure. This will have the #API_HOOK_HANDLER.Code byte array
 ///                                 changed.
-/// @param[in]      HandlerAddress  The guest virtual address at which the handler code will be written. Ignored.
+/// @param[in]      Descriptor      Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @returns    #INT_STATUS_SUCCESS is always returned.
 ///
@@ -3515,7 +3532,7 @@ IntWinVadPatchInsertPrivate(
     API_HOOK_HANDLER *pHandler = Handler;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     if (gGuest.Guest64)
     {
@@ -3555,7 +3572,7 @@ INTSTATUS
 IntWinVadPatchInsertMap(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This is the #PFUNC_PreDetourCallback for the MiGetWsAndInsertVad guest API detour.
@@ -3567,7 +3584,7 @@ IntWinVadPatchInsertMap(
 /// @param[in]      FunctionAddress Guest virtual address of the hooked function. Ignored.
 /// @param[in, out] Handler         The hook handler structure. This will have the #API_HOOK_HANDLER.Code byte array
 ///                                 changed.
-/// @param[in]      HandlerAddress  The guest virtual address at which the handler code will be written. Ignored.
+/// @param[in]      Descriptor      Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @returns    #INT_STATUS_SUCCESS is always returned.
 ///
@@ -3576,7 +3593,7 @@ IntWinVadPatchInsertMap(
 
     UNREFERENCED_PARAMETER(FunctionAddress);
     UNREFERENCED_PARAMETER(Handler);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     if (gGuest.Guest64)
     {
@@ -3604,7 +3621,7 @@ INTSTATUS
 IntWinVadPatchVirtualProtect(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This is the #PFUNC_PreDetourCallback for the MiProtectVirtualMemory guest API detour.
@@ -3616,7 +3633,7 @@ IntWinVadPatchVirtualProtect(
 /// @param[in]      FunctionAddress Guest virtual address of the hooked function. Ignored.
 /// @param[in, out] Handler         The hook handler structure. This will have the #API_HOOK_HANDLER.Code byte array
 ///                                 changed.
-/// @param[in]      HandlerAddress  The guest virtual address at which the handler code will be written. Ignored.
+/// @param[in]      Descriptor      Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @returns    #INT_STATUS_SUCCESS is always returned.
 ///
@@ -3624,7 +3641,7 @@ IntWinVadPatchVirtualProtect(
     API_HOOK_HANDLER *pHandler = Handler;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     if (gGuest.Guest64)
     {
@@ -3661,7 +3678,7 @@ INTSTATUS
 IntWinVadPatchDeleteVaRange(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This is the #PFUNC_PreDetourCallback for the MiDeleteVirtualAddresses guest API detour.
@@ -3673,7 +3690,7 @@ IntWinVadPatchDeleteVaRange(
 /// @param[in]      FunctionAddress Guest virtual address of the hooked function. Ignored.
 /// @param[in, out] Handler         The hook handler structure. This will have the #API_HOOK_HANDLER.Code byte array
 ///                                 changed.
-/// @param[in]      HandlerAddress  The guest virtual address at which the handler code will be written. Ignored.
+/// @param[in]      Descriptor      Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @returns    #INT_STATUS_SUCCESS is always returned.
 ///
@@ -3681,7 +3698,7 @@ IntWinVadPatchDeleteVaRange(
     API_HOOK_HANDLER *pHandler = Handler;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     if (gGuest.Guest64)
     {
@@ -3709,7 +3726,7 @@ INTSTATUS
 IntWinVadPatchFinishVadDeletion(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This is the #PFUNC_PreDetourCallback for the MiFinishVadDeletion guest API detour.
@@ -3721,7 +3738,7 @@ IntWinVadPatchFinishVadDeletion(
 /// @param[in]      FunctionAddress Guest virtual address of the hooked function. Ignored.
 /// @param[in, out] Handler         The hook handler structure. This will have the #API_HOOK_HANDLER.Code byte array
 ///                                 changed.
-/// @param[in]      HandlerAddress  The guest virtual address at which the handler code will be written. Ignored.
+/// @param[in]      Descriptor      Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @returns    #INT_STATUS_SUCCESS is always returned.
 ///
@@ -3729,7 +3746,7 @@ IntWinVadPatchFinishVadDeletion(
     API_HOOK_HANDLER *pHandler = Handler;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     if (gGuest.Guest64)
     {
@@ -3753,7 +3770,7 @@ INTSTATUS
 IntWinVadPatchInsert(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This is the #PFUNC_PreDetourCallback for the MiInsertVad guest API detour.
@@ -3765,7 +3782,7 @@ IntWinVadPatchInsert(
 /// @param[in]      FunctionAddress Guest virtual address of the hooked function. Ignored.
 /// @param[in, out] Handler         The hook handler structure. This will have the #API_HOOK_HANDLER.Code byte array
 ///                                 changed.
-/// @param[in]      HandlerAddress  The guest virtual address at which the handler code will be written. Ignored.
+/// @param[in]      Descriptor      Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @returns    #INT_STATUS_SUCCESS is always returned.
 ///
@@ -3773,7 +3790,7 @@ IntWinVadPatchInsert(
     API_HOOK_HANDLER *pHandler = Handler;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     if (gGuest.Guest64)
     {
@@ -3805,7 +3822,6 @@ IntWinVadProcImportMainModuleVad(
 /// @param[in, out] Process The process that owns the VAD.
 ///
 /// @retval     #INT_STATUS_SUCCESS in case of success.
-/// @retval     #INT_STATUS_NOT_NEEDED_HINT if the main module is not yet loaded.
 /// @retval     #INT_STATUS_INVALID_PARAMETER_1 if Process is NULL.
 ///
 {
@@ -3896,12 +3912,22 @@ IntWinVadFetchByRange(
         return INT_STATUS_INVALID_PARAMETER_4;
     }
 
-    vadNode = IntWinVadFindNodeInGuestSpace(VadRoot,
-                                            StartPage & PAGE_MASK,
-                                            EndPage & PAGE_MASK,
-                                            0,
-                                            0,
-                                            FALSE);
+    for (DWORD tries = 0; tries < VAD_SEARCH_LIMIT; tries++)
+    {
+        vadNode = IntWinVadFindNodeInGuestSpace(VadRoot,
+                                                StartPage & PAGE_MASK,
+                                                EndPage & PAGE_MASK,
+                                                0,
+                                                0,
+                                                FALSE);
+        if (0 != vadNode)
+        {
+            TRACE("[WINVAD] VAD for range [0x%016llx, 0x%016llx] found at 0x%016llx. Tries: %u\n",
+                  StartPage, EndPage, vadNode, tries);
+            break;
+        }
+    }
+    
     if (0 == vadNode)
     {
         ERROR("[ERROR] Vad [0x%016llx, 0x%016llx] not found starting from root 0x%016llx\n",
@@ -3912,7 +3938,7 @@ IntWinVadFetchByRange(
         return INT_STATUS_NOT_FOUND;
     }
 
-    return IntWinVadFetchVadFromMemory(vadNode, Vad);
+    return IntWinVadFetchVadFromMemory(vadNode, Vad, TRUE);
 }
 
 

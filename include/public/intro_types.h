@@ -214,6 +214,9 @@ typedef enum _INTRO_ACTION_REASON
     /// A valid exception was found, but the action was blocked because the process-creation flags did not match the
     /// ones from the exception.
     introReasonProcessCreationNotMatched,
+    /// The action was allowed because the OldValue is the same as the NewValue (in the WriteInfo structure) - caused
+    /// by events such as calls to ProbeForWrite.
+    introReasonSameValue,
 
     /// Not a valid reason.
     ///
@@ -229,39 +232,47 @@ typedef enum _INTRO_OBJECT_TYPE
 {
     introObjectTypeRaw = 1,                         ///< Raw hook.
     introObjectTypeInternal,                        ///< Internal kernel structures - they don't generate alerts.
-    introObjectTypeSsdt,                            ///< SSDT (Windows only)
-    introObjectTypeFastIoDispatch,                  ///< Fast IO Dispatch (Windows only)
-    introObjectTypeDriverObject,                    ///< Driver object
-    introObjectTypeKmModule,                        ///< Kernel module (ntoskrnl.exe, hal.dll, etc.)
-    introObjectTypeIdt,                             ///< IDT
-    introObjectTypeGdt,                             ///< GDT
-    introObjectTypeKmUnpack,                        ///< Kernel unpacker
-    introObjectTypeProcess,                         ///< User process
-    introObjectTypeUmInternal,                      ///< Internal user-mode structure
-    introObjectTypeUmUnpack,                        ///< User-mode unpacker
-    introObjectTypeUmHeap,                          ///< User-mode heap
-    introObjectTypeUmStack,                         ///< User-mode stack
-    introObjectTypeUmGenericNxZone,                 ///< User-mode non executable zone
-    introObjectTypeUmModule,                        ///< User-mode library
+    introObjectTypeSsdt,                            ///< SSDT (Windows only).
+    introObjectTypeFastIoDispatch,                  ///< Fast IO Dispatch (Windows only).
+    introObjectTypeDriverObject,                    ///< Driver object.
+    introObjectTypeKmModule,                        ///< Kernel module (ntoskrnl.exe, hal.dll, etc.).
+    introObjectTypeIdt,                             ///< IDT.
+    introObjectTypeGdt,                             ///< GDT.
+    introObjectTypeKmUnpack,                        ///< Kernel unpacker.
+    introObjectTypeProcess,                         ///< User process.
+    introObjectTypeUmInternal,                      ///< Internal user-mode structure.
+    introObjectTypeUmUnpack,                        ///< User-mode unpacker.
+    introObjectTypeUmHeap,                          ///< User-mode heap.
+    introObjectTypeUmStack,                         ///< User-mode stack.
+    introObjectTypeUmGenericNxZone,                 ///< User-mode non executable zone.
+    introObjectTypeUmModule,                        ///< User-mode library.
     introObjectTypeDetourRead,                      ///< Hooked page against PG reads.
-    introObjectTypeTokenPtr,                        ///< Access Token pointer
+    introObjectTypeTokenPtr,                        ///< Access Token pointer.
     introObjectTypeCreds = introObjectTypeTokenPtr, ///< Access 'struct creds' fields.
-    introObjectTypeHalDispatchTable,                ///< Hal dispatch table
-    introObjectTypeHalIntController,                ///< Hal interrupt controller
-    introObjectTypeSelfMapEntry,                    ///< Self mapping index in PDBR
-    introObjectTypeHalHeap,                         ///< Hal heap
-    introObjectTypeVdso,                            ///< Virtual dynamic shared object (user-mode, Linux-only)
-    introObjectTypeVsyscall,                        ///< Virtual SYSCALL (user-mode, Linux-only)
-    introObjectTypeExTable,                         ///< Exception Table (Linux-only)
+    introObjectTypeHalDispatchTable,                ///< Hal dispatch table.
+    introObjectTypeHalIntController,                ///< Hal interrupt controller.
+    introObjectTypeSelfMapEntry,                    ///< Self mapping index in PDBR.
+    introObjectTypeHalHeap,                         ///< Hal heap.
+    introObjectTypeVdso,                            ///< Virtual dynamic shared object (user-mode, Linux-only).
+    introObjectTypeVsyscall,                        ///< Virtual SYSCALL (user-mode, Linux-only).
+    introObjectTypeExTable,                         ///< Exception Table (Linux-only).
     introObjectTypeVeAgent,                         ///< The Virtualization exception agent injected inside the guest.
-    introObjectTypeIdtr,                            ///< IDTR
-    introObjectTypeGdtr,                            ///< GDTR
-    introObjectTypeProcessCreation,                 ///< Process creation violation
-    introObjectTypeExecSuspiciousDll,               ///< Executions in suspicious DLL loads
-    introObjectTypeKmLoggerContext,                 ///< Infinity hook modifications of WMI_LOGGER_CONTEXT.GetCpuClock
-    introObjectTypeProcessCreationDpi,              ///< Process creation violation DPI
-    introObjectTypeTokenPrivs,                      ///< Token privileges
-    introObjectTypeSharedUserData,                  ///< Executions inside the SharedUserData region.
+    introObjectTypeIdtr,                            ///< IDTR.
+    introObjectTypeGdtr,                            ///< GDTR.
+    introObjectTypeProcessCreation,                 ///< Process creation violation.
+    introObjectTypeExecSuspiciousDll,               ///< Executions in suspicious DLL loads.
+    introObjectTypeKmLoggerContext,                 ///< Infinity hook modifications of WMI_LOGGER_CONTEXT.GetCpuClock.
+    introObjectTypeProcessCreationDpi,              ///< Process creation violation DPI.
+    introObjectTypeTokenPrivs,                      ///< Token privileges.
+    introObjectTypeSudExec,                         ///< Executions inside the SharedUserData region.
+    introObjectTypeHalPerfCounter,                  ///< Write protection over HalPerformanceCounter.
+    introObjectTypeHookedFunction,                  ///< The function is already hooked.
+    introObjectTypeSlackSpace,                      ///< The slack space is not 0-filled/NOP-filled.
+    introObjectTypeSecDesc,                         ///< Process security descriptor pointer.
+    introObjectTypeAcl,                             ///< Process ACL (SACL/DACL) was modified.
+    introObjectTypeSudIntegrity,                    ///< Integrity protection of SharedUserData region.
+    introObjectTypeInterruptObject,                 ///< An interrupt object from KPRCB.
+
     introObjectTypeTest,
 
     //
@@ -351,6 +362,8 @@ typedef enum _INTRO_NET_STATE
 #define PROC_OPT_PROT_DOUBLE_AGENT                  0x00000400
 /// @brief  Uses third party engines to scan the command line of a process.
 #define PROC_OPT_PROT_SCAN_CMD_LINE                 0x00000800
+/// Blocks foreing processes from setting instrumentation callbacks inside the target process (Windows only).
+#define PROC_OPT_PROT_INSTRUMENT                    0x00001000
 
 /// Any event inside the process will trigger the injection of the remediation tool.
 #define PROC_OPT_REMEDIATE                          0x20000000
@@ -367,14 +380,17 @@ typedef enum _INTRO_NET_STATE
                                             PROC_OPT_PROT_SET_THREAD_CTX    |\
                                             PROC_OPT_PROT_PTRACE            |\
                                             PROC_OPT_PROT_QUEUE_APC         |\
-                                            PROC_OPT_PROT_DOUBLE_AGENT)
+                                            PROC_OPT_PROT_DOUBLE_AGENT      |\
+                                            PROC_OPT_PROT_INSTRUMENT)
 
 /// Aggregates all the process protection flags.
-#define PROC_OPT_PROT_ALL                  (PROC_OPT_PROT_CORE_HOOKS   |\
-                                            PROC_OPT_PROT_INJECTION    |\
-                                            PROC_OPT_PROT_WSOCK_HOOKS  |\
-                                            PROC_OPT_PROT_EXPLOIT      |\
-                                            PROC_OPT_PROT_PREVENT_CHILD_CREATION)
+#define PROC_OPT_PROT_ALL                  (PROC_OPT_PROT_CORE_HOOKS                |\
+                                            PROC_OPT_PROT_INJECTION                 |\
+                                            PROC_OPT_PROT_WSOCK_HOOKS               |\
+                                            PROC_OPT_PROT_EXPLOIT                   |\
+                                            PROC_OPT_PROT_PREVENT_CHILD_CREATION    |\
+                                            PROC_OPT_PROT_SCAN_CMD_LINE             |\
+                                            PROC_OPT_KILL_ON_EXPLOIT)
 
 /// @}
 
@@ -498,13 +514,30 @@ typedef enum _INTRO_NET_STATE
 /// could not be SharedUserData executions without malicious behavior happening in kernel.
 #define INTRO_OPT_PROT_KM_SUD_EXEC          0x0000200000000000ull
 
+/// @brief  Enable protection over HalPerformanceCounter's function pointer, which is called inside
+///         KeQueryPerformanceCounter.
+#define INTRO_OPT_PROT_KM_HAL_PERF_CNT      0x0000400000000000ull
+
+/// @brief  Enable integrity protection over the Security Descriptor pointer and the 2 ACLs (SACL/DACL).
+#define INTRO_OPT_PROT_KM_SD_ACL            0x0000800000000000ull
+/// @brief  Enable detection of Security Descriptor pointer modifications and ACL modifications on process creation
+#define INTRO_OPT_PROT_DPI_SD_ACL           0x0001000000000000ull
+
+/// @brief  Enable integrity checks over various SharedUserData fields, as well as the zero-filled zone after the
+///         SharedUserData structure.
+#define INTRO_OPT_PROT_KM_SUD_INTEGRITY     0x0002000000000000ull
+
+/// @brief  Enable protection against modifications of interrupt objects from KPRCB's InterruptObject.
+#define INTRO_OPT_PROT_KM_INTERRUPT_OBJ     0x0004000000000000ull
+
 /// Aggregates all the deep process inspection flags.
 #define INTRO_OPT_PROT_DPI                  (INTRO_OPT_PROT_DPI_DEBUG       | \
                                             INTRO_OPT_PROT_DPI_STACK_PIVOT  | \
                                             INTRO_OPT_PROT_DPI_TOKEN_STEAL  | \
                                             INTRO_OPT_PROT_DPI_HEAP_SPRAY   | \
                                             INTRO_OPT_PROT_DPI_TOKEN_PRIVS  | \
-                                            INTRO_OPT_PROT_DPI_THREAD_SHELL)
+                                            INTRO_OPT_PROT_DPI_THREAD_SHELL | \
+                                            INTRO_OPT_PROT_DPI_SD_ACL)
 
 
 /// Aggregates all the kernel mode protection flags.
@@ -521,7 +554,8 @@ typedef enum _INTRO_NET_STATE
                                             INTRO_OPT_PROT_KM_HAL_INT_CTRL  | \
                                             INTRO_OPT_PROT_KM_SELF_MAP_ENTRY| \
                                             INTRO_OPT_PROT_KM_SWAPGS        | \
-                                            INTRO_OPT_PROT_KM_SUD_EXEC)
+                                            INTRO_OPT_PROT_KM_SUD_EXEC      | \
+                                            INTRO_OPT_PROT_KM_HAL_PERF_CNT)
 
 /// Aggregates all the user mode protection flags.
 #define INTRO_OPT_ENABLE_UM_PROTECTION      (INTRO_OPT_PROT_UM_MISC_PROCS   | \
@@ -544,7 +578,10 @@ typedef enum _INTRO_NET_STATE
                                             INTRO_OPT_PROT_KM_TOKEN_PTR         | \
                                             INTRO_OPT_PROT_KM_CREDS             | \
                                             INTRO_OPT_PROT_KM_LOGGER_CONTEXT    | \
-                                            INTRO_OPT_PROT_KM_TOKEN_PRIVS)
+                                            INTRO_OPT_PROT_KM_TOKEN_PRIVS       | \
+                                            INTRO_OPT_PROT_KM_SD_ACL            | \
+                                            INTRO_OPT_PROT_KM_SUD_INTEGRITY     | \
+                                            INTRO_OPT_PROT_KM_INTERRUPT_OBJ)
 
 /// Aggregates all the descriptor table register protection flags.
 #define INTRO_OPT_ENABLE_DTR_PROTECTION     (INTRO_OPT_PROT_KM_IDTR | \
@@ -618,7 +655,8 @@ typedef enum _INTRO_NET_STATE
      | INTRO_OPT_PROT_KM_HAL_HEAP_EXEC | INTRO_OPT_PROT_KM_HAL_INT_CTRL | INTRO_OPT_PROT_KM_SELF_MAP_ENTRY          \
      | INTRO_OPT_PROT_KM_GDTR | INTRO_OPT_PROT_KM_LX | INTRO_OPT_PROT_KM_VDSO | INTRO_OPT_PROT_KM_LX_MODULES        \
      | INTRO_OPT_PROT_KM_CREDS | INTRO_OPT_PROT_KM_TOKEN_PRIVS | INTRO_OPT_PROT_KM_SUD_EXEC                         \
-     | INTRO_OPT_PROT_KM_LOGGER_CONTEXT | INTRO_OPT_PROT_KM_NT_EAT_READS)
+     | INTRO_OPT_PROT_KM_LOGGER_CONTEXT | INTRO_OPT_PROT_KM_NT_EAT_READS | INTRO_OPT_PROT_KM_HAL_PERF_CNT           \
+     | INTRO_OPT_PROT_KM_SD_ACL | INTRO_OPT_PROT_KM_SUD_INTEGRITY | INTRO_OPT_PROT_KM_INTERRUPT_OBJ)
 
 
 /// @}
@@ -671,6 +709,36 @@ typedef enum _INTRO_NET_STATE
 #define ALERT_MAX_DETECTION_NAME        128u
 #define ALERT_MAX_ENGINES_VERSION       32u     ///< The maximum size of the third party scan engines version.
 
+ /// @brief      The size of the buffers in which we store the security descriptors. The security descriptor is composed
+ /// by its 2 Access Control Lists (SACL/DACL) and their corresponding Access Control Entries. Below there is an
+ /// example of the memory map for the security descriptor dumped in winsecdesc.c. Although the size is only 0x6C,
+ /// we want to have some room left for processes with more ACEs.
+ ///
+ /// 0x00   ///////////////////////////////
+ ///        ///   SECURITY_DESCRIPTOR   ///
+ ///        ///////////////////////////////
+ /// 0x14   ///////////////////////////////         |
+ ///        ///      SACL Header        ///         | 
+ ///        ///  AclRev=2  AclSize=0x1C-///---------| Total SACL size 0x1C
+ ///        ///      AceCount=1         ///         |
+ ///        ///////////////////////////////         |
+ /// 0x1C   ///////////////////////////////         |
+ ///        ///         ACE[0]          ///         |
+ ///        ///////////////////////////////         |
+ /// 0x30   ///////////////////////////////    |      
+ ///        ///      DACL Header        ///    |
+ ///        ///  AclRev=2  AclSize=0x3C-///----|
+ ///        ///      AceCount=2         ///    |
+ ///        ///////////////////////////////    |  Total DACL size 0x3C
+ /// 0x38   ///////////////////////////////    |
+ ///        ///         ACE[0]          ///    |
+ ///        ///////////////////////////////    |
+ ///        ///////////////////////////////    |
+ ///        ///         ACE[1]          ///    |
+ ///        ///////////////////////////////    |
+ /// 0x6C
+#define INTRO_SECURITY_DESCRIPTOR_SIZE    1024u
+
 /// @brief  Printable name used for #introObjectTypeCreds objects.
 #define VICTIM_PROCESS_CREDENTIALS          u"Process Credentials"
 /// @brief  Printable name used for #introObjectTypeDriverObject objects.
@@ -685,7 +753,14 @@ typedef enum _INTRO_NET_STATE
 #define VICTIM_PROCESS_TOKEN                u"Process Token"
 /// @brief  Printable name used for #introObjectTypeTokenPrivs objects.
 #define VICTIM_TOKEN_PRIVILEGES             u"Token privileges"
-
+/// @brief  Printable name used for #introObjectTypeHalPerfCounter objects.
+#define VICTIM_HAL_PERFORMANCE_COUNTER      u"HalPerformanceCounter"
+/// @brief  Printable name used for #introObjectTypeSecDesc objects.
+#define VICTIM_PROCESS_SECURITY_DESCRIPTOR  u"Security Descriptor"
+/// @brief  Printable name used for #introObjectTypeAcl objects.
+#define VICTIM_PROCESS_ACL                  u"Access Control List"
+/// @brief  Printable name used for #introObjectTypeInterruptObject.
+#define VICTIM_INTERRUPT_OBJECT             u"Interrupt Object"
 
 ///
 /// @brief  EPT access types.
@@ -724,6 +799,17 @@ typedef struct _INTRO_TOKEN_PRIVILEGES
     QWORD           Enabled;            ///< The currently enabled privileges.
     QWORD           EnabledByDefault;   ///< The privileges that are enabled by default.
 } INTRO_TOKEN_PRIVILEGES, *PINTRO_TOKEN_PRIVILEGES;
+
+
+///
+/// @brief  Windows process access control list (SACL/DACL)
+///
+typedef struct _INTRO_ACL
+{
+    BYTE AclRevision;
+    WORD AclSize;
+    WORD AceCount;
+} INTRO_ACL, *PINTRO_ACL;
 
 
 ///
@@ -920,6 +1006,31 @@ typedef struct _INTRO_EXEC_INFO
 
 
 ///
+/// @brief  Holds information about a security descriptor write attempt.
+///
+typedef struct _INTRO_SEC_DESC_INFO
+{
+    QWORD       OldAddress;         ///< The old security descriptor address.
+    QWORD       NewAddress;         ///< The new security descriptor address.
+    /// @brief  The CRC32 hash of the new security descriptor (after zeroing out SIDs with more than one sub-authority).
+    DWORD       NewSecDescHash;
+
+    /// @brief  The old security descriptor buffer (valid only if
+    /// #INTRO_OBJECT_TYPE is #introObjectTypeSecDesc or #introObjectTypeAcl).
+    BYTE        OldSecDesc[INTRO_SECURITY_DESCRIPTOR_SIZE];
+    /// @brief  The size of the old security descriptor buffer (valid only if
+    /// #INTRO_OBJECT_TYPE is #introObjectTypeSecDesc or #introObjectTypeAcl).
+    DWORD       OldSecDescSize;
+
+    /// @brief  The new security descriptor buffer (valid only if
+    /// #INTRO_OBJECT_TYPE is #introObjectTypeSecDesc or #introObjectTypeAcl).
+    BYTE        NewSecDesc[INTRO_SECURITY_DESCRIPTOR_SIZE];
+    /// @brief  The size of the new security descriptor buffer (valid only if
+    /// #INTRO_OBJECT_TYPE is #introObjectTypeSecDesc or #introObjectTypeAcl).
+    DWORD       NewSecDescSize;
+} INTRO_SEC_DESC_INFO, *PINTRO_SEC_DESC_INFO;
+
+///
 /// @brief  Holds code block patterns information.
 ///
 /// This is used by the exception mechanism as a signature for the code that generated an alert.
@@ -1109,6 +1220,13 @@ typedef struct _EVENT_EPT_VIOLATION
     {
         INTRO_MODULE        Module;         ///< The module that did the malicious access.
         INTRO_MODULE        ReturnModule;   ///< The module to which the current code returns to.
+        INTRO_PROCESS       Process;        ///< The process that did the malicious access.
+
+        struct
+        {
+            BOOLEAN User : 1;               ///< Set if it is a KM-UM write due to an injection from user-mode.
+            BOOLEAN Kernel : 1;             ///< Set if it is a KM-UM write due to an injection from kernel-mode.
+        } Injection;
     } Originator;
 
     /// Describes the accessed memory area.
@@ -1299,7 +1417,11 @@ typedef enum _MEMCOPY_VIOLATION_TYPE
     memCopyViolationSetContextThread,
 
     /// This represents an attempt to queue an APC into the victim process.
-    memCopyViolationQueueApcThread
+    memCopyViolationQueueApcThread,
+
+    /// This represents an attempt to set an instrument callback inside the victim process.
+    memCopyViolationInstrument,
+
 } MEMCOPY_VIOLATION_TYPE;
 
 
@@ -1449,17 +1571,22 @@ typedef struct _EVENT_TRANSLATION_VIOLATION
 ///
 typedef struct _EVENT_INTEGRITY_VIOLATION
 {
-    INTRO_VIOLATION_HEADER  Header;     ///< The alert header.
+    INTRO_VIOLATION_HEADER  Header;         ///< The alert header.
 
     struct
     {
-        INTRO_MODULE        Module;     ///< The module that modified the translation.
-        INTRO_PROCESS       Process;    ///< The module to which the current code return to.
+        INTRO_MODULE        Module;         ///< The module that modified the monitored region.
+        INTRO_PROCESS       Process;        ///< The module to which the current code return to.
     } Originator;
 
     struct
     {
-        INTRO_OBJECT_TYPE   Type;       ///< The type of the modified object.
+        INTRO_MODULE        Module;         ///< The module that modified the translation.
+    } Return;
+
+    struct
+    {
+        INTRO_OBJECT_TYPE   Type;           ///< The type of the modified object.
         /// NULL-terminated string with a human readable description of the modified object.
         WCHAR               Name[ALERT_PATH_MAX_LEN];
         union
@@ -1473,8 +1600,16 @@ typedef struct _EVENT_INTEGRITY_VIOLATION
         };
     } Victim;
 
-    /// The original and the new value.
-    INTRO_WRITE_INFO        WriteInfo;
+    union
+    {
+        /// The original and the new value (valid only if #INTRO_OBJECT_TYPE in NOT #introObjectTypeSecDesc
+        /// or #introObjectTypeAcl).
+        INTRO_WRITE_INFO        WriteInfo;
+        /// The original and the new value of the security descriptor address, buffer and hash (valid only if
+        /// #INTRO_OBJECT_TYPE is #introObjectTypeSecDesc or #introObjectTypeAcl).
+        INTRO_SEC_DESC_INFO     SecDescWriteInfo;
+    };
+
     /// The guest virtual address at which the monitored integrity region starts.
     QWORD                   BaseAddress;
     /// The guest virtual address which was modified.
@@ -1535,6 +1670,12 @@ typedef enum
 
     /// The thread which created the process has started execution on some suspicious code.
     INT_PC_VIOLATION_DPI_THREAD_START = (1 << 5),
+
+    /// The parent of a process has an altered security descriptor pointer.
+    INT_PC_VIOLATION_DPI_SEC_DESC = (1 << 6),
+
+    /// The parent of a process has an altered access control entry (inside SACL or DACL).
+    INT_PC_VIOLATION_DPI_ACL_EDIT = (1 << 7),
 } INTRO_PC_VIOLATION_TYPE;
 
 
@@ -1601,6 +1742,22 @@ typedef union _INTRO_DPI_EXTRA_INFO
         QWORD StartAddress;                 ///< The address where the thread started executing.
         BYTE StartPage[0x1000];             ///< The copied page from where the thread started executing.
     } DpiThreadStart;
+
+    struct
+    {
+        /// @brief This variable may indicate the victim process (where security descriptor has been stolen from).
+        /// If the security descriptor is invalid, this variable will be uninitialized.
+        INTRO_PROCESS SecDescStolenFrom;
+
+        QWORD OldPointerValue;              ///< Old value.
+        QWORD NewPointerValue;              ///< New value.
+
+        INTRO_ACL OldSacl;                  ///< The old SACL header.
+        INTRO_ACL OldDacl;                  ///< The old DACL header.
+
+        INTRO_ACL NewSacl;                  ///< The new SACL header.
+        INTRO_ACL NewDacl;                  ///< The new DACL header.
+    } DpiSecDescAcl;
 } INTRO_DPI_EXTRA_INFO, *PINTRO_DPI_EXTRA_INFO;
 
 
@@ -1625,6 +1782,8 @@ typedef struct _EVENT_PROCESS_CREATION_VIOLATION
     /// | INT_PC_VIOLATION_DPI_TOKEN_PRIVS     | the real parent process         |
     /// | INT_PC_VIOLATION_DPI_HEAP_SPRAY      | parent process                  |
     /// | INT_PC_VIOLATION_DPI_THREAD_START    | parent process                  |
+    /// | INT_PC_VIOLATION_DPI_SEC_DESC        | the real parent process         |
+    /// | INT_PC_VIOLATION_DPI_ACL_EDIT        | the real parent process         |
     /// --------------------------------------------------------------------------
     INTRO_PROCESS                   Victim;
 
@@ -1642,6 +1801,8 @@ typedef struct _EVENT_PROCESS_CREATION_VIOLATION
     /// | INT_PC_VIOLATION_DPI_TOKEN_PRIVS     | child process                   |
     /// | INT_PC_VIOLATION_DPI_HEAP_SPRAY      | child process                   |
     /// | INT_PC_VIOLATION_DPI_THREAD_START    | child process                   |
+    /// | INT_PC_VIOLATION_DPI_SEC_DESC        | child process                   |
+    /// | INT_PC_VIOLATION_DPI_ACL_EDIT        | child process                   |
     /// --------------------------------------------------------------------------
     INTRO_PROCESS                   Originator;
 
@@ -1664,6 +1825,8 @@ typedef struct _EVENT_PROCESS_CREATION_VIOLATION
     /// | INT_PC_VIOLATION_DPI_STOLEN_TOKEN    | #INTRO_DPI_EXTRA_INFO.DpiStolenToken  |
     /// | INT_PC_VIOLATION_DPI_HEAP_SPRAY      | #INTRO_DPI_EXTRA_INFO.DpiHeapSpray    |
     /// | INT_PC_VIOLATION_DPI_THREAD_START    | #INTRO_DPI_EXTRA_INFO.DpiThreadStart  |
+    /// | INT_PC_VIOLATION_DPI_SEC_DESC        | #INTRO_DPI_EXTRA_INFO.DpiSecDescAcl   |
+    /// | INT_PC_VIOLATION_DPI_ACL_EDIT        | #INTRO_DPI_EXTRA_INFO.DpiSecDescAcl   |
     /// --------------------------------------------------------------------------------
     INTRO_DPI_EXTRA_INFO            DpiExtraInfo;
 } EVENT_PROCESS_CREATION_VIOLATION, *PEVENT_PROCESS_CREATION_VIOLATION;
@@ -2277,6 +2440,7 @@ typedef enum
     intErrGuestExportNotFound,              ///< A kernel export was not found.
     intErrGuestStructureNotFound,           ///< A critical structure was not found inside the guest kernel.
     intErrUpdateFileNotSupported,           ///< The version of the provided CAMI file is not supported.
+    
     /// @brief  The process was not protected because there is not enough memory available.
     intErrProcNotProtectedNoMemory,
     intErrProcNotProtectedInternalError,    ///< The process was not protected due to an internal error.

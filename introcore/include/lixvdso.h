@@ -9,7 +9,7 @@
 
 typedef struct _LIX_TASK_OBJECT LIX_TASK_OBJECT, *PLIX_TASK_OBJECT;
 
-#define LIX_VDSO_FIXED          0xffffffffff600000
+#define LIX_VDSO_FIXED          0xffffffffff600000ULL
 
 INTSTATUS
 IntLixVdsoProtect(

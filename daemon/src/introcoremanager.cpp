@@ -367,7 +367,7 @@ const char *typeToString( INTRO_OBJECT_TYPE state )
 		__case( introObjectTypeGdtr );
 		__case( introObjectTypeTest );
 		__case( introObjectTypeTokenPrivs );
-		__case( introObjectTypeSharedUserData );
+		__case( introObjectTypeSudExec );
 		default:
 			return "unknown";
 	}

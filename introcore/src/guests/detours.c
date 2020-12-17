@@ -16,6 +16,8 @@
 #include "slack.h"
 #include "lixmodule.h"
 #include "kernvm.h"
+#include "alerts.h"
+#include "introcrt.h"
 
 
 /// @brief  The maximum size of the original function code we will replace.
@@ -870,6 +872,72 @@ _exit:
 }
 
 
+static INTSTATUS
+IntDetSendIntegrityAlert(
+    _In_ char *FunctionName,
+    _In_ QWORD FunctionAddress,
+    _In_ QWORD DetourAddress
+    )
+///
+/// @brief Sends an integrity alert if the provieded function is already hooked.
+///
+/// @param[in]  FunctionName    The name of the hooked function.
+/// @param[in]  FunctionAddress The guest virtual address of the function.
+/// @param[in]  DetourAddress   The guest virtual address to which the function is detoured.
+///
+/// @retval     INT_STATUS_SUCCESS                  On success.
+///
+{
+    INTSTATUS status = INT_STATUS_SUCCESS;
+    EVENT_INTEGRITY_VIOLATION *pEvent = &gAlert.Integrity;
+    KERNEL_DRIVER *pDriver = NULL;
+
+    memzero(pEvent, sizeof(*pEvent));
+
+    pEvent->Header.Action = introGuestAllowed;
+    pEvent->Header.Reason = introReasonAllowed;
+    pEvent->Header.MitreID = idHooking;
+
+    pEvent->Header.Flags &= ~ALERT_FLAG_NOT_RING0;
+
+    IntAlertFillVersionInfo(&pEvent->Header);
+    IntAlertFillCpuContext(FALSE, &pEvent->Header.CpuContext);
+
+    pDriver = IntDriverFindByAddress(DetourAddress);
+    if (pDriver)
+    {
+        if (gGuest.OSType == introGuestWindows)
+        {
+            IntAlertFillWinKmModule(pDriver, &pEvent->Originator.Module);
+        }
+        else if (gGuest.OSType == introGuestLinux)
+        {
+            IntAlertFillLixKmModule(pDriver, &pEvent->Originator.Module);
+        }
+    }
+
+    pEvent->Header.CpuContext.Valid = FALSE;
+    pEvent->Victim.Type = introObjectTypeHookedFunction;
+
+    utf8toutf16(pEvent->Victim.Name, FunctionName, MIN(sizeof(pEvent->Victim.Name), (DWORD)strlen(FunctionName)));
+
+    pEvent->BaseAddress = FunctionAddress;
+    pEvent->VirtualAddress = FunctionAddress;
+    pEvent->Size = gGuest.WordSize;
+
+    pEvent->WriteInfo.Size = gGuest.WordSize;
+    pEvent->WriteInfo.NewValue[0] = DetourAddress;
+
+    status = IntNotifyIntroEvent(introEventIntegrityViolation, pEvent, sizeof(*pEvent));
+    if (!INT_SUCCESS(status))
+    {
+        WARNING("[WARNING] IntNotifyIntroEvent failed: 0x%08x\n", status);
+    }
+
+    return INT_STATUS_SUCCESS;
+}
+
+
 INTSTATUS
 IntDetSetLixHook(
     _In_ QWORD FunctionAddress,
@@ -923,13 +991,21 @@ IntDetSetLixHook(
         return status;
     }
 
+    if (functionCode[0] == 0xE9 || functionCode[0] == 0xE8)
+    {
+        QWORD addr = FunctionAddress + SIGN_EX_32(*(DWORD *)&functionCode[1]) + 5;
+
+        IntDetSendIntegrityAlert(FnDetour->FunctionName, FunctionAddress, addr);
+
+        WARNING("[WARNING] API function already detoured (0x%016llx) by kprobe/live-patch!\n", addr);
+    }
+
     status = IntDetCreateObjectLix(FunctionAddress, FnDetour, &detourStruct, &pDetour);
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntDetCreateObjectLix failed with status: 0x%08x.", status);
         return status;
     }
-
 
     status = IntDetRelocate(pDetour, functionCode, sizeof(functionCode), &relInstrCount);
     if (!INT_SUCCESS(status))
@@ -1098,8 +1174,11 @@ IntDetSetHook(
         // If the function is already hooked, leave.
         if (origFn[0] == 0xE9)
         {
-            WARNING("[INFO] API function already detoured (0x%016llx), don't know by who! Aborting!\n",
-                    FunctionAddress + SIGN_EX_32(*(DWORD *)&origFn[1]) + 5);
+            QWORD addr = FunctionAddress + SIGN_EX_32(*(DWORD *)&origFn[1]) + 5;
+
+            IntDetSendIntegrityAlert(Descriptor->FunctionName, FunctionAddress, addr);
+
+            WARNING("[INFO] API function already detoured (0x%016llx), don't know by who! Aborting!\n", addr);
             return INT_STATUS_NOT_SUPPORTED;
         }
 
@@ -1143,7 +1222,7 @@ IntDetSetHook(
 
     if (NULL != Descriptor->PreCallback)
     {
-        status = Descriptor->PreCallback(FunctionAddress, Handler, pDetour->HandlerAddress);
+        status = Descriptor->PreCallback(FunctionAddress, Handler, Descriptor);
         if (!INT_SUCCESS(status))
         {
             ERROR("[ERROR] PreCallback for hook %d (`%s!%s`) failed: 0x%08x\n",
@@ -1612,13 +1691,40 @@ IntDetCallCallback(
     {
         if (pDetour->HypercallType == hypercallTypeVmcall)
         {
-            WARNING("[WARNING] The detour uses vmcall as a hypercall. Cannot remove and set RIP ...");
-            return INT_STATUS_SUCCESS;
+            if (gGuest.OSType == introGuestWindows)
+            {
+                WARNING("[WARNING] The detour uses vmcall as a hypercall. Cannot remove and set RIP ...");
+                return INT_STATUS_SUCCESS;
+            }
+            else if (gGuest.OSType == introGuestLinux)
+            {
+                QWORD addrRegs = gLixGuest->MmAlloc.PerCpuData.PerCpuAddress + (gVcpu->Index * PAGE_SIZE);
+
+                LOG("[DETOUR] Removing detour with tag %d and setting RIP[%d] to 0x%016llx\n",
+                        pDetour->Tag, gVcpu->Index, pDetour->FunctionAddress);
+
+                IntDetPermanentlyDisableDetour(pDetour);
+
+                status = IntKernVirtMemRead(addrRegs, 16 * 8, &gVcpu->Regs, NULL);
+                if (!INT_SUCCESS(status))
+                {
+                    ERROR("[ERROR] IntKernVirtMemRead failed for GVA 0x%016llx with status: 0x%08x\n",
+                          addrRegs, status);
+                    return status;
+                }
+
+                // The intergator adds the length of VMCALL instruction (3 bytes) to RIP
+                gVcpu->Regs.Rip = pDetour->FunctionAddress - 3;
+
+                IntSetGprs(gVcpu->Index, &gVcpu->Regs);
+
+                return INT_STATUS_NO_DETOUR_EMU;
+            }
         }
 
         if (pDetour->HypercallType == hypercallTypeInt3)
         {
-            LOG("[DETOUR] Removing detour with tag %d and setting RIP[%d] on 0x%016llx\n",
+            LOG("[DETOUR] Removing detour with tag %d and setting RIP[%d] to 0x%016llx\n",
                 pDetour->Tag, gVcpu->Index, pDetour->FunctionAddress);
 
             IntDetPermanentlyDisableDetour(pDetour);
@@ -2027,6 +2133,32 @@ IntDetGetByTag(
             *Size = pDet->HandlerSize;
         }
 
+        return INT_STATUS_SUCCESS;
+    }
+
+    return INT_STATUS_NOT_FOUND;
+}
+
+
+INTSTATUS
+IntDetGetFunctionAddressByTag(
+    _In_ DETOUR_TAG Tag,
+    _Out_ QWORD *FunctionAddress
+    )
+///
+/// @brief  Get a detour function address by its tag.
+///
+/// @param[in]  Tag             Detour tag.
+/// @param[out] FunctionAddress On success, the address of the function which was detoured.
+///
+/// @retval     #INT_STATUS_SUCCESS if there is a detour for the given tag.
+/// @retval     #INT_STATUS_NOT_FOUND if there is no detour for the given tag.
+///
+{
+    DETOUR *pDet = IntDetFindByTag(Tag);
+    if (pDet)
+    {
+        *FunctionAddress = pDet->FunctionAddress;
         return INT_STATUS_SUCCESS;
     }
 

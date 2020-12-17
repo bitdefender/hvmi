@@ -5,6 +5,7 @@
 #include "lixagent.h"
 #include "alerts.h"
 #include "callbacks.h"
+#include "glue.h"
 #include "guests.h"
 #include "hnd_remediation.h"
 #include "hnd_loggather.h"
@@ -353,6 +354,11 @@ IntLixAgentThreadFree(
     if (Thread->Data.Code != NULL)
     {
         HpFreeAndNullWithTag(&Thread->Data.Code, IC_TAG_LAGE);
+    }
+
+    if (Thread->Content.Address)
+    {
+        IntReleaseBuffer(Thread->Content.Address, Thread->Content.Size);
     }
 
     HpFreeAndNullWithTag(&Thread, IC_TAG_LAGE);

@@ -10,6 +10,7 @@
 #define KSYM_TOKEN_TABLE_SIZE_CAP   2000    ///< The maximum size allowed for the tokens table size.
 #define KSYM_NAMES_CACHE_SIZE_CAP   2000000 ///< The maximum size allowed for the names.
 #define KSYM_TOKEN_ARRAY_CACHE_SIZE 256     ///< The size of tokens array cache.
+#define KSYM_MARKERS_RANGE_MAX      0x3000  ///< The maximum value for [ksym_marker, ksym_marker + 1] range
 
 ///
 /// @brief Describes the structure of the internal kallsyms buffers and other data required for
@@ -33,6 +34,7 @@ typedef struct _KALLSYMS_BUFFERS
     QWORD           Names;                  ///< The guest virtual address of the names table.
 
     char            *NamesBuffer;           ///< The internal name cache used for a faster symbol lookup.
+    DWORD           NamesBufferSize;        ///< The size of NamesBuffer.
 
     union
     {
@@ -74,27 +76,58 @@ IntKsymExpandSymbol(
 ///
 {
     BOOLEAN skipped = FALSE;
-    const char *pKallsymsNames = gKallsymsBuffers.NamesBuffer + Offset;
-    const BYTE *pData = (const BYTE *)pKallsymsNames;
-    BYTE length = *pData;
+    char *pKallsymsNames = NULL;
+    const BYTE *pData = NULL;
+    BYTE length = 0;
     DWORD nextOffset = 0;
+
+    if (Offset >= gKallsymsBuffers.NamesBufferSize)
+    {
+        ERROR("[ERROR] The provided offset is greater than the size of names buffer\n");
+        return 0;
+    }
+
+    pKallsymsNames = gKallsymsBuffers.NamesBuffer + Offset;
+    pData = (const BYTE *)pKallsymsNames;
+    length = *pData;
 
     if (0 == length)
     {
-        WARNING("[WARNING] Wrong symbol size %d. \n", length);
+        WARNING("[WARNING] Wrong symbol size %d\n", length);
         return 0;
     }
 
     pData++;
     nextOffset = Offset + length + 1;
 
+    if (Offset + length >= gKallsymsBuffers.NamesBufferSize)
+    {
+        ERROR("[ERROR] The length of symbol exceeds the names buffer\n");
+        return 0;
+    }
+
+    if (nextOffset >= gKallsymsBuffers.NamesBufferSize)
+    {
+        ERROR("[ERROR] The next offset exceeds the names buffer\n");
+        return 0;
+    }
+
     while (length)
     {
-        const char *tptr = &gKallsymsBuffers.TokenTable[gKallsymsBuffers.TokenIndex[*pData]];
+        char *tptr = NULL;
+        const DWORD idx = gKallsymsBuffers.TokenIndex[*pData];
+
+        if (idx >= gKallsymsBuffers.TokenTableSize)
+        {
+            ERROR("[ERROR] The token_index is greater than the size of token table\n");
+            return 0;
+        }
+
+        tptr = &gKallsymsBuffers.TokenTable[idx];
         pData++;
         length--;
 
-        while (*tptr)
+        while (*tptr && ((QWORD)tptr < (QWORD)gKallsymsBuffers.TokenTable + gKallsymsBuffers.TokenTableSize))
         {
             if (skipped)
             {
@@ -233,6 +266,9 @@ IntKsymRelativeFindOffsetTableStart(
             if (!INT_SUCCESS(status))
             {
                 ERROR("[ERROR] IntVirtMemRead failed for GVA 0x%016llx with status: 0x%08x\n", startAddr, status);
+
+                IntVirtMemUnmap(&pPage);
+
                 break;
             }
 
@@ -785,7 +821,7 @@ IntKsymFindMarkersReducedTableEnd(
         currentAddr += sizeof(*pMarkers);
         remaining -= sizeof(*pMarkers);
 
-        if (*pMarkers >= * (pMarkers + 1))
+        if ((*pMarkers >= * (pMarkers + 1)) || ((*(pMarkers + 1) - *pMarkers) >= KSYM_MARKERS_RANGE_MAX))
         {
             *EndAddress = currentAddr;
 
@@ -1165,6 +1201,8 @@ IntKsymInit(
         ERROR("[ERROR] IntKernVirtMemRead failed for GVA 0x%016llx with status: 0x%08x\n", currentAddr, status);
         goto _exit;
     }
+
+    gKallsymsBuffers.NamesBufferSize = size;
 
     // Cache the addresses (an array of sorted QWORDS). Ubuntu 16.04 takes ~800kb
 

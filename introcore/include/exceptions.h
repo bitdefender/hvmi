@@ -45,7 +45,6 @@
 // 0xf0000000 - 0xfffffffe
 //
 // NOTE: 0xffffffff as a hash is invalid!
-// NOTE: When the PathHash is missing we use the NameHash;
 //
 #define EXCEPTION_TABLE_SIZE            0x10
 #define EXCEPTION_TABLE_ID(H)           (((H) & 0xF0000000) >> 0x1c)
@@ -153,28 +152,33 @@ typedef struct _EXCEPTIONS
 ///
 typedef enum _KM_EXCEPTION_OBJECT
 {
-    kmObjNone = 0,         ///< Blocking exception.
-    kmObjAny,              ///< The modified object is any with the modified name.
-    kmObjDriver,           ///< The modified object is anything inside the driver.
-    kmObjDriverImports,    ///< The modified object is only the driver's EAT.
-    kmObjDriverCode,       ///< The modified object is only the driver's code sections.
-    kmObjDriverData,       ///< The modified object is only the driver's data sections.
-    kmObjDriverResources,  ///< The modified object is only the driver's resources sections.
-    kmObjSsdt,             ///< The modified object is SSDT (valid only on windows x86).
-    kmObjDrvObj,           ///< The modified object is anything inside the driver object.
-    kmObjFastIo,           ///< The modified object is anything inside the driver's fast IO dispatch table.
-    kmObjMsr,              ///< The modified object is a MSR.
-    kmObjCr4,              ///< The modified object is SMEP and/or SMAP bits of  CR4.
-    kmObjHalHeap,          ///< The modified object is anything inside the HAL heap zone.
-    kmObjSelfMapEntry,     ///< The modified object is the self map entry inside PDBR.
-    kmObjIdt,              ///< The modified object is any IDT entry.
-    kmObjIdtr,             ///< The modified object is IDTR.
-    kmObjGdtr,             ///< The modified object is GDTR.
+    kmObjNone = 0,              ///< Blocking exception.
+    kmObjAny,                   ///< The modified object is any with the modified name.
+    kmObjDriver,                ///< The modified object is anything inside the driver.
+    kmObjDriverImports,         ///< The modified object is only the driver's EAT.
+    kmObjDriverCode,            ///< The modified object is only the driver's code sections.
+    kmObjDriverData,            ///< The modified object is only the driver's data sections.
+    kmObjDriverResources,       ///< The modified object is only the driver's resources sections.
+    kmObjSsdt,                  ///< The modified object is SSDT (valid only on windows x86).
+    kmObjDrvObj,                ///< The modified object is anything inside the driver object.
+    kmObjFastIo,                ///< The modified object is anything inside the driver's fast IO dispatch table.
+    kmObjMsr,                   ///< The modified object is a MSR.
+    kmObjCr4,                   ///< The modified object is SMEP and/or SMAP bits of  CR4.
+    kmObjHalHeap,               ///< The modified object is anything inside the HAL heap zone.
+    kmObjSelfMapEntry,          ///< The modified object is the self map entry inside PDBR.
+    kmObjIdt,                   ///< The modified object is any IDT entry.
+    kmObjIdtr,                  ///< The modified object is IDTR.
+    kmObjGdtr,                  ///< The modified object is GDTR.
     ///< The modified object is WMI_LOGGER_CONTEXT.GetCpuClock used by InfinityHook (valid only on windows).
     kmObjLoggerCtx,
-    kmObjDriverExports,    ///< The modified object is only the driver's IAT.
-    kmObjTokenPrivs,       ///< The modified object is the privileges field inside the nt!_TOKEN structure.
-    kmObjSharedUserData,   ///< The modified object represents an execution inside SharedUserData.
+    kmObjDriverExports,         ///< The modified object is only the driver's IAT.
+    kmObjTokenPrivs,            ///< The modified object is the privileges field inside the nt!_TOKEN structure.
+    kmObjSudExec,               ///< The modified object represents an execution inside SharedUserData.
+    kmObjHalPerfCnt,            ///< The modified object is HalPerformanceCounter.
+    kmObjSecDesc,               ///< The modified object is the security descriptor pointer of a process.
+    kmObjAcl,                   ///< The modified object is an ACL (SACL/DACL) of a process.
+    kmObjSudModification,       ///< The modified object is a SharedUserData field.
+    kmObjInterruptObject,       ///< The modified object is an interrupt object from KPRCB.
 
     // Add more as needed
 } KM_EXCEPTION_OBJECT;
@@ -200,25 +204,26 @@ typedef enum _KUM_EXCEPTION_OBJECT
 ///
 typedef enum _UM_EXCEPTION_OBJECT
 {
-    umObjNone = 0,              ///< Blocking exception.
-    umObjAny,                   ///< The modified object is any with the modified name.
-    umObjProcess,               ///< The modified object is only another process (injection basically).
-    umObjModule,                ///< The modified object is inside the process modules.
-    umObjModuleImports,         ///< The modified object is inside the process module's IAT.
-    umObjNxZone,                ///< The object that has a NX zone is executed.
-    umObjModuleExports,         ///< The modified object is inside the process module's EAT.
+    umObjNone = 0,                  ///< Blocking exception.
+    umObjAny,                       ///< The modified object is any with the modified name.
+    umObjProcess,                   ///< The modified object is only another process (injection basically).
+    umObjModule,                    ///< The modified object is inside the process modules.
+    umObjModuleImports,             ///< The modified object is inside the process module's IAT.
+    umObjNxZone,                    ///< The object that has a NX zone is executed.
+    umObjModuleExports,             ///< The modified object is inside the process module's EAT.
     /// @brief   The modified object is anything inside the structure CONTEXT (valid only for windows).
     umObjProcessThreadContext,
-    umObjProcessPeb32,          ///< The modified object is anything inside of the PEB32 structure.
-    umObjProcessPeb64,          ///< The modified object is anything inside of the PEB64 structure.
+    umObjProcessPeb32,              ///< The modified object is anything inside of the PEB32 structure.
+    umObjProcessPeb64,              ///< The modified object is anything inside of the PEB64 structure.
     /// @brief The modified object is the thread which was performed an asynchronous procedure call on.
     umObjProcessApcThread,
-    umObjProcessCreation,       ///< The process object creates another process.
+    umObjProcessCreation,           ///< The process object creates another process.
     /// @brief The object allows only dlls which are detected as suspicous (e.g. module loads before kernel32.dll
     ///        through double agent technique).
     umObjModuleLoad,
-    umObjProcessCreationDpi,    ///< The process object creates another process using DPI flags.
-    umObjSharedUserData,        ///< Signals an execution inside SharedUserData.
+    umObjProcessCreationDpi,        ///< The process object creates another process using DPI flags.
+    umObjSharedUserData,            ///< Signals an execution inside SharedUserData.
+    umObjProcessInstrumentation,    ///< Signals an attempt to set an insturmentation callback.
 
     // Add more as needed
 } UM_EXCEPTION_OBJECT;
@@ -271,7 +276,12 @@ typedef struct _KUM_EXCEPTION
 {
     LIST_ENTRY  Link;
 
-    DWORD       OriginatorNameHash;             ///< Contains the originator name-hash.
+    union
+    {
+        DWORD       NameHash;                   ///< Contains the originator name-hash.
+        DWORD       DriverHash;                 ///< Contains the originator driver name-hash.
+        DWORD       ProcessHash;                ///< Contains the originator process name-hash.
+    } Originator;
 
     struct
     {
@@ -615,11 +625,15 @@ typedef enum _EXCEPTION_FLG
     EXCEPTION_UM_FLG_ONETIME        = 0x00000800,       ///< The exception is valid only once.
     EXCEPTION_UM_FLG_LIKE_APPHELP   = 0x00001000,       ///< The exception is valid only for apphelp process.
 
+    /// @brief The exception is valid only if the write comes due to an injection from user-mode.
+    EXCEPTION_KUM_FLG_USER          = 0x00008000,
+    /// @brief The exception is valid only if the write comes due to an injection from kernel-mode.
+    EXCEPTION_KUM_FLG_KERNEL        = 0x00010000,
 } EXCEPTION_FLG;
 
 
 ///
-/// @brief The predefined names for kernel-mode exception.
+/// @brief The predefined names for kernel-user-mode exception.
 ///
 typedef enum _KM_EXCEPTION_NAME
 {
@@ -629,19 +643,40 @@ typedef enum _KM_EXCEPTION_NAME
     kmExcNameHal,           ///< The name is the operating system HAL name (valid only for windows).
     kmExcNameNone,          ///< The name is missing.
 
-    // Note: Add new names only from this line on, because the exception generation
-    // script depends on the ordering of these values.
-
     kmExcNameVdso,          ///< The name is the operating system vdso (valid only for Linux).
     kmExcNameVsyscall,      ///< The name is the operating system vsyscall (valid only for Linux).
 
     kmExcNameVeAgent,       ///< The name is the \#VE Agent.
+
+    // Note: Add new names only from this line on, because the exception generation
+    // script depends on the ordering of these values.
 
     // Add more as needed
 
     kmExcNameInvalid        ///< Used to indicate an invalid kernel-mode exception name.
 
 } KM_EXCEPTION_NAME;
+
+
+///
+/// @brief The predefined names for kernel-mode exception.
+///
+typedef enum _KUM_EXCEPTION_NAME
+{
+    kumExcNameAny = 0,       ///< The name can be any string.
+    kumExcNameOwn,           ///< Allow modification of it's own driver object.
+    kumExcNameKernel,        ///< The name is the operating system kernel name.
+    kumExcNameHal,           ///< The name is the operating system HAL name (valid only for windows).
+    kumExcNameNone,          ///< The name is missing.
+
+    // Note: Add new names only from this line on, because the exception generation
+    // script depends on the ordering of these values.
+
+    // Add more as needed
+
+    kumExcNameInvalid        ///< Used to indicate an invalid kernel-mode exception name.
+
+} KUM_EXCEPTION_NAME;
 
 
 ///
@@ -694,6 +729,7 @@ typedef enum _SIGNATURE_FLG
 #define ZONE_PROC_THREAD_APC    0x000000040ULL  ///< Used for the APC thread hijacking technique.
 #define ZONE_DEP_EXECUTION      0x000000080ULL  ///< Used for executions inside DEP zones.
 #define ZONE_MODULE_LOAD        0x000000100ULL  ///< Used for exceptions for double agent.
+#define ZONE_PROC_INSTRUMENT    0x000000200ULL  ///< Used for exceptions for instrumentation callback.
 
 #define ZONE_WRITE              0x010000000ULL  ///< Used for write violation.
 #define ZONE_READ               0x020000000ULL  ///< Used for read violation.
@@ -707,12 +743,13 @@ typedef enum _SIGNATURE_FLG
 ///
 typedef enum _ZONE_TYPE
 {
-    exceptionZoneEpt = 1,       ///< The modified object is inside an EPT hook.
-    exceptionZoneMsr,           ///< The modified object is a MSR.
-    exceptionZoneCr,            ///< The modified object is a CR.
-    exceptionZoneIntegrity,     ///< The modified object is inside an integrity hook.
-    exceptionZoneProcess,       ///< The modified object is inside a process.
-    exceptionZoneDtr,           ///< the modified object is IDTR/GDTR.
+    exceptionZoneEpt = 1,           ///< The modified object is inside an EPT hook.
+    exceptionZoneMsr,               ///< The modified object is a MSR.
+    exceptionZoneCr,                ///< The modified object is a CR.
+    exceptionZoneIntegrity,         ///< The modified object is inside an integrity hook.
+    exceptionZoneProcess,           ///< The modified object is inside a process.
+    exceptionZoneDtr,               ///< The modified object is IDTR/GDTR.
+    exceptionZonePc,                ///< Used for process-creation violations.
 } ZONE_TYPE;
 
 
@@ -765,6 +802,15 @@ typedef struct _EXCEPTION_VICTIM_INTEGRITY
     QWORD   StartVirtualAddress;    ///< The start address of the integrity zone.
     DWORD   Offset;                 ///< The offset of the modification.
     DWORD   TotalLength;            ///< The length of the integrity zone.
+    /// @brief The index of the modified interrupt object. Valid only for
+    /// #introObjectTypeInterruptObject.
+    BYTE    InterruptObjIndex;
+    /// @brief  The new security descriptor buffer (valid only if
+    /// #INTRO_OBJECT_TYPE is #introObjectTypeSecDesc or #introObjectTypeAcl)
+    BYTE    *Buffer;
+    /// @brief  The size of the new security descriptor buffer (valid only if
+    /// #INTRO_OBJECT_TYPE is #introObjectTypeSecDesc or #introObjectTypeAcl)
+    DWORD   BufferSize;
 } EXCEPTION_VICTIM_INTEGRITY, *PEXCEPTION_VICTIM_INTEGRITY;
 
 
@@ -918,12 +964,27 @@ typedef struct _EXCEPTION_KM_ORIGINATOR
         CHAR            Section[9];             ///< The section where the Rip (not Original Rip) comes from.
     } Original;
 
+    union
+    {
+        /// @brief The process object from which the write originates. Valid only for KM-UM writes due to an injection
+        ///        originating from user-mode.
+        void                *Process;
+        WIN_PROCESS_OBJECT  *WinProc;           ///< The Windows process object from which the write originates.
+        LIX_TASK_OBJECT     *LixProc;           ///< The Linux process object from which the write originates.
+    } Process;
+
     /// @brief  The modifying instruction (at the OriginalRip). There's no point in getting the instruction at Rip,
     /// since it will be a CALL/JMP.
     INSTRUX                 *Instruction;
 
     BOOLEAN                 IsEntryPoint;       ///< The the Return-Rip is insied the 'INIT' section.
     BOOLEAN                 IsIntegrity;        ///< True if the originator is found by an integrity check.
+
+    struct
+    {
+        BOOLEAN User : 1;                       ///< This field is set to TRUE for a write due to an injection from user-mode.
+        BOOLEAN Kernel : 1;                     ///< This field is set to TRUE for a write due to an injection from kernel-mode.
+    } Injection;
 } EXCEPTION_KM_ORIGINATOR, *PEXCEPTION_KM_ORIGINATOR;
 
 
@@ -985,11 +1046,18 @@ typedef struct _EXCEPTION_UM_ORIGINATOR
 } EXCEPTION_UM_ORIGINATOR, *PEXCEPTION_UM_ORIGINATOR;
 
 
-/// @brief  Flags that can be passed to #IntExceptKernelGetOriginator if the action should not be blocked.
+/// @brief  Flag that can be passed to #IntExceptKernelGetOriginator if the action should not be blocked.
 ///
 /// Useful when we want to obtain a #EXCEPTION_KM_ORIGINATOR structure, but we do not want to block the action if
 /// the structure could not be properly filled.
 #define EXCEPTION_KM_ORIGINATOR_OPT_DO_NOT_BLOCK    0x00000001u
+
+/// @brief  Flag that can be passed to #IntExceptKernelGetOriginator when the full stack is needed.
+///
+/// In the usual cases, we fetch only the first return address if the originator RIP is contained inside a valid
+/// module. This flag should be used when there is need for at most three extracted stack traces, disregarding
+/// whether the originator module is valid or not.
+#define EXCEPTION_KM_ORIGINATOR_OPT_FULL_STACK      0x00000002u
 
 
 //

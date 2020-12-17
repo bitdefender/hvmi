@@ -343,6 +343,12 @@ class Exception:
         if victim._intro_object_type == IntroObjectTypeEnum.KmLoggerContext:
             obj.object_type = self._object_type(KmObjectType.kmObjLoggerCtx)
 
+        if victim._intro_object_type == IntroObjectTypeEnum.SecDesc:
+            obj.object_type = self._object_type(KmObjectType.kmObjSecDesc)
+
+        if victim._intro_object_type == IntroObjectTypeEnum.AclEdit:
+            obj.object_type = self._object_type(KmObjectType.kmObjAclEdit)
+
         obj.originator = self._kernel_driver_name_original(self._originator)
 
         if victim._intro_object_type != IntroObjectTypeEnum.KmLoggerContext:
@@ -656,6 +662,12 @@ class Exception:
 
         if dpi._flags & ProcessCreationFlagsEnum.processCreationHeapSpray.value:
             obj.create_mask.append(um_process_creation_flags[ProcessCreationFlagsEnum.processCreationHeapSpray])
+            
+        if dpi._flags & ProcessCreationFlagsEnum.processCreationSecDesc.value:
+            obj.create_mask.append(um_process_creation_flags[ProcessCreationFlagsEnum.processCreationSecDesc])
+
+        if dpi._flags & ProcessCreationFlagsEnum.processCreationAclEdit.value:
+            obj.create_mask.append(um_process_creation_flags[ProcessCreationFlagsEnum.processCreationAclEdit])
 
         return obj
 

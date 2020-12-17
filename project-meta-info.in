@@ -1,6 +1,6 @@
 # project-meta-info.in
 
-set(project_version 1.132.1)
+set(project_version 1.133.0)
 set(project_description "Hypervisor Memory Introspection")
 
 set(project_cami_major 1)

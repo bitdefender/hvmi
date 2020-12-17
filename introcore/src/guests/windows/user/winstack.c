@@ -10,6 +10,7 @@
 #include "winpe.h"
 #include "winummodule.h"
 #include "winthread.h"
+#include "swapmem.h"
 
 
 #define TRAPFRAME_MAX_ITERATIONS         0x100
@@ -92,10 +93,12 @@ IntStackAnalyzePointer(
 
                 if (instruction.Operands[0].Info.Memory.IsRipRel)
                 {
-                    // Disp is already sing extended
+                    // Disp is already sign extended
                     fetchAddress = Gva + instruction.Operands[0].Info.Memory.Disp;
                 }
-                else if (instruction.Operands[0].Info.Memory.IsDirect)
+                else if (instruction.Operands[0].Info.Memory.HasDisp &&
+                         !instruction.Operands[0].Info.Memory.HasBase &&
+                         !instruction.Operands[0].Info.Memory.HasIndex)
                 {
                     fetchAddress = instruction.Operands[0].Info.Memory.Disp;
                 }
@@ -136,10 +139,12 @@ IntStackAnalyzePointer(
 
                 if (instruction.Operands[0].Info.Memory.IsRipRel)
                 {
-                    // Disp is already sing extended
+                    // Disp is already sign extended
                     fetchAddress = Gva + instruction.Operands[0].Info.Memory.Disp;
                 }
-                else if (instruction.Operands[0].Info.Memory.IsDirect)
+                else if (instruction.Operands[0].Info.Memory.HasDisp &&
+                         !instruction.Operands[0].Info.Memory.HasBase &&
+                         !instruction.Operands[0].Info.Memory.HasIndex)
                 {
                     fetchAddress = instruction.Operands[0].Info.Memory.Disp;
                 }
@@ -188,79 +193,8 @@ cleanup_and_leave:
     if (!isCall || (calledFuncAddress != 0 && !IS_KERNEL_POINTER_WIN(gGuest.Guest64, calledFuncAddress)))
     {
         status = INT_STATUS_NOT_FOUND;
-        goto leave;
     }
 
-    if (calledFuncAddress == 0)
-    {
-        goto leave;
-    }
-
-    status = IntDecDecodeInstruction(gGuest.Guest64 ? IG_CS_TYPE_64B : IG_CS_TYPE_32B,
-                                     calledFuncAddress, &instruction);
-    if (!INT_SUCCESS(status))
-    {
-        status = INT_STATUS_SUCCESS;
-        goto leave;
-    }
-
-    //if (!ND_IS_INS_JMP(instruction.Instruction))
-    if ((ND_CAT_COND_BR != instruction.Category) && (ND_CAT_UNCOND_BR != instruction.Category))
-    {
-        goto leave;
-    }
-
-    switch (instruction.Instruction)
-    {
-    case ND_INS_JMPNI: // JMP [...]
-    {
-        if (ND_OP_MEM == instruction.Operands[0].Type)
-        {
-            QWORD fetchAddress;
-
-            if (instruction.Operands[0].Info.Memory.IsRipRel)
-            {
-                // Disp is already sing extended
-                fetchAddress = calledFuncAddress + instruction.Length + instruction.Operands[0].Info.Memory.Disp;
-            }
-            else if (instruction.Operands[0].Info.Memory.IsDirect)
-            {
-                fetchAddress = instruction.Operands[0].Info.Memory.Disp;
-            }
-            else
-            {
-                // So far so good, but it's using registers.
-                break;
-            }
-
-            // Get the actual called address
-            status = IntKernVirtMemFetchQword(fetchAddress, &calledFuncAddress);
-            if (!INT_SUCCESS(status))
-            {
-                ERROR("[ERROR] Failed to get function address from 0x%016llx (Call RIP 0x%016llx): 0x%08x\n",
-                      fetchAddress, calledFuncAddress, status);
-                calledFuncAddress = 0;
-            }
-        }
-        else if (ND_OP_REG == instruction.Operands[0].Type)
-        {
-            calledFuncAddress = 0;
-            goto leave;
-        }
-
-        break;
-    }
-    case ND_INS_JMPNR:
-    {
-        calledFuncAddress = calledFuncAddress + instruction.Length + instruction.Operands[0].Info.RelativeOffset.Rel;
-        break;
-    }
-
-    default:
-        break;
-    }
-
-leave:
     if (NULL != CallAddress)
     {
         *CallAddress = FIX_GUEST_POINTER(gGuest.Guest64, calledFuncAddress);
@@ -757,7 +691,8 @@ _start_searching:
                 // If there is a call but on a different address, the get the next pointer.
                 // But if the call address is 0 (that means the call involved a register) then we have nothing else
                 // to do
-                if (calledAddress != 0 && currentModBase != 0 && calledAddress != currentModBase + beginRva)
+                if (calledAddress != 0 && currentModBase != 0 && beginRva != 0 &&
+                    calledAddress != currentModBase + beginRva)
                 {
                     // See if the difference between current function and the called one is greater then maximum
                     // function length
@@ -804,56 +739,64 @@ _analyze_jmp_after_call_case:
 
                     switch (instrux.Instruction)
                     {
-                    case ND_INS_JMPNI: // JMP [...]
-                    {
-                        bIsJump = TRUE;
-
-                        if (ND_OP_MEM == instrux.Operands[0].Type)
+                        case ND_INS_JMPNI: // JMP [...]
                         {
-                            QWORD fetchAddress;
+                            bIsJump = TRUE;
 
-                            if (instrux.Operands[0].Info.Memory.IsRipRel)
+                            if (ND_OP_MEM == instrux.Operands[0].Type)
                             {
-                                // Disp is already sing extended
-                                fetchAddress = crip + instrux.Length + instrux.Operands[0].Info.Memory.Disp;
-                            }
-                            else if (instrux.Operands[0].Info.Memory.IsDirect)
-                            {
-                                fetchAddress = instrux.Operands[0].Info.Memory.Disp;
-                            }
-                            else
-                            {
-                                // So far so good, but it's using registers.
-                                break;
-                            }
+                                QWORD fetchAddress;
 
-                            // Get the actual called address
-                            status = IntKernVirtMemFetchQword(fetchAddress, &calledFuncAddress);
-                            if (!INT_SUCCESS(status))
+                                if (instrux.Operands[0].Info.Memory.IsRipRel)
+                                {
+                                    // Disp is already sign extended
+                                    fetchAddress = crip + instrux.Length + instrux.Operands[0].Info.Memory.Disp;
+                                }
+                                else if (instrux.Operands[0].Info.Memory.HasDisp &&
+                                         !instrux.Operands[0].Info.Memory.HasBase &&
+                                         !instrux.Operands[0].Info.Memory.HasIndex)
+                                {
+                                    fetchAddress = instrux.Operands[0].Info.Memory.Disp;
+                                }
+                                else
+                                {
+                                    // So far so good, but it's using registers.
+                                    break;
+                                }
+
+                                // Get the actual called address
+                                status = IntKernVirtMemFetchQword(fetchAddress, &calledFuncAddress);
+                                if (!INT_SUCCESS(status))
+                                {
+                                    WARNING("[WARNING] Failed to get function address from 0x%016llx "
+                                            "(Call RIP 0x%016llx): 0x%08x\n", fetchAddress, crip, status);
+                                    calledFuncAddress = 0;
+                                    break;
+                                }
+                            }
+                            else if (ND_OP_REG == instrux.Operands[0].Type)
                             {
-                                WARNING("[WARNING] Failed to get function address from 0x%016llx "
-                                        "(Call RIP 0x%016llx): 0x%08x\n", fetchAddress, crip, status);
                                 calledFuncAddress = 0;
                                 break;
                             }
-                        }
-                        else if (ND_OP_REG == instrux.Operands[0].Type)
-                        {
-                            calledFuncAddress = 0;
+                            else
+                            {
+                                // Don't take into account for now other things than JMP REG, JMP [MEM]
+                                bIsJump = FALSE;
+                            }
+
                             break;
                         }
-                        else
+                        case ND_INS_JMPNR:
                         {
-                            // Don't take into account for now other things than JMP REG, JMP [MEM]
-                            bIsJump = FALSE;
+                            bIsJump = TRUE;
+                            calledFuncAddress = crip + instrux.Length + instrux.Operands[0].Info.RelativeOffset.Rel;
+                            break;
                         }
-
-                        break;
-                    }
-                    default:
-                    {
-                        break;
-                    }
+                        default:
+                        {
+                            break;
+                        }
                     }
 
                     if (bIsJump)
@@ -1069,6 +1012,8 @@ IntWinStackTraceGet32(
     QWORD ebp, cr3;
     BOOLEAN remap;
     PDWORD pStack, pOrigStack;
+    DWORD currentRip = 0;
+    QWORD calledAddr = 0;
 
     UNREFERENCED_PARAMETER(Flags);
 
@@ -1097,6 +1042,7 @@ IntWinStackTraceGet32(
     pStack = pOrigStack = NULL;
     cr3 = gGuest.Mm.SystemCr3;
     status = INT_STATUS_SUCCESS;
+    currentRip = Eip;
 
     for (DWORD frame = 0; frame < MaxNumberOfTraces; frame++)
     {
@@ -1157,12 +1103,20 @@ IntWinStackTraceGet32(
             pMod = IntDriverFindByAddress(retAddress);
         }
 
+        status = IntStackAnalyzePointer(retAddress, &calledAddr);
+        if (!INT_SUCCESS(status))
+        {
+            calledAddr = 0;
+        }
+
         StackTrace->Traces[StackTrace->NumberOfTraces].ReturnAddress = retAddress;
         StackTrace->Traces[StackTrace->NumberOfTraces].ReturnModule = pMod;
 
         StackTrace->Traces[StackTrace->NumberOfTraces].RetAddrPointer = ebp + 4;
-        StackTrace->Traces[StackTrace->NumberOfTraces].CalledAddress = 0;
-        StackTrace->Traces[StackTrace->NumberOfTraces].CurrentRip = 0;
+        StackTrace->Traces[StackTrace->NumberOfTraces].CalledAddress = calledAddr;
+        StackTrace->Traces[StackTrace->NumberOfTraces].CurrentRip = currentRip;
+
+        currentRip = retAddress;
 
         ++StackTrace->NumberOfTraces;
 
@@ -1408,6 +1362,7 @@ IntWinStackTraceGetUser64(
     _In_ PIG_ARCH_REGS Registers,
     _In_ PWIN_PROCESS_OBJECT Process,
     _In_ DWORD MaxNumberOfTraces,
+    _In_ QWORD Remaining,
     _Inout_ STACK_TRACE *StackTrace
     )
 ///
@@ -1416,6 +1371,7 @@ IntWinStackTraceGetUser64(
 /// @param[in]      Registers           Pointer to a structure containing registers of the current CPU.
 /// @param[in]      Process             Pointer to the process from which to get the stack trace.
 /// @param[in]      MaxNumberOfTraces   Maximum number of stack traces to get.
+/// @param[in]      Remaining           Number of bytes that can be accessed starting from the current RSP.
 /// @param[in,out]  StackTrace          A caller initialized #STACK_TRACE structure that will hold the stack trace.
 ///
 /// @returns    #INT_STATUS_SUCCESS if successful, or an appropriate INTSTATUS error value.
@@ -1424,18 +1380,20 @@ IntWinStackTraceGetUser64(
     QWORD stackFrame;
     INTSTATUS status;
     PBYTE pStack;
+    DWORD pagesToParse = Remaining > PAGE_SIZE ? 2 : 1;
 
     stackFrame = Registers->Rsp;
 
-    for (DWORD j = 0; j < 2; j++)
+    for (DWORD j = 0; j < pagesToParse; j++)
     {
         DWORD remaining = PAGE_REMAINING(stackFrame);
 
         status = IntVirtMemMap(stackFrame, remaining, Registers->Cr3, 0, &pStack);
         if (!INT_SUCCESS(status))
         {
-            TRACE("[WARNING] Cannot get a stack at address %llx (start RSP %llx): 0x%08x\n",
+            ERROR("[ERROR] Cannot get a stack at address %llx (start RSP %llx): 0x%08x\n",
                   stackFrame, Registers->Rsp, status);
+
             return status;
         }
 
@@ -1487,11 +1445,155 @@ IntWinStackTraceGetUser64(
         {
             break;
         }
+
+        stackFrame += remaining;
     }
 
     if (StackTrace->NumberOfTraces == 0)
     {
         return INT_STATUS_NOT_FOUND;
+    }
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+static INTSTATUS
+IntWinStackHandleUserStackPagedOut(
+    _In_ WIN_PROCESS_OBJECT *Process,
+    _Out_ QWORD *Remaining
+    )
+///
+/// @brief  Handles the case when the stack is needed but is swapped out.
+///
+/// When checking for the return modules in some certain cases, such as writes from memcpy-like functions,
+/// we will need the return module in order to match the exceptions, as the caller should be excepted instead
+/// of the memcpy function. But, in the case when the stack is swapped out, we would most probably raise some
+/// false positives, as the return module cannot be fetched and the exceptions will not match on these violations.
+/// For this purpose, when the exception mechanism returns #INT_STATUS_STACK_SWAPPED_OUT, this function should
+/// be called. This function will check if the stack is inside the known limits (fetched from TIB), and will
+/// inject a page-fault in order to force the OS to swap in the stack. The caller must retry the instruction
+/// which caused the violation when this function succeeds, as, on retrying, the stack should be in memory.
+/// Note that, sometimes we would need the next page as well in order to get a correct stack trace. For this purpose,
+/// we will get the current VAD containing the stack and inject a page fault either up until the end of the VAD, or
+/// up until the next page after the one containing the RSP. If there doesn't exist such a VAD then we will not
+/// inject any page faults, so the presence of a VAD for the current stack is also a form of validation.
+///
+/// @param[in]  Process         The process in which the stack swapped out corner case took place.
+/// @param[out] Remaining       If the function succeeds, will contain the number of bytes which are accessible
+///                             starting from the current RSP.
+///
+/// @retval     #INT_STATUS_SUCCESS             On success.
+/// @retval     #INT_STATUS_INVALID_DATA_VALUE  If the stack is a kernel pointer.
+/// @retval     #INT_STATUS_NOT_NEEDED_HINT     If we are in the context of another process, in the case of shared memory,
+///                                             indicating that no action needs to be done for this process.
+/// @retval     #INT_STATUS_STACK_SWAPPED_OUT   If a \#PF was injected, either for the TIB or the stack, signaling that
+///                                             the current instruction must be retried.
+///
+{
+    INTSTATUS status;
+    QWORD tibBase, stackBase, stackLimit;
+    QWORD vadRoot = 0;
+    VAD stackVad = { 0 };
+    BOOLEAN foundSwappedOut = FALSE;
+
+    tibBase = stackBase = stackLimit = 0;
+
+    if (IS_KERNEL_POINTER_WIN(gGuest.Guest64, gVcpu->Regs.Rsp))
+    {
+        return INT_STATUS_INVALID_DATA_VALUE;
+    }
+
+    // For shared memory we should analyze the possibility of stack swapped out only when we are in
+    // the context of the process where the violation is triggered.
+    if (gVcpu->Regs.Cr3 != Process->Cr3)
+    {
+        *Remaining = 0;
+        return INT_STATUS_NOT_NEEDED_HINT;
+    }
+
+    status = IntWinThrGetCurrentStackBaseAndLimit(&tibBase, &stackBase, &stackLimit);
+    if ((INT_STATUS_PAGE_NOT_PRESENT == status) || (INT_STATUS_NO_MAPPING_STRUCTURES == status))
+    {
+        LOG("TIB is not present! Will inject #PF for %llx!\n", tibBase);
+
+        // It is safe to inject page faults now, as we are processing a write over a user-mode module from another
+        // user-mode module inside the same process at this time.
+        // NOTE: We do not save a handle for this swap event (this is the only one) since this page may be executed
+        // in the context of multiple threads, which would mean multiple swap-in attempts; therefore, we don't use
+        // a context or a callback for this swap, which will be removed when terminating the process, if needed.
+        status = IntSwapMemReadData(gVcpu->Regs.Cr3, tibBase, 32, SWAPMEM_OPT_UM_FAULT | SWAPMEM_OPT_NO_DUPS,
+                                    NULL, 0, NULL, NULL, NULL);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntSwapMemReadData failed: 0x%08x\n", status);
+            return status;
+        }
+
+        // We'll return this status to signal that a #PF was injected and the action should be retried.
+        return INT_STATUS_STACK_SWAPPED_OUT;
+    }
+    else if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinThrGetCurrentStackBaseAndLimit failed: 0x%08x\n", status);
+        return status;
+    }
+
+    status = IntKernVirtMemFetchWordSize(Process->EprocessAddress + WIN_KM_FIELD(Process, VadRoot), &vadRoot);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntKernVirtMemFetchWordSize failed: 0x%08x\n", status);
+        return status;
+    }
+
+    status = IntWinVadFetchByRange(vadRoot, gVcpu->Regs.Rsp & PAGE_MASK, gVcpu->Regs.Rsp & PAGE_MASK, &stackVad);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinVadFetchByRange failed: 0x%08x\n", status);
+        return status;
+    }
+
+    *Remaining = stackVad.EndPage + PAGE_SIZE - gVcpu->Regs.Rsp;
+
+    if ((gVcpu->Regs.Rsp < stackLimit) || (gVcpu->Regs.Rsp >= stackBase))
+    {
+        // If the stack is pivoted, don't inject anything, we can't assume that we'll succeed.
+        return INT_STATUS_SUCCESS;
+    }
+
+    // Inject a page fault on every page starting from the current RSP, up until either the end of the VAD containing
+    // the stack, or the next page, as it would be enough for our purposes of getting the stacktrace.
+    // Note: if the first page is not swapped out, and the second is swapped out then this code will inject a #PF
+    // only on the second page, as it will be swapped out when checking the translation in IntSwapMemReadData.
+    for (QWORD page = gVcpu->Regs.Rsp & PAGE_MASK;
+         page <= stackVad.EndPage && page <= (gVcpu->Regs.Rsp & PAGE_MASK) + PAGE_SIZE;
+         page += PAGE_SIZE)
+    {
+        QWORD pa;
+
+        status = IntTranslateVirtualAddress(page, gVcpu->Regs.Cr3, &pa);
+        if (status == INT_STATUS_NO_MAPPING_STRUCTURES || status == INT_STATUS_PAGE_NOT_PRESENT)
+        {
+            status = IntSwapMemReadData(gVcpu->Regs.Cr3, page, gGuest.WordSize,
+                                        SWAPMEM_OPT_UM_FAULT | SWAPMEM_OPT_NO_DUPS, NULL, 0, NULL, NULL, NULL);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntSwapMemReadData failed: 0x%08x\n", status);
+                return status;
+            }
+
+            foundSwappedOut = TRUE;
+        }
+        else if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntTranslateVirtualAddress failed: 0x%08x\n", status);
+            return status;
+        }
+    }
+
+    if (foundSwappedOut)
+    {
+        return INT_STATUS_STACK_SWAPPED_OUT;
     }
 
     return INT_STATUS_SUCCESS;
@@ -1518,6 +1620,7 @@ IntWinStackTraceGetUser(
 {
     INTSTATUS status;
     DWORD csType;
+    QWORD remaining = 0;
 
     if (NULL == Registers)
     {
@@ -1542,6 +1645,13 @@ IntWinStackTraceGetUser(
     memzero(StackTrace->Traces, MaxNumberOfTraces * sizeof(STACK_ELEMENT));
     StackTrace->StartRip = Registers->Rip;
     StackTrace->NumberOfTraces = 0;
+
+    status = IntWinStackHandleUserStackPagedOut(Process, &remaining);
+    if (!INT_SUCCESS(status))
+    {
+        TRACE("[INFO] IntWinStackHandleUserStackPagedOut failed: 0x%08x\n", status);
+        return status;
+    }
 
     status = IntGetCurrentMode(IG_CURRENT_VCPU, &csType);
     if (!INT_SUCCESS(status))
@@ -1569,7 +1679,7 @@ IntWinStackTraceGetUser(
         {
             // We probably are not in a stackframe, so get the first address on the stack and consider it to be the
             // return address
-            PWIN_PROCESS_MODULE pMod;
+            PWIN_PROCESS_MODULE pMod = NULL;
             DWORD retAddress = 0;
             BOOLEAN bFound = FALSE;
 
@@ -1578,7 +1688,7 @@ IntWinStackTraceGetUser(
             // Parse the first 8 DWORDs on the stack, because the function might have done some pushes
             // (e.g. memset does not do a stack frame, but performs a push edi, so we shouldn't take the edi value as
             // the return address)
-            for (size_t stackIndex = 0; stackIndex < 8; stackIndex++)
+            for (size_t stackIndex = 0; stackIndex < MIN(8u, remaining / 4); stackIndex++)
             {
                 status = IntVirtMemRead(stackFrame + stackIndex * 4, 4, Registers->Cr3, &retAddress, NULL);
                 if (!INT_SUCCESS(status))
@@ -1623,7 +1733,7 @@ IntWinStackTraceGetUser(
 
     StackTrace->Bits64 = TRUE;
 
-    return IntWinStackTraceGetUser64(Registers, Process, MaxNumberOfTraces, StackTrace);
+    return IntWinStackTraceGetUser64(Registers, Process, MaxNumberOfTraces, remaining, StackTrace);
 }
 
 
@@ -2196,12 +2306,8 @@ IntWinIsUmTrapFrame(
         }
 
         // Guest 64 valid SegCs
-        switch (trapFrame->SegCs)
+        if (trapFrame->SegCs != CODE_SEG_UM_64_GUEST_64)
         {
-        case CODE_SEG_UM_64_GUEST_64:
-            break;
-
-        default:
             return FALSE;
         }
 

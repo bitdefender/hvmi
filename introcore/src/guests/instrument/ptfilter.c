@@ -817,15 +817,15 @@ IntPtiRemoveInstruction(
 
         list = list->Flink;
 
-        // We store the address as saved by INT 20 in R8, so the address immediately after the instruction.
+        // We store the address as saved by INT 20 in R9, so the address immediately after the instruction.
         if (pPtc->Gla + pPtc->Instruction.Length == Rip)
         {
             LOG("[PTCORE] Found instruction to remove, RIP 0x%016llx\n", pPtc->Gla);
 
-            IntDumpGva(gVcpu->Regs.Rsp, 24 * 8, gVcpu->Regs.Cr3);
+            IntDumpGva(gVcpu->Regs.Rsp, 0x80, gVcpu->Regs.Cr3);
 
             // Patch the return address of the IRETQ instruction so it points to the old instruction.
-            status = IntKernVirtMemRead(gVcpu->Regs.Rsp + 18 * 8, sizeof(oldiret), &oldiret, NULL);
+            status = IntKernVirtMemRead(gVcpu->Regs.Rsp + 0x50, sizeof(oldiret), &oldiret, NULL);
             if (!INT_SUCCESS(status))
             {
                 ERROR("[ERROR] IntKernVirtMemRead failed: 0x%08x\n", status);
@@ -835,7 +835,7 @@ IntPtiRemoveInstruction(
             oldiret -= pPtc->Instruction.Length;
 
             status = IntVirtMemSafeWrite(gGuest.Mm.SystemCr3,
-                                         gVcpu->Regs.Rsp + 18 * 8,
+                                         gVcpu->Regs.Rsp + 0x50,
                                          sizeof(oldiret),
                                          &oldiret,
                                          IG_CS_RING_0);
@@ -1697,8 +1697,8 @@ IntPtiInjectPtFilter(
         return INT_STATUS_NOT_INITIALIZED;
     }
 
-    // Normally, we support filtering any x64 Windows. However, we intend to use it only on RS4.
-    if (gGuest.OSType != introGuestWindows || !gGuest.Guest64 || gGuest.OSVersion != 17134)
+    // Normally, we support filtering any x64 Windows. However, we intend to use it only on RS4 and newer.
+    if (gGuest.OSType != introGuestWindows || !gGuest.Guest64 || gGuest.OSVersion < 17134)
     {
         return INT_STATUS_NOT_NEEDED_HINT;
     }

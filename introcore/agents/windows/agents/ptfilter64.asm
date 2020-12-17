@@ -134,7 +134,7 @@ CheckModification:
             pushfq
             pop     rax
             mov     rcx, qword [rbp + sv_flags]
-            ; Clear eveyrhing except for the reserved bits and CF, PF, AF, ZF, SF, OF
+            ; Clear everything except for the reserved bits and CF, PF, AF, ZF, SF, OF
             and     rax, 0x8FF
             ; Clear the CF, PF, AF, ZF, SF, OF flags
             and     ecx, 0xFFFFF700
@@ -304,36 +304,153 @@ _done_no_exit_unlock:
             section .lock
             
 CheckLock:  
+            ; Stack when entering this function:
+            ; int 14h frame (RIP, CS, RFLAGS, RSP, SS)
+            ; 0/1 (IF indicator)
+            ; displacement
+            ; GLA
+            ; return address to the instruction handler
             pushfq
             push    rax
-            
-            ; Check if interrupts were already off.
-            bt      dword [rsp + 0x40], 9
-            jnc     _use_lock
-            
+
             ; Get the GLA base.
             mov     rax, qword [rsp + 0x18]
             ; Add the displacement.
             add     rax, qword [rsp + 0x20]
-            
-            sti
-            ;int3
-            ; Just to make sure the page is present...
-            lock or qword [rax], 0
-            
-            ; TODO: There is still a chance of race condition - the page may be de-mapped again right 
-            ; before this CLI again, but since we're talking about a potential PT, we shouldn't have
-            ; to worry about this.
-            cli
-            
+
             ; Try acquiring the lock.
 _use_lock:  lock bts qword [rel glock], 0
             jc      _use_lock
-            
+
+            ; Check PML4, to make sure the entry is present and valid.
+            push    rdx
+            push    rcx
+            mov     rdx, 0xffff000000000000
+            mov     ecx, dword [rel self_map]
+            shl     rcx, 12
+            or      rdx, rcx
+            shl     rcx, 9
+            or      rdx, rcx
+            shl     rcx, 9
+            or      rdx, rcx
+            shl     rcx, 9
+            or      rdx, rcx
+            mov     rcx, rax
+            shr     rcx, (12 + 9 + 9 + 9)
+            and     rcx, 0x1ff
+            shl     rcx, 3
+            or      rdx, rcx
+            test    qword [rdx], 2          ; Test the write bit.
+            bt      qword [rdx], 0          ; Test the present bit.
+            pop     rcx
+            pop     rdx
+            jnc     _remove_instruction     ; PML4 entry is NOT present.
+            jz      _remove_instruction     ; PML4 entry is NOT writable.
+
+            ; Check PDP, to make sure the entry is present and valid.
+            push    rdx
+            push    rcx
+            mov     rdx, 0xffff000000000000
+            mov     ecx, dword [rel self_map]
+            shl     rcx, 12 + 9
+            or      rdx, rcx
+            shl     rcx, 9
+            or      rdx, rcx
+            shl     rcx, 9
+            or      rdx, rcx
+            mov     rcx, rax
+            shr     rcx, (12 + 9 + 9)
+            and     rcx, 0x3FFFF
+            shl     rcx, 3
+            or      rdx, rcx
+            test    qword [rdx], 2          ; Test the write bit.
+            bt      qword [rdx], 0          ; Test the present bit.
+            pop     rcx
+            pop     rdx
+            jnc     _remove_instruction     ; PDP entry is NOT present.
+            jz      _remove_instruction     ; PDP entry is NOT writable.
+
+            ; Check PD, to make sure the entry is present and valid.
+            push    rdx
+            push    rcx
+            mov     rdx, 0xffff000000000000
+            mov     ecx, dword [rel self_map]
+            shl     rcx, 12 + 9 + 9
+            or      rdx, rcx
+            shl     rcx, 9
+            or      rdx, rcx
+            mov     rcx, rax
+            shr     rcx, (12 + 9)
+            and     rcx, 0x7FFFFFF
+            shl     rcx, 3
+            or      rdx, rcx
+            test    qword [rdx], 2          ; Test the write bit.
+            bt      qword [rdx], 0          ; Test the present bit.
+            pop     rcx
+            pop     rdx
+            jnc     _remove_instruction     ; PD entry is NOT present.
+            jz      _remove_instruction     ; PD entry is NOT writable.
+
+            ; Check PT, to make sure the entry is present and valid.
+            push    rdx
+            push    rcx
+            mov     rdx, 0xffff000000000000
+            mov     ecx, dword [rel self_map]
+            shl     rcx, 12 + 9 + 9 + 9
+            or      rdx, rcx
+            mov     rcx, rax
+            shr     rcx, 12
+            push    rbx
+            mov     rbx, 0xFFFFFFFFF
+            and     rcx, rbx
+            pop     rbx
+            shl     rcx, 3
+            or      rdx, rcx
+            test    qword [rdx], 2          ; Test the write bit.
+            bt      qword [rdx], 0          ; Test the present bit.
+            pop     rcx
+            pop     rdx
+            jnc     _remove_instruction     ; PT entry is NOT present.
+            jz      _remove_instruction     ; PT entry is NOT writable.
+
 _done_check:
+            ; The instruction is legit, go on.
             pop     rax
             popfq
             retn
+
+
+_remove_instruction:
+            push    rdi
+            push    rsi
+            push    r8
+            push    r9
+            
+            mov     eax, 0x22
+            mov     edi, 0x18
+            xor     esi, esi
+            ; R8  = 0
+            xor     r8, r8
+            ; r9 = the RIP of the instruction to be removed.
+            mov     r9, [rsp + 0x50]
+            ; Do the vmcall!
+            vmcall
+            
+            pop     r9
+            pop     r8
+            pop     rsi
+            pop     rdi
+            pop     rax
+            popfq
+            
+            ; Release the lock.
+            lock btr qword [rel glock], 0
+            
+            ; Clean up the stack.
+            add     rsp, 0x20
+            
+            ; Return to the intercepted instruction, which has been restored via the VMCALL above.
+            iretq
 
 
 ;==============================================================================
@@ -395,4 +512,3 @@ cache:      resb cache_size
             ; This is the RIP -> HANDLER table. For each modified instruction
             ; we establish a distinct handler.
 table:      resb table_size          
-            

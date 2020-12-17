@@ -23,6 +23,14 @@
             "-": 4
         },
 
+        "kernel-user-mode": {
+            "*": 0,
+            "[own]": 1,
+            "[kernel]": 2,
+            "[hal]": 3,
+            "-": 4
+        },
+
         "signature": {
             "*": 0,
             "-": 4
@@ -43,12 +51,14 @@
 
     "ProcessCreationFlags":
     {
-        "debug"         : "0x00000001",
-        "pivoted-stack" : "0x00000002",
-        "stolen-token"  : "0x00000004",
-        "heap-spray"    : "0x00000008",
-        "token-privs"   : "0x00000010",
-        "thread-start"  : "0x00000020"
+        "debug": "0x00000001",
+        "pivoted-stack": "0x00000002",
+        "stolen-token": "0x00000004",
+        "heap-spray": "0x00000008",
+        "token-privs": "0x00000010",
+        "thread-start": "0x00000020",
+        "security-descriptor": "0x00000040",
+        "acl-edit": "0x00000080"
     },
 
     "Groups": {
@@ -152,6 +162,11 @@
             "module-load": "0x00004000"
         },
 
+        "kernel-user-mode" : {
+            "user" : "0x0008000",
+            "kernel" : "0x0010000"
+        },
+
         "signatures": {
             "32": "0x00000001",
             "64": "0x00000002",
@@ -176,6 +191,7 @@
             "msr": 10,
             "cr4": 11,
             "hal-heap": 12,
+            "selfmap": 13,
             "idt": 14,
             "idt-reg": 15,
             "gdt-reg": 16,
@@ -183,7 +199,11 @@
             "driver exports": 18,
             "token-privs": 19,
             "sud-exec": 20,
-            "hal-perf-counter": 21
+            "hal-perf-counter": 21,
+            "security-descriptor": 22,
+            "acl-edit" : 23,
+            "sud-modification": 24,
+            "interrupt-obj": 25
         },
 
         "kernel-user-mode" : {
@@ -209,7 +229,8 @@
             "process-creation" : 11,
             "double-agent": 12,
             "process-creation-dpi": 13,
-            "sud-exec": 14
+            "sud-exec": 14,
+            "instrumentation-callback": 15
         }
     }
 }

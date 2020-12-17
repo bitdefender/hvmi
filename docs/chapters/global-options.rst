@@ -96,6 +96,13 @@ HAL protection options
     - protection
     - Rootkit_
     - Enable **HAL Interrupt Controller** write protection. Attempts to modify pointers inside the HAL Interrupt Controller will be blocked.
+    
+  * - **INTRO_OPT_PROT_KM_HAL_PERF_CNT**
+    - **yes**
+    - **no**
+    - protection
+    - Rootkit_
+    - Enable **HAL Performance Counter** integrity protection. Modifications which are detected on the function pointer inside HalPerformanceCounter that gets called on KeQueryPerformanceCounter will be blocked.
 
 Driver & driver object protection options
 -----------------------------------------
@@ -285,6 +292,20 @@ Misc integrity checks
     - protection
     - Rootkit_
     - Enable the Windows kernel logger context protection against malicious modifications (most commonly known as infinity hook).
+    
+  * - **INTRO_OPT_PROT_KM_SUD_INTEGRITY**
+    - **yes**
+    - **no**
+    - protection
+    - Rootkit_
+    - Enable integrity checks over various SharedUserData fields, as well as the zero-filled zone after the SharedUserData structure.
+    
+  * - **INTRO_OPT_PROT_KM_INTERRUPT_OBJ**
+    - **yes**
+    - **no**
+    - protection
+    - Rootkit_
+    - Enable protection against modifications of interrupt objects from KPRCB's InterruptObject.
 
 Process credentials, tokens & privileges
 ----------------------------------------
@@ -316,6 +337,13 @@ Process credentials, tokens & privileges
     - protection
     - Token_
     - Enable **SEP_TOKEN_PRIVIELEGES** protection for each process. Suspicious modifications of the **Enabled**/**Present** bitmaps inside the TOKEN structure will be blocked.
+
+  * - **INTRO_OPT_PROT_KM_SD_ACL**
+    - **yes**
+    - **no**
+    - protection
+    - Token_
+    - Enable integrity protection for the **security descriptor pointer** and **Access Control List (ACL)** of each process. Suspicious modifications of the security desciptor pointer or the ACLs (SACL/DACL) pointed by it will be blocked.
 
 Instrumentation based protection features
 -----------------------------------------
@@ -397,6 +425,13 @@ DPI - Deep Process Introspection options
     - protection
     - `Exploit client`_
     - Enable protection against process creation from a stray thread, which contains **shellcode-like code** (either dynamically injected, or as part of an exploit).
+
+  * - **INTRO_OPT_PROT_DPI_SD_ACL**
+    - **yes**
+    - **no**
+    - protection
+    - Token_
+    - Enable protection against process creation if the parent process has an altered **security descriptor pointer** or **Access Control List (ACL)** (SACL/DACL).
 
 Process introspection and protection
 ------------------------------------

@@ -460,6 +460,18 @@
     <ClInclude Include="include\windrv_protected.h">
       <Filter>Header Files\guests\windows\kernel</Filter>
     </ClInclude>
+    <ClInclude Include="include\winsud.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lixcmdline.h">
+      <Filter>Header Files\guests\linux</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winsecdesc.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winintobj.h">
+      <Filter>Header Files\guests\windows\kernel</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\utils\bitmask.c">
@@ -833,6 +845,18 @@
     </ClCompile>
     <ClCompile Include="src\guests\windows\winhkhnd.c">
       <Filter>Source Files\guests\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winsud.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winsecdesc.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\linux\lixcmdline.c">
+      <Filter>Source Files\guests\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="src\guests\windows\kernel\winintobj.c">
+      <Filter>Source Files\guests\windows\kernel</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

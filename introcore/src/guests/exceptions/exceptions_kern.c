@@ -14,6 +14,7 @@
 #include "winpe.h"
 #include "winstack.h"
 #include "lixksym.h"
+#include "crc32.h"
 
 
 extern char gExcLogLine[2 * ONE_KILOBYTE];
@@ -55,9 +56,9 @@ IntExceptPrintLixKmDrvInfo(
         ret = snprintf(Line, MaxLength, "%s(%s", Header, EXCEPTION_NO_NAME);
     }
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -68,9 +69,9 @@ IntExceptPrintLixKmDrvInfo(
 
     ret = snprintf(Line, MaxLength, " [0x%08x], %016llx", Driver->NameHash, Driver->BaseVa);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -80,7 +81,17 @@ IntExceptPrintLixKmDrvInfo(
     }
 
     ret = snprintf(Line, MaxLength, ")");
-    total += ret;
+
+    if (ret < 0 || ret >= MaxLength)
+    {
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
+    }
+    else
+    {
+        Line += ret;
+        total += ret;
+        MaxLength -= ret;
+    }
 
     return total;
 }
@@ -135,9 +146,9 @@ IntExceptPrintWinKmModInfo(
         ret = snprintf(Line, MaxLength, "%s(%s", Header, name);
     }
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -147,9 +158,10 @@ IntExceptPrintWinKmModInfo(
     }
 
     ret = snprintf(Line, MaxLength, " [0x%08x], %0*llx", Module->NameHash, gGuest.WordSize * 2, Module->BaseVa);
-    if (ret < 0)
+
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -162,9 +174,9 @@ IntExceptPrintWinKmModInfo(
     {
         ret = snprintf(Line, MaxLength, ", VerInfo: %x:%llx", Module->Win.TimeDateStamp, Module->Size);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -175,7 +187,17 @@ IntExceptPrintWinKmModInfo(
     }
 
     ret = snprintf(Line, MaxLength, ")");
-    total += ret;
+
+    if (ret < 0 || ret >= MaxLength)
+    {
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
+    }
+    else
+    {
+        Line += ret;
+        total += ret;
+        MaxLength -= ret;
+    }
 
     return total;
 }
@@ -204,9 +226,9 @@ IntExceptPrintMsrInfo(
 
     ret = snprintf(Line, MaxLength, "%s: (%08x", Header, Victim->Msr.Msr);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -240,9 +262,9 @@ IntExceptPrintMsrInfo(
     {
         ret = snprintf(Line, MaxLength, ", %s", msrName);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -254,9 +276,9 @@ IntExceptPrintMsrInfo(
 
     ret = snprintf(Line, MaxLength, ")");
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -268,9 +290,10 @@ IntExceptPrintMsrInfo(
     ret = snprintf(Line, MaxLength, ", WriteInfo: (%016llx -> %016llx)",
                    Victim->WriteInfo.OldValue[0],
                    Victim->WriteInfo.NewValue[0]);
-    if (ret < 0)
+
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -286,16 +309,32 @@ IntExceptPrintMsrInfo(
         if (gGuest.OSType == introGuestWindows)
         {
             ret = IntExceptPrintWinKmModInfo(pMsrDrv, ", Module: ", Line, MaxLength, 0);
-            MaxLength -= ret;
-            Line += ret;
-            total += ret;
+
+            if (ret < 0 || ret >= MaxLength)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
+            }
+            else
+            {
+                MaxLength -= ret;
+                Line += ret;
+                total += ret;
+            }
         }
         else if (gGuest.OSType == introGuestLinux)
         {
             ret = IntExceptPrintLixKmDrvInfo(pMsrDrv, ", Module: ", Line, MaxLength, 0);
-            MaxLength -= ret;
-            Line += ret;
-            total += ret;
+
+            if (ret < 0 || ret >= MaxLength)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
+            }
+            else
+            {
+                MaxLength -= ret;
+                Line += ret;
+                total += ret;
+            }
 
             if (pMsrDrv == gGuest.KernelDriver)
             {
@@ -313,9 +352,9 @@ IntExceptPrintMsrInfo(
 
                 ret = snprintf(Line, MaxLength, ", %s", symbol);
 
-                if (ret < 0)
+                if (ret < 0 || ret >= MaxLength)
                 {
-                    ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
                 }
                 else
                 {
@@ -353,9 +392,9 @@ IntExceptPrintCrInfo(
 
     ret = snprintf(Line, MaxLength, "%s%u", Header, Victim->Cr.Cr);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -368,9 +407,9 @@ IntExceptPrintCrInfo(
     {
         ret = snprintf(Line, MaxLength, ", (SMAP, SMEP)");
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -383,9 +422,9 @@ IntExceptPrintCrInfo(
     {
         ret = snprintf(Line, MaxLength, ", (SMEP)");
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -398,9 +437,9 @@ IntExceptPrintCrInfo(
     {
         ret = snprintf(Line, MaxLength, ", (SMAP)");
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -414,9 +453,10 @@ IntExceptPrintCrInfo(
                    Victim->WriteInfo.AccessSize,
                    Victim->WriteInfo.OldValue[0],
                    Victim->WriteInfo.NewValue[0]);
-    if (ret < 0)
+
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -467,9 +507,10 @@ IntExceptPrintIdtInfo(
 
     ret = snprintf(Line, MaxLength, "%s (IDT Base Address: %llx, IDT Entry modified: %llu (0x%016llx) (%s)",
                    Header, Victim->Object.BaseAddress, entryNo, entry, prot);
-    if (ret < 0)
+
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -479,9 +520,10 @@ IntExceptPrintIdtInfo(
     }
 
     ret = snprintf(Line, MaxLength, ", WriteInfo: (%u", Victim->WriteInfo.AccessSize);
-    if (ret < 0)
+
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -495,9 +537,10 @@ IntExceptPrintIdtInfo(
         ret = snprintf(Line, MaxLength, ", %016llx -> 0x%016llx",
                 Victim->WriteInfo.OldValue[i],
                 Victim->WriteInfo.NewValue[i]);
-        if (ret < 0)
+
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -508,9 +551,10 @@ IntExceptPrintIdtInfo(
     }
 
     ret = snprintf(Line, MaxLength, ")");
-    if (ret < 0)
+
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -546,9 +590,9 @@ IntExceptPrintDtrInfo(
 
     ret = snprintf(Line, MaxLength, "%s(", Header);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -572,9 +616,9 @@ IntExceptPrintDtrInfo(
 
     ret = snprintf(Line, MaxLength, "%s", dtrName);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -585,9 +629,9 @@ IntExceptPrintDtrInfo(
 
     ret = snprintf(Line, MaxLength, ")");
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -599,9 +643,10 @@ IntExceptPrintDtrInfo(
     ret = snprintf(Line, MaxLength, ", WriteInfo: (%016llx -> %016llx)",
                    Victim->WriteInfo.OldValue[0],
                    Victim->WriteInfo.NewValue[0]);
-    if (ret < 0)
+
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -613,9 +658,10 @@ IntExceptPrintDtrInfo(
     ret = snprintf(Line, MaxLength, ", DtrLimit: (%04llx -> %04llx)",
                    Victim->WriteInfo.OldValue[1],
                    Victim->WriteInfo.NewValue[1]);
-    if (ret < 0)
+
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -683,7 +729,16 @@ IntExceptKernelLogLinuxInformation(
     if (Victim->ZoneType == exceptionZoneIntegrity)
     {
         // No point in logging anything else, since the RIP is unknown
-        IntExceptPrintLixKmDrvInfo(pDriver, "Originator-> Module: ", l, rem, modNameAlignment);
+        ret = IntExceptPrintLixKmDrvInfo(pDriver, "Originator-> Module: ", l, rem, modNameAlignment);
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n", gExcLogLine);
     }
@@ -719,14 +774,21 @@ IntExceptKernelLogLinuxInformation(
         }
 
         ret = IntExceptPrintLixKmDrvInfo(pDriver, "Originator-> Module: ", l, rem, modNameAlignment);
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         ret = snprintf(l, rem, ", RIP %016llx", Originator->Original.Rip);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -738,9 +800,9 @@ IntExceptKernelLogLinuxInformation(
         {
             ret = snprintf(l, rem, " (%s)", Originator->Original.Section);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -753,9 +815,9 @@ IntExceptKernelLogLinuxInformation(
         {
             ret = snprintf(l, rem, " (%s)", symbol);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -768,9 +830,9 @@ IntExceptKernelLogLinuxInformation(
         {
             ret = snprintf(l, rem, ", Instr: %s", instr);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -785,13 +847,28 @@ IntExceptKernelLogLinuxInformation(
             LIX_TASK_OBJECT *pParent = IntLixTaskFindByGva(pTask->Parent);
 
             ret  = IntExceptPrintLixTaskInfo(pTask, ", Process: ", l, rem, 0);
-            rem -= ret;
-            l += ret;
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
 
             ret = IntExceptPrintLixTaskInfo(pParent, ", Parent: ", l, rem, 0);
-            rem -= ret;
-            l += ret;
 
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
         }
 
         LOG("%s\n", gExcLogLine);
@@ -816,14 +893,22 @@ IntExceptKernelLogLinuxInformation(
             }
 
             ret = IntExceptPrintLixKmDrvInfo(pRetDriver, "Return    -> Module: ", l, rem, modNameAlignment);
-            rem -= ret;
-            l += ret;
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
 
             ret = snprintf(l, rem, ", RIP %016llx", Originator->Return.Rip);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -835,9 +920,9 @@ IntExceptKernelLogLinuxInformation(
             {
                 ret = snprintf(l, rem, "(%s)", Originator->Return.Section);
 
-                if (ret < 0)
+                if (ret < 0 || ret >= rem)
                 {
-                    ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 }
                 else
                 {
@@ -850,9 +935,9 @@ IntExceptKernelLogLinuxInformation(
             {
                 ret = snprintf(l, rem, " (%s)", symbol);
 
-                if (ret < 0)
+                if (ret < 0 || ret >= rem)
                 {
-                    ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 }
                 else
                 {
@@ -872,6 +957,16 @@ IntExceptKernelLogLinuxInformation(
     {
         IntExceptPrintMsrInfo(Victim, "Victim    -> Msr: ", l, rem);
 
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
+
         LOG("%s\n", gExcLogLine);
     }
     else if ((Victim->Object.Type == introObjectTypeKmModule) ||
@@ -883,28 +978,52 @@ IntExceptKernelLogLinuxInformation(
         if (pDriver)
         {
             ret = IntExceptPrintLixKmDrvInfo(pDriver, "Victim    -> Module: ", l, rem, modNameAlignment);
-            rem -= ret;
-            l += ret;
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
         }
         else if (Victim->Object.Type == introObjectTypeVdso)
         {
             ret = snprintf(l, rem, "Victim    -> Module: %*s", modNameAlignment, "[vdso]");
-            rem -= ret;
-            l += ret;
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
         }
         else if (Victim->Object.Type == introObjectTypeVsyscall)
         {
             ret = snprintf(l, rem, "Victim    -> Module: %*s", modNameAlignment, "[vsyscall]");
-            rem -= ret;
-            l += ret;
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
         }
 
         ret = snprintf(l, rem, ", Address: (%0llx, %0llx)",
                        Victim->Ept.Gva, Victim->Ept.Gpa);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -922,9 +1041,9 @@ IntExceptKernelLogLinuxInformation(
 
             ret = snprintf(l, rem, ", %s", symbol);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -944,9 +1063,9 @@ IntExceptKernelLogLinuxInformation(
             ret = snprintf(l, rem, ", ReadInfo: (%u, %016llx)", Victim->ReadInfo.AccessSize, Victim->ReadInfo.Value[0]);
         }
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -964,9 +1083,9 @@ IntExceptKernelLogLinuxInformation(
                            (Victim->ZoneFlags & ZONE_LIB_RESOURCES) ? " RSRC" : "",
                            (unsigned long long)Victim->ZoneFlags);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -979,13 +1098,33 @@ IntExceptKernelLogLinuxInformation(
     }
     else if (Victim->ZoneType == exceptionZoneCr)
     {
-        IntExceptPrintCrInfo(Victim, "Victim    -> Cr", l, rem);
+        ret = IntExceptPrintCrInfo(Victim, "Victim    -> Cr", l, rem);
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n", gExcLogLine);
     }
     else if (Victim->Object.Type == introObjectTypeIdt)
     {
-        IntExceptPrintIdtInfo(Victim, "Victim    -> Idt: ", l, rem);
+        ret = IntExceptPrintIdtInfo(Victim, "Victim    -> Idt: ", l, rem);
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n", gExcLogLine);
     }
@@ -998,9 +1137,9 @@ IntExceptKernelLogLinuxInformation(
         ret = snprintf(l, rem, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^%sROOTKIT (kernel-mode) ",
                        gGuest.KernelBetaDetections ? " (B) " : " ");
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1051,9 +1190,9 @@ IntExceptKernelLogLinuxInformation(
             break;
         }
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1062,6 +1201,17 @@ IntExceptKernelLogLinuxInformation(
         }
 
         snprintf(l, rem, " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
+
         LOG("%s\n\n", gExcLogLine);
     }
 
@@ -1131,9 +1281,9 @@ IntExceptPrintDrvObjInfo(
 
     ret = snprintf(Line, MaxLength, "%s(%s", Header, name);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -1145,9 +1295,9 @@ IntExceptPrintDrvObjInfo(
     ret = snprintf(Line, MaxLength, " [0x%08x], %0*llx, %0llx",
                    DrvObj->NameHash, gGuest.WordSize * 2, DrvObj->DriverObjectGva, DrvObj->DriverObjectGpa);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -1160,9 +1310,9 @@ IntExceptPrintDrvObjInfo(
     {
         ret = snprintf(Line, MaxLength, ", %0*llx", gGuest.WordSize * 2, DrvObj->FastIOTableAddress);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -1174,13 +1324,15 @@ IntExceptPrintDrvObjInfo(
 
     ret = snprintf(Line, MaxLength, ")");
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
+        Line += ret;
         total += ret;
+        MaxLength -= ret;
     }
 
     return total;
@@ -1239,12 +1391,25 @@ IntExceptKernelLogWindowsInformation(
 
     if (Victim->ZoneType == exceptionZoneIntegrity)
     {
-        // For token privileges integrity detection, originator will always be invalid, there is
-        // no reason to just log a "Originator no name" line.
-        if (Victim->Object.Type != introObjectTypeTokenPrivs)
+        // For token privileges, security descriptor integrity detection and SharedUsedData integrity detection,
+        // originator will always be invalid, there is no reason to just log a "Originator no name" line.
+        if (Victim->Object.Type != introObjectTypeTokenPrivs &&
+            Victim->Object.Type != introObjectTypeSecDesc &&
+            Victim->Object.Type != introObjectTypeAcl &&
+            Victim->Object.Type != introObjectTypeSudIntegrity)
         {
             // No point in logging anything else, since the RIP is unknown
-            IntExceptPrintWinKmModInfo(pDriver, "Originator-> Module: ", l, rem, 0);
+            ret = IntExceptPrintWinKmModInfo(pDriver, "Originator-> Module: ", l, rem, 0);
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
 
             LOG("%s\n", gExcLogLine);
         }
@@ -1267,14 +1432,22 @@ IntExceptKernelLogWindowsInformation(
         }
 
         ret = IntExceptPrintWinKmModInfo(pDriver, "Originator-> Module: ", l, rem, modNameAlignment);
-        rem -= ret;
-        l += ret;
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         ret = snprintf(l, rem, ", RIP %0*llx", gGuest.WordSize * 2, Originator->Original.Rip);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1286,9 +1459,9 @@ IntExceptKernelLogWindowsInformation(
         {
             ret = snprintf(l, rem, " (%s)", Originator->Original.Section);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -1301,9 +1474,9 @@ IntExceptKernelLogWindowsInformation(
         {
             ret = snprintf(l, rem, ", Instr: %s", instr);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -1320,14 +1493,22 @@ IntExceptKernelLogWindowsInformation(
             rem = sizeof(gExcLogLine);
 
             ret = IntExceptPrintWinKmModInfo(pRetDriver, "Return    -> Module: ", l, rem, modNameAlignment);
-            rem -= ret;
-            l += ret;
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
 
             ret = snprintf(l, rem, ", RIP %0*llx", gGuest.WordSize * 2, Originator->Return.Rip);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -1339,9 +1520,9 @@ IntExceptKernelLogWindowsInformation(
             {
                 ret = snprintf(l, rem, "(%s)", Originator->Return.Section);
 
-                if (ret < 0)
+                if (ret < 0 || ret >= rem)
                 {
-                    ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 }
                 else
                 {
@@ -1359,7 +1540,17 @@ IntExceptKernelLogWindowsInformation(
 
     if (Victim->ZoneType == exceptionZoneMsr)
     {
-        IntExceptPrintMsrInfo(Victim, "Victim    -> Msr: ", l, rem);
+        ret = IntExceptPrintMsrInfo(Victim, "Victim    -> Msr: ", l, rem);
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n", gExcLogLine);
     }
@@ -1370,15 +1561,23 @@ IntExceptKernelLogWindowsInformation(
         pDriver = Victim->Object.Module.Module;
 
         ret = IntExceptPrintWinKmModInfo(pDriver, "Victim    -> Module: ", l, rem, modNameAlignment);
-        rem -= ret;
-        l += ret;
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         ret = snprintf(l, rem, ", Address: (%0*llx, %0*llx)",
                        gGuest.WordSize * 2, Victim->Ept.Gva,
                        gGuest.WordSize * 2, Victim->Ept.Gpa);
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1396,9 +1595,9 @@ IntExceptKernelLogWindowsInformation(
             ret = snprintf(l, rem, ", ReadInfo: (%u, %016llx)", Victim->ReadInfo.AccessSize, Victim->ReadInfo.Value[0]);
         }
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1415,9 +1614,10 @@ IntExceptKernelLogWindowsInformation(
                            (Victim->ZoneFlags & ZONE_LIB_DATA) ? " DATA" : "",
                            (Victim->ZoneFlags & ZONE_LIB_RESOURCES) ? " RSRC" : "",
                            (unsigned long long)Victim->ZoneFlags);
-            if (ret < 0)
+
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -1442,24 +1642,40 @@ IntExceptKernelLogWindowsInformation(
             ret = IntExceptPrintDrvObjInfo(Victim->Object.DriverObject, "Victim    -> DrvObj: ", l, rem);
         }
 
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         pDriver = IntDriverFindByBase(Victim->Object.DriverObject->Owner);
         if (pDriver)
         {
             ret = IntExceptPrintWinKmModInfo(pDriver, ", Owner: ", l, rem, 0);
-            rem -= ret;
-            l += ret;
+
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
         }
 
         ret = snprintf(l, rem, ", WriteInfo: (%u, %016llx -> %016llx)",
                        Victim->WriteInfo.AccessSize,
                        Victim->WriteInfo.OldValue[0],
                        Victim->WriteInfo.NewValue[0]);
-        if (ret < 0)
+
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1471,9 +1687,9 @@ IntExceptKernelLogWindowsInformation(
         {
             ret = snprintf(l, rem, ", INTEGRITY");
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -1486,7 +1702,17 @@ IntExceptKernelLogWindowsInformation(
     }
     else if (Victim->ZoneType == exceptionZoneCr)
     {
-        IntExceptPrintCrInfo(Victim, "Victim    -> Cr", l, rem);
+        ret = IntExceptPrintCrInfo(Victim, "Victim    -> Cr", l, rem);
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n", gExcLogLine);
     }
@@ -1502,14 +1728,24 @@ IntExceptKernelLogWindowsInformation(
         LOG("Victim    -> Hal heap execute: (%0*llx, %0*llx)\n",
             gGuest.WordSize * 2, Victim->Ept.Gva, gGuest.WordSize * 2, Victim->Ept.Gpa);
     }
-    else if (Victim->Object.Type == introObjectTypeSharedUserData)
+    else if (Victim->Object.Type == introObjectTypeSudExec)
     {
         LOG("Victim    -> SharedUserData execute: (%0*llx, %0*llx)\n",
             gGuest.WordSize * 2, Victim->Ept.Gva, gGuest.WordSize * 2, Victim->Ept.Gpa);
     }
     else if (Victim->Object.Type == introObjectTypeIdt)
     {
-        IntExceptPrintIdtInfo(Victim, "Victim    -> Idt: ", l, rem);
+        ret = IntExceptPrintIdtInfo(Victim, "Victim    -> Idt: ", l, rem);
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n", gExcLogLine);
     }
@@ -1546,10 +1782,30 @@ IntExceptKernelLogWindowsInformation(
                 Victim->WriteInfo.NewValue[0]);
         }
     }
+    else if (Victim->Object.Type == introObjectTypeHalPerfCounter)
+    {
+        LOG("Victim    -> HalPerformanceCounter (%016llx, %016llx), "
+            "WriteInfo: (%d, %016llx -> %016llx), INTEGRITY\n",
+            Victim->Integrity.StartVirtualAddress,
+            Victim->Integrity.StartVirtualAddress + Victim->Integrity.TotalLength,
+            Victim->WriteInfo.AccessSize,
+            Victim->WriteInfo.OldValue[0],
+            Victim->WriteInfo.NewValue[0]);
+    }
     else if (Victim->Object.Type == introObjectTypeGdtr ||
              Victim->Object.Type == introObjectTypeIdtr)
     {
-        IntExceptPrintDtrInfo(Victim, "Victim    -> Dtr: ", l, rem);
+        ret = IntExceptPrintDtrInfo(Victim, "Victim    -> Dtr: ", l, rem);
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n", gExcLogLine);
     }
@@ -1578,6 +1834,97 @@ IntExceptKernelLogWindowsInformation(
                 Victim->WriteInfo.NewValue[0]);
         }
     }
+    else if (Victim->Object.Type == introObjectTypeSecDesc ||
+             Victim->Object.Type == introObjectTypeAcl)
+    {
+         ACL oldSacl;
+         ACL oldDacl;
+         ACL newSacl;
+         ACL newDacl;
+         DWORD SDHeadersHash = 0;
+
+         // #ACL is exactly QWORD size, so we going to use some WriteInfo values to store the SACL and DACL.
+         // For both #introObjectTypeSecDesc and #introObjectTypeAcl we store the information as follows:
+         // - OldValue[0] is the old SACL
+         // - NewValue[0] is the new SACL
+         // - OldValue[1] is the old DACL
+         // - NewValue[1] is the new DACL
+         // - AccessSize is the size of the new security descriptor buffer.
+         //
+         // For #introObjectTypeSecDesc:
+         // - OldValue[2] is the old security descriptor pointer
+         // - NewValue[2] is the new security descriptor pointer
+
+         memcpy(&oldSacl, &Victim->WriteInfo.OldValue[0], sizeof(ACL));
+         memcpy(&newSacl, &Victim->WriteInfo.NewValue[0], sizeof(ACL));
+
+         memcpy(&oldDacl, &Victim->WriteInfo.OldValue[1], sizeof(ACL));
+         memcpy(&newDacl, &Victim->WriteInfo.NewValue[1], sizeof(ACL));
+
+         if (Victim->Integrity.Buffer)
+         {
+             SDHeadersHash = Crc32Compute(Victim->Integrity.Buffer,
+                                          Victim->Integrity.BufferSize,
+                                          INITIAL_CRC_VALUE);
+         }
+
+         if (Victim->Object.Type == introObjectTypeSecDesc)
+         {
+             LOG("Victim    -> Security descriptor pointer was modified for process (%s [0x%08x] %d), WriteInfo: "
+                 "(NewSdSize:%d, 0x%016llx -> 0x%016llx) New SD Hash:0x%x Old SACL "
+                 "AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x "
+                 "New SACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x "
+                 "Old DACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x "
+                 "New DACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x\n",
+                 Victim->Object.WinProc->Name,
+                 Victim->Object.WinProc->NameHash,
+                 Victim->Object.WinProc->Pid,
+                 Victim->Integrity.BufferSize,
+                 Victim->WriteInfo.OldValue[2],
+                 Victim->WriteInfo.NewValue[2],
+                 SDHeadersHash,
+                 oldSacl.AclSize, oldSacl.AceCount, oldSacl.AclRevision,
+                 newSacl.AclSize, newSacl.AceCount, newSacl.AclRevision,
+                 oldDacl.AclSize, oldDacl.AceCount, oldDacl.AclRevision,
+                 newDacl.AclSize, newDacl.AceCount, newDacl.AclRevision);
+         }
+         else
+         {
+             LOG("Victim    -> ACL edited for process (%s [0x%08x] %d) NewSdSize:%d New SD Hash:0x%x "
+                 "Old SACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x "
+                 "New SACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x "
+                 "Old DACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x "
+                 "New DACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x\n",
+                 Victim->Object.WinProc->Name,
+                 Victim->Object.WinProc->NameHash,
+                 Victim->Object.WinProc->Pid,
+                 Victim->Integrity.BufferSize,
+                 SDHeadersHash,
+                 oldSacl.AclSize, oldSacl.AceCount, oldSacl.AclRevision,
+                 newSacl.AclSize, newSacl.AceCount, newSacl.AclRevision,
+                 oldDacl.AclSize, oldDacl.AceCount, oldDacl.AclRevision,
+                 newDacl.AclSize, newDacl.AceCount, newDacl.AclRevision);
+         }
+    }
+    else if (Victim->Object.Type == introObjectTypeSudIntegrity)
+    {
+        LOG("Victim    -> SharedUserData (%s [0x%08x] 0x%016llx + 0x%08x), WriteInfo: (0x%016llx -> 0x%016llx 0x%08x)\n",
+            Victim->Object.Name,
+            Victim->Object.NameHash,
+            Victim->Integrity.StartVirtualAddress,
+            Victim->Integrity.Offset,
+            Victim->WriteInfo.OldValue[0],
+            Victim->WriteInfo.NewValue[0],
+            Victim->WriteInfo.AccessSize);
+    }
+    else if (Victim->Object.Type == introObjectTypeInterruptObject)
+    {
+        LOG("Victim    -> Interrupt Object (0x%016llx, entry %d) DispatchAddress: (0x%016llx -> 0x%016llx), "
+            "ServiceRoutine: (0x%016llx -> 0x%016llx)",
+            Victim->Integrity.StartVirtualAddress, Victim->Integrity.InterruptObjIndex,
+            Victim->WriteInfo.OldValue[0], Victim->WriteInfo.NewValue[0],
+            Victim->WriteInfo.OldValue[1], Victim->WriteInfo.NewValue[1]);
+    }
 
     if (Action == introGuestNotAllowed)
     {
@@ -1586,9 +1933,10 @@ IntExceptKernelLogWindowsInformation(
 
         ret = snprintf(l, rem, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^%sROOTKIT (kernel-mode) ",
                        gGuest.KernelBetaDetections ? " (B) " : " ");
-        if (ret < 0)
+
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1639,10 +1987,27 @@ IntExceptKernelLogWindowsInformation(
             break;
         }
 
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
-        snprintf(l, rem, " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+        ret = snprintf(l, rem, " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n\n", gExcLogLine);
     }
@@ -1865,7 +2230,7 @@ IntExceptWinKernelGetOriginator(
 /// The section for the original and the return driver is parsed in order to check if the violation should be blocked.
 ///
 /// @param[out] Originator      The originator object.
-/// @param[out] Options         If the violation should be blocked.
+/// @param[out] Options         A mask containing different flags regarding how the originator should be fetched.
 ///
 /// @retval     #INT_STATUS_SUCCESS             On success.
 /// @retval     #INT_STATUS_EXCEPTION_BLOCK     If the violation should be blocked.
@@ -1882,7 +2247,7 @@ IntExceptWinKernelGetOriginator(
     // Find the original driver that's modifying the memory
     Originator->Original.Driver = IntDriverFindByAddress(Originator->Original.Rip);
 
-    stackDepth = (NULL == Originator->Original.Driver) ? 3 : 1;
+    stackDepth = (NULL == Originator->Original.Driver || !!(Options & EXCEPTION_KM_ORIGINATOR_OPT_FULL_STACK)) ? 3 : 1;
 
     // Reset the stack trace
     Originator->StackTrace.Traces = Originator->StackElements;
@@ -1944,8 +2309,6 @@ IntExceptWinKernelGetOriginator(
         IMAGE_SECTION_HEADER sectionHeader;
         DRIVER_EXPORT_CACHE_ENTRY *pCache = NULL;
 
-        BOOLEAN found = FALSE;
-
         // Get the section header for the current RIP
         status = IntPeGetSectionHeaderByRva(pDriver->BaseVa,
                                             pDriver->Win.MzPeHeaders,
@@ -1955,7 +2318,7 @@ IntExceptWinKernelGetOriginator(
         {
             ERROR("[ERROR] Failed getting section details for Rip 0x%016llx: 0x%08x\n",
                   Originator->Original.Rip, status);
-            goto _cleanup_and_break;
+            return status;
         }
         else if (status == INT_STATUS_NOT_FOUND)
         {
@@ -1963,9 +2326,12 @@ IntExceptWinKernelGetOriginator(
                     Originator->Original.Rip, pDriver->BaseVa);
             if (0 == (Options & EXCEPTION_KM_ORIGINATOR_OPT_DO_NOT_BLOCK))
             {
-                status = INT_STATUS_EXCEPTION_BLOCK;
+                return INT_STATUS_EXCEPTION_BLOCK;
             }
-            goto _cleanup_and_break;
+            else
+            {
+                break;
+            }
         }
 
         // Will only happen once
@@ -1995,27 +2361,27 @@ IntExceptWinKernelGetOriginator(
                     Originator->Return.Rip, sectionHeader.Characteristics, Originator->Return.Section);
             if (0 == (Options & EXCEPTION_KM_ORIGINATOR_OPT_DO_NOT_BLOCK))
             {
-                status = INT_STATUS_EXCEPTION_BLOCK;
+                return INT_STATUS_EXCEPTION_BLOCK;
             }
-            goto _cleanup_and_break;
+            else
+            {
+                break;
+            }
         }
         if (Originator->Return.Rip - pDriver->EntryPoint < PAGE_SIZE &&
             0 == memcmp(Originator->Return.Section, "INIT", 4))
         {
-            found = TRUE;
-
             Originator->IsEntryPoint = TRUE;
 
             // The entry point can be exported. This ensures that it won't go further (to IopInitializeDriver & co.)
-            goto _cleanup_and_break;
+            break;
         }
 
         if (0 == Originator->StackTrace.NumberOfTraces ||
             NULL == Originator->Original.Driver)
         {
             // There is no point in going further
-            found = TRUE;
-            goto _cleanup_and_break;
+            break;
         }
 
 
@@ -2040,8 +2406,7 @@ IntExceptWinKernelGetOriginator(
             if (INT_STATUS_NOT_FOUND == status)
             {
                 IntDriverCacheCreateUnknown(Originator->Return.Rip);
-                found = TRUE;
-                goto _cleanup_and_break;
+                break;
             }
             else if (!INT_SUCCESS(status))
             {
@@ -2050,8 +2415,7 @@ IntExceptWinKernelGetOriginator(
                 // we had an error, which usually happens when the export directory is paged out.
                 if (pDriver == Originator->StackTrace.Traces[currentTrace].ReturnModule)
                 {
-                    found = TRUE;
-                    goto _cleanup_and_break;
+                    break;
                 }
             }
             else
@@ -2063,8 +2427,7 @@ IntExceptWinKernelGetOriginator(
         {
             if (pCache->Type.Unknown)
             {
-                found = TRUE;
-                goto _cleanup_and_break;
+                break;
             }
         }
 
@@ -2078,7 +2441,11 @@ IntExceptWinKernelGetOriginator(
 
             if (0 == (Options & EXCEPTION_KM_ORIGINATOR_OPT_DO_NOT_BLOCK))
             {
-                status = INT_STATUS_EXCEPTION_BLOCK;
+                return INT_STATUS_EXCEPTION_BLOCK;
+            }
+            else
+            {
+                break;
             }
         }
         else
@@ -2086,14 +2453,7 @@ IntExceptWinKernelGetOriginator(
             status = INT_STATUS_SUCCESS; // go to the next one
         }
 
-_cleanup_and_break:
-        // Unmap the current module base if needed (we found our function, or the return is in another module)
-        if (found)
-        {
-            break;
-        }
-
-        // if we had an error the we must get out now
+        // If we had an error the we must get out now
         if (!INT_SUCCESS(status))
         {
             return status;
@@ -2165,7 +2525,7 @@ IntExceptKernelGetOriginator(
 /// @brief This function is used to get the information about the kernel-mode originator.
 ///
 /// @param[out] Originator      The originator object.
-/// @param[out] Options         If the violation should be blocked.
+/// @param[out] Options         A mask containing different flags regarding how the originator should be fetched.
 ///
 /// @retval     #INT_STATUS_SUCCESS             On success.
 /// @retval     #INT_STATUS_INVALID_PARAMETER_1 If the provided originator is invalid.
@@ -2270,7 +2630,8 @@ IntExceptGetOriginatorFromModification(
         Victim->Object.Type == introObjectTypeFastIoDispatch    ||
         Victim->Object.Type == introObjectTypeHalDispatchTable  ||
         Victim->Object.Type == introObjectTypeKmLoggerContext   ||
-        Victim->Object.Type == introObjectTypeIdt)
+        Victim->Object.Type == introObjectTypeIdt               ||
+        Victim->Object.Type == introObjectTypeHalPerfCounter)
     {
         QWORD addr = 0;
 
@@ -2326,6 +2687,66 @@ IntExceptGetOriginatorFromModification(
         // And now, copy everything into the original field too
         Originator->Original.NameHash = Originator->Return.NameHash;
         Originator->Original.Driver = Originator->Return.Driver;
+
+        status = INT_STATUS_SUCCESS;
+    }
+    else if (Victim->Object.Type == introObjectTypeInterruptObject)
+    {
+        QWORD addr = Victim->WriteInfo.NewValue[0];
+
+        Originator->Return.Driver = IntDriverFindByAddress(addr);
+
+        // First we need to verify if Dispatch address points in kernel.
+        if (NULL == Originator->Return.Driver)
+        {
+            Originator->Return.NameHash = INITIAL_CRC_VALUE;
+        }
+        else if (Originator->Return.Driver->BaseVa == gGuest.KernelVa)
+        {
+            Originator->Return.NameHash = kmExcNameKernel;
+        }
+        else if (0 == wstrcasecmp(Originator->Return.Driver->Name, u"hal.dll") ||
+                 0 == wstrcasecmp(Originator->Return.Driver->Name, u"halmacpi.dll") ||
+                 0 == wstrcasecmp(Originator->Return.Driver->Name, u"halacpi.dll"))
+        {
+            Originator->Return.NameHash = kmExcNameHal;
+        }
+        else
+        {
+            Originator->Return.NameHash = Originator->Return.Driver->NameHash;
+        }
+
+        if (Originator->Return.NameHash == kmExcNameKernel)
+        {
+            // Now fill the Original from ServiceRoutine, since the return is in the kernel.
+            addr = Victim->WriteInfo.NewValue[1];
+
+            Originator->Original.Driver = IntDriverFindByAddress(addr);
+
+            if (NULL == Originator->Original.Driver)
+            {
+                Originator->Original.NameHash = INITIAL_CRC_VALUE;
+            }
+            else if (Originator->Original.Driver->BaseVa == gGuest.KernelVa)
+            {
+                Originator->Original.NameHash = kmExcNameKernel;
+            }
+            else if (0 == wstrcasecmp(Originator->Original.Driver->Name, u"hal.dll") ||
+                     0 == wstrcasecmp(Originator->Original.Driver->Name, u"halmacpi.dll") ||
+                     0 == wstrcasecmp(Originator->Original.Driver->Name, u"halacpi.dll"))
+            {
+                Originator->Original.NameHash = kmExcNameHal;
+            }
+            else
+            {
+                Originator->Original.NameHash = Originator->Original.Driver->NameHash;
+            }
+        }
+        else
+        {
+            Originator->Original.NameHash = Originator->Return.NameHash;
+            Originator->Original.Driver = Originator->Return.Driver;
+        }
 
         status = INT_STATUS_SUCCESS;
     }
@@ -2556,6 +2977,10 @@ IntExceptGetVictimIntegrity(
         *Offset += gGuest.WordSize;
         break;
 
+    case introObjectTypeInterruptObject:
+        Victim->WriteInfo.AccessSize = 2 * gGuest.WordSize;
+        break;
+
     default:
         Victim->WriteInfo.AccessSize = gGuest.WordSize;
         break;
@@ -2595,6 +3020,8 @@ IntExceptGetVictimIntegrity(
     }
     case introObjectTypeKmLoggerContext:
     case introObjectTypeHalDispatchTable:
+    case introObjectTypeHalPerfCounter:
+    case introObjectTypeInterruptObject:
     {
         break;
     }
@@ -2919,9 +3346,9 @@ IntExceptKernelMatchVictim(
         }
         break;
 
-    case kmObjSharedUserData:
+    case kmObjSudExec:
         if ((Victim->ZoneType == exceptionZoneEpt) &&
-            (Victim->Object.Type == introObjectTypeSharedUserData))
+            (Victim->Object.Type == introObjectTypeSudExec))
         {
             match = TRUE;
         }
@@ -2969,6 +3396,41 @@ IntExceptKernelMatchVictim(
 
     case kmObjTokenPrivs:
         if (Victim->Object.Type == introObjectTypeTokenPrivs)
+        {
+            match = TRUE;
+        }
+        break;
+
+    case kmObjHalPerfCnt:
+        if (Victim->Object.Type == introObjectTypeHalPerfCounter)
+        {
+            match = TRUE;
+        }
+        break;
+
+    case kmObjSecDesc:
+        if (Victim->Object.Type == introObjectTypeSecDesc)
+        {
+            match = TRUE;
+        }
+        break;
+
+    case kmObjAcl:
+        if (Victim->Object.Type == introObjectTypeAcl)
+        {
+            match = TRUE;
+        }
+        break;
+
+    case kmObjSudModification:
+        if (Victim->Object.Type == introObjectTypeSudIntegrity)
+        {
+            match = TRUE;
+        }
+        break;
+
+    case kmObjInterruptObject:
+        if (Victim->Object.Type == introObjectTypeInterruptObject)
         {
             match = TRUE;
         }
@@ -3119,6 +3581,17 @@ IntExceptKernel(
 
     *Action = introGuestNotAllowed;
     *Reason = introReasonNoException;
+
+    // In some cases the Old/New values are the same - allow them by default.
+    if (__unlikely(Victim->ZoneType == exceptionZoneEpt && !!(Victim->ZoneFlags & ZONE_WRITE) &&
+        !memcmp(Victim->WriteInfo.OldValue, Victim->WriteInfo.NewValue,
+                MIN(Victim->WriteInfo.AccessSize, sizeof(Victim->WriteInfo.NewValue)))))
+    {
+        *Action = introGuestAllowed;
+        *Reason = introReasonSameValue;
+
+        return INT_STATUS_EXCEPTION_ALLOW;
+    }
 
     for_each_km_exception(gGuest.Exceptions->KernelAlertExceptions, pEx)
     {

@@ -58,6 +58,7 @@ INTSTATUS
 IntWinTokenCheckCurrentPrivileges(
     _In_ WIN_PROCESS_OBJECT *Process,
     _In_ QWORD TokenPtr,
+    _In_ BOOLEAN IntegrityCheck,
     _Out_ BOOLEAN *PresentIncreased,
     _Out_ BOOLEAN *EnabledIncreased,
     _Out_opt_ QWORD *Present,

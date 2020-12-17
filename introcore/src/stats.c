@@ -100,7 +100,14 @@ IntStatGetName(
         __stats_case(statsProcessCreationCheck);
         __stats_case(statsNtEatRead);
         __stats_case(statsTokenWrites);
+        __stats_case(statsTokenChangeCheck);
+        __stats_case(statsTokenSwapCheck);
         __stats_case(statsKmUmWrites);
+        __stats_case(statsDpiSdAcl);
+        __stats_case(statsSudIntegrity);
+        __stats_case(statsSudExec);
+        __stats_case(statsSecDesc);
+        __stats_case(statsSetProcInfo);
         __stats_case(statsMaxCounter);
     }
 

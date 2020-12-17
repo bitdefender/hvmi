@@ -67,9 +67,9 @@ IntExceptKernelUserLogWindowsInformation(
 
     ret = snprintf(l, rem, ", RIP %0*llx", gGuest.WordSize * 2, Originator->Original.Rip);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= rem)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
     }
     else
     {
@@ -81,9 +81,9 @@ IntExceptKernelUserLogWindowsInformation(
     {
         ret = snprintf(l, rem, " (%s)", Originator->Original.Section);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -96,15 +96,30 @@ IntExceptKernelUserLogWindowsInformation(
     {
         ret = snprintf(l, rem, ", Instr: %s", instr);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
             rem -= ret;
             l += ret;
         }
+    }
+
+    ret = snprintf(l, rem, ", IsInjection: %s %s",
+                   (Originator->Injection.User || Originator->Injection.Kernel) ? "yes" : "no",
+                   Originator->Injection.User ? "(user-mode)" :
+                   Originator->Injection.Kernel ? "(kernel-mode)" : "");
+
+    if (ret < 0 || ret >= rem)
+    {
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+    }
+    else
+    {
+        rem -= ret;
+        l += ret;
     }
 
     LOG("%s\n", gExcLogLine);
@@ -120,9 +135,9 @@ IntExceptKernelUserLogWindowsInformation(
 
         ret = snprintf(l, rem, ", RIP %0*llx", gGuest.WordSize * 2, Originator->Return.Rip);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -134,9 +149,9 @@ IntExceptKernelUserLogWindowsInformation(
         {
             ret = snprintf(l, rem, "(%s)", Originator->Return.Section);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -144,6 +159,26 @@ IntExceptKernelUserLogWindowsInformation(
                 l += ret;
             }
         }
+
+        LOG("%s\n", gExcLogLine);
+    }
+
+    if (Originator->Process.Process != NULL)
+    {
+        l = gExcLogLine;
+        rem = sizeof(gExcLogLine);
+
+        if (gGuest.OSType == introGuestWindows)
+        {
+            ret = IntExceptPrintWinProcInfo(Originator->Process.WinProc, "Originator Process:  ", l, rem, 0);
+        }
+        else if (gGuest.OSType == introGuestLinux)
+        {
+            ret = IntExceptPrintLixTaskInfo(Originator->Process.LixProc, "Originator Process:  ", l, rem, 0);
+        }
+
+        rem -= ret;
+        l += ret;
 
         LOG("%s\n", gExcLogLine);
     }
@@ -166,8 +201,15 @@ IntExceptKernelUserLogWindowsInformation(
         WINUM_CACHE_EXPORT *pExport = NULL;
 
         ret = IntExceptPrintWinModInfo(Victim->Object.Library.WinMod, "Victim    -> Module: ", l, rem, modNameAlignment);
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         if (Victim->Object.Library.Export == NULL)
         {
@@ -181,9 +223,9 @@ IntExceptKernelUserLogWindowsInformation(
         if (pExport != NULL)
         {
             ret = snprintf(l, rem, ", Exports (%u) : [", pExport->NumberOfOffsets);
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -202,9 +244,9 @@ IntExceptKernelUserLogWindowsInformation(
                     ret = snprintf(l, rem, "'%s',", pExport->Names[export]);
                 }
 
-                if (ret < 0)
+                if (ret < 0 || ret >= rem)
                 {
-                    ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 }
                 else
                 {
@@ -216,9 +258,9 @@ IntExceptKernelUserLogWindowsInformation(
 
             ret = snprintf(l, rem, "], Delta: +%02x, ",
                            (DWORD)(Victim->Ept.Gva - Victim->Object.Library.WinMod->VirtualBase - pExport->Rva));
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -230,9 +272,9 @@ IntExceptKernelUserLogWindowsInformation(
         ret = snprintf(l, rem, ", Address: (%0*llx, %0*llx)",
                        gGuest.WordSize * 2, Victim->Ept.Gva,
                        gGuest.WordSize * 2, Victim->Ept.Gpa);
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -244,9 +286,9 @@ IntExceptKernelUserLogWindowsInformation(
                        Victim->WriteInfo.AccessSize,
                        Victim->WriteInfo.OldValue[0],
                        Victim->WriteInfo.NewValue[0]);
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -263,9 +305,9 @@ IntExceptKernelUserLogWindowsInformation(
                            (Victim->ZoneFlags & ZONE_LIB_DATA) ? " DATA" : "",
                            (Victim->ZoneFlags & ZONE_LIB_RESOURCES) ? " RSRC" : "",
                            (unsigned long long)Victim->ZoneFlags);
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -284,9 +326,9 @@ IntExceptKernelUserLogWindowsInformation(
 
         ret = snprintf(l, rem, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^%sROOTKIT (kernel-user mode) ",
                         Victim->Object.Library.WinMod->Subsystem->Process->BetaDetections ? " (B) " : " ");
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -337,8 +379,15 @@ IntExceptKernelUserLogWindowsInformation(
             break;
         }
 
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         snprintf(l, rem, " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 
@@ -611,6 +660,29 @@ IntExceptKernelUserMatchVictim(
 {
     BOOLEAN match = FALSE;
 
+    // If the current write is due to an injection but the exception doesn't have any of the
+    // kernel/user injection flags then don't match it.
+    if ((Originator->Injection.User || Originator->Injection.Kernel) &&
+        (Exception->Flags & (EXCEPTION_KUM_FLG_KERNEL | EXCEPTION_KUM_FLG_USER)) == 0)
+    {
+        return INT_STATUS_EXCEPTION_NOT_MATCHED;
+    }
+
+    // If the current write is not due to an injection but the exception has any of the
+    // kernel/user injection flags then don't match it.
+    if ((!Originator->Injection.User && !Originator->Injection.Kernel) &&
+        (Exception->Flags & (EXCEPTION_KUM_FLG_KERNEL | EXCEPTION_KUM_FLG_USER)) != 0)
+    {
+        return INT_STATUS_EXCEPTION_NOT_MATCHED;
+    }
+
+    // Finally match the kernel/user injection flags if needed.
+    if (((Exception->Flags & EXCEPTION_KUM_FLG_KERNEL) && Originator->Injection.User) ||
+        ((Exception->Flags & EXCEPTION_KUM_FLG_USER) && Originator->Injection.Kernel))
+    {
+        return INT_STATUS_EXCEPTION_NOT_MATCHED;
+    }
+
     if (!IntExceptKernelUserMatchZoneFlags(Victim, Exception))
     {
         return INT_STATUS_EXCEPTION_NOT_MATCHED;
@@ -726,6 +798,7 @@ IntExceptKernelUser(
 {
     INTSTATUS status = INT_STATUS_EXCEPTION_NOT_MATCHED;
     BOOLEAN sameRip = FALSE;
+    DWORD hash = INITIAL_CRC_VALUE;
     BYTE id;
 
     if (NULL == Victim)
@@ -751,25 +824,72 @@ IntExceptKernelUser(
     *Action = introGuestNotAllowed;
     *Reason = introReasonNoException;
 
+    // In some cases the Old/New values are the same - allow them by default.
+    if (__unlikely(Victim->ZoneType == exceptionZoneEpt && !!(Victim->ZoneFlags & ZONE_WRITE) &&
+        !memcmp(Victim->WriteInfo.OldValue, Victim->WriteInfo.NewValue,
+                MIN(Victim->WriteInfo.AccessSize, sizeof(Victim->WriteInfo.NewValue)))))
+    {
+        *Action = introGuestAllowed;
+        *Reason = introReasonSameValue;
+
+        return INT_STATUS_EXCEPTION_ALLOW;
+    }
+
+    if (Originator->Injection.User)
+    {
+        if (gGuest.OSType == introGuestWindows)
+        {
+            hash = Originator->Process.WinProc->NameHash;
+        }
+        else if (gGuest.OSType == introGuestLinux)
+        {
+            hash = Originator->Process.LixProc->CommHash;
+        }
+        else
+        {
+            ERROR("[ERROR] Unsupported guest type '%d'! Abort ...\n", gGuest.OSType);
+            return INT_STATUS_NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        if (Originator->Injection.Kernel)
+        {
+            hash = Originator->Return.NameHash;
+        }
+        else
+        {
+            hash = Originator->Original.NameHash;
+        }
+    }
+
     for_each_kum_exception(gGuest.Exceptions->KernelUserAlertExceptions, pEx)
     {
-        if (pEx->OriginatorNameHash == kmExcNameAny)
+        if (((pEx->Flags & EXCEPTION_KUM_FLG_KERNEL) && Originator->Injection.User) ||
+            ((pEx->Flags & EXCEPTION_KUM_FLG_USER) && Originator->Injection.Kernel))
+        {
+            continue;
+        }
+
+        if (pEx->Originator.NameHash == kumExcNameAny)
         {
             // For now, we do not support exceptions from the alert that has originator kmExcNameAny.
-            // If an exception from the alert has no originator, kmExcNameNone will be used as the exception originator
+            // If an exception from the alert has no originator, kumExcNameNone will be used as the exception originator
             goto _match_ex_alert;
         }
 
-        if (Originator->Original.NameHash == INITIAL_CRC_VALUE && pEx->OriginatorNameHash == kmExcNameNone)
+        if (!Originator->Injection.User &&
+            Originator->Original.NameHash == INITIAL_CRC_VALUE &&
+            pEx->Originator.NameHash == kumExcNameNone)
         {
             goto _match_ex_alert;
         }
 
-        if (pEx->OriginatorNameHash > Originator->Original.NameHash)
+        if (pEx->Originator.NameHash > hash)
         {
             break;
         }
-        else if (pEx->OriginatorNameHash != Originator->Original.NameHash)
+        else if (pEx->Originator.NameHash != hash)
         {
             continue;
         }
@@ -782,8 +902,7 @@ _match_ex_alert:
         }
     }
 
-
-    if (Originator->Original.NameHash == INITIAL_CRC_VALUE)
+    if (!Originator->Injection.User && Originator->Original.NameHash == INITIAL_CRC_VALUE)
     {
         // Check the no name exceptions, and skip the generic ones
         for_each_kum_exception(gGuest.Exceptions->NoNameKernelUserExceptions, pEx)
@@ -808,7 +927,8 @@ _match_ex_alert:
         }
     }
 
-    if (Originator->Original.Driver &&
+    if (Originator->Injection.Kernel &&
+        Originator->Original.Driver &&
         Originator->Return.Driver &&
         Originator->Original.Rip == Originator->Return.Rip)
     {
@@ -816,27 +936,34 @@ _match_ex_alert:
         sameRip = TRUE;
     }
 
-    if (Originator->Original.NameHash != INITIAL_CRC_VALUE)
+    if (hash != INITIAL_CRC_VALUE)
     {
-        id = EXCEPTION_TABLE_ID(Originator->Original.NameHash);
+        id = EXCEPTION_TABLE_ID(hash);
 
         for_each_kum_exception(gGuest.Exceptions->KernelUserExceptions[id], pEx)
         {
+            if (((pEx->Flags & EXCEPTION_KUM_FLG_KERNEL) && Originator->Injection.User) ||
+                ((pEx->Flags & EXCEPTION_KUM_FLG_USER) && Originator->Injection.Kernel))
+            {
+                continue;
+            }
+
             // Here we only check exceptions by the name, so that cannot be missing.
             // And the return flag must be missing.
-            if (pEx->OriginatorNameHash == INITIAL_CRC_VALUE ||
-                ((pEx->Flags & EXCEPTION_KM_FLG_RETURN_DRV) &&
-                 !sameRip))
+            if ((pEx->Flags & EXCEPTION_KUM_FLG_KERNEL) &&
+                (pEx->Originator.NameHash == INITIAL_CRC_VALUE ||
+                 ((pEx->Flags & EXCEPTION_KM_FLG_RETURN_DRV) &&
+                  !sameRip)))
             {
                 continue;
             }
 
             // Every list is ordered, so break when we got to a hash bigger than ours
-            if (pEx->OriginatorNameHash > Originator->Original.NameHash)
+            if (pEx->Originator.NameHash > hash)
             {
                 break;
             }
-            else if (pEx->OriginatorNameHash != Originator->Original.NameHash)
+            else if (pEx->Originator.NameHash != hash)
             {
                 continue;
             }
@@ -862,25 +989,30 @@ _match_ex_alert:
     }
 
     // Try and match the original driver by name
-    if (Originator->Return.NameHash != INITIAL_CRC_VALUE)
+    if (!Originator->Injection.User && Originator->Return.NameHash != INITIAL_CRC_VALUE)
     {
         id = EXCEPTION_TABLE_ID(Originator->Return.NameHash);
         for_each_kum_exception(gGuest.Exceptions->KernelUserExceptions[id], pEx)
         {
+            if (pEx->Flags & EXCEPTION_KUM_FLG_USER)
+            {
+                continue;
+            }
+
             // Here we only check exceptions by the name, so that cannot be missing
             // And the return flag must be set
-            if (pEx->OriginatorNameHash == INITIAL_CRC_VALUE ||
+            if (pEx->Originator.NameHash == INITIAL_CRC_VALUE ||
                 (0 == (pEx->Flags & EXCEPTION_KM_FLG_RETURN_DRV)))
             {
                 continue;
             }
 
             // Every list is ordered, so break when we got to a hash bigger than ours
-            if (pEx->OriginatorNameHash > Originator->Return.NameHash)
+            if (pEx->Originator.NameHash > Originator->Return.NameHash)
             {
                 break;
             }
-            else if (pEx->OriginatorNameHash != Originator->Return.NameHash)
+            else if (pEx->Originator.NameHash != Originator->Return.NameHash)
             {
                 continue;
             }
@@ -902,28 +1034,54 @@ _match_ex_alert:
 _beta_exceptions:
     for_each_kum_exception(gGuest.Exceptions->KernelUserFeedbackExceptions, pEx)
     {
-        if (pEx->OriginatorNameHash == kmExcNameAny)
+        if (((pEx->Flags & EXCEPTION_KUM_FLG_KERNEL) && Originator->Injection.User) ||
+            ((pEx->Flags & EXCEPTION_KUM_FLG_USER) && Originator->Injection.Kernel))
+        {
+            continue;
+        }
+
+        if (pEx->Originator.NameHash == kmExcNameAny)
         {
             goto _match_ex;
         }
 
-        if (Originator->Original.NameHash == INITIAL_CRC_VALUE && pEx->OriginatorNameHash == kmExcNameNone)
+        if (!Originator->Injection.User &&
+            Originator->Original.NameHash == INITIAL_CRC_VALUE &&
+            pEx->Originator.NameHash == kumExcNameNone)
         {
             goto _match_ex;
         }
 
         if (pEx->Flags & EXCEPTION_FLG_RETURN)
         {
-            if (pEx->OriginatorNameHash != Originator->Return.NameHash)
+            if (!Originator->Injection.User && pEx->Originator.NameHash != Originator->Return.NameHash)
             {
                 continue;
             }
         }
         else
         {
-            if (pEx->OriginatorNameHash != Originator->Original.NameHash)
+            if (!Originator->Injection.User && pEx->Originator.NameHash != Originator->Original.NameHash)
             {
                 continue;
+            }
+
+            if (Originator->Injection.User)
+            {
+                if (gGuest.OSType == introGuestWindows)
+                {
+                    if (pEx->Originator.NameHash != Originator->Process.WinProc->NameHash)
+                    {
+                        continue;
+                    }
+                }
+                else if (gGuest.OSType == introGuestLinux)
+                {
+                    if (pEx->Originator.NameHash != Originator->Process.LixProc->CommHash)
+                    {
+                        continue;
+                    }
+                }
             }
         }
 _match_ex:

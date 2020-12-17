@@ -150,6 +150,8 @@ IntWinSelfMapCheckSelfMapEntry(
 /// it detects any changes, it lets #IntWinSelfMapHandleCr3SelfMapModification handle those.
 /// The relevant changes are defined by #SELF_MAP_ENTRY_IS_DETECTION.
 ///
+/// If the process is swapped-out, the function does nothing.
+///
 /// @param[in, out] Process             The process for which the checks are done
 /// @param[in]      CurrentKernelValue  The current value of the kernel Cr3. If this is NULL, the value will be read
 ///                                     from the guest
@@ -157,11 +159,17 @@ IntWinSelfMapCheckSelfMapEntry(
 ///                                     If KPTI is enabled and this process has different Cr3 values for user and kernel
 ///                                     mode, the value will be read from the guest
 ///
-/// @returns        #INT_STATUS_SUCCESS if successful, or an appropriate INTSTATUS error value
+/// @returns        #INT_STATUS_SUCCESS         If successful, or an appropriate INTSTATUS error value.
+/// @returns        #INT_STATUS_NOT_NEEDED_HINT If the process is swapped-out.
 ///
 {
     QWORD currentKern, currentUser;
     INTSTATUS status = INT_STATUS_SUCCESS;
+
+    if (Process->Outswapped)
+    {
+        return INT_STATUS_NOT_NEEDED_HINT;
+    }
 
     if (NULL == CurrentKernelValue)
     {
@@ -578,6 +586,7 @@ IntWinSelfMapGetAndCheckSelfMapEntry(
 /// Cr3 will be considered, as the user Cr3 will be 0. The values are obtained from the _KPROCESS kernel structure.
 /// If the #INTRO_OPT_PROT_KM_SELF_MAP_ENTRY option was used, and a malicious change of the self map value is detected,
 /// an alert will eventually be sent.
+/// If the process is swapped-out, the function does nothing.
 ///
 /// @param[in, out] Process     The process for which the values are read and validated
 ///
@@ -585,7 +594,7 @@ IntWinSelfMapGetAndCheckSelfMapEntry(
 /// @retval #INT_STATUS_INVALID_PARAMETER_1 if Process is NULL
 /// @retval #INT_STATUS_NOT_INITIALIZED_HINT if the guest is not initialized or the protection is not active
 /// @retval #INT_STATUS_NOT_NEEDED_HINT if the guest is not Windows, not using 4- or 5-level paging (the other paging
-///         modes do not use the self map mechanism)
+///         modes do not use the self map mechanism) or the process is swapped-out.
 ///
 {
     INTSTATUS status;

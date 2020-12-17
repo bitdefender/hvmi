@@ -38,6 +38,8 @@
 #include "winpfn.h"
 #include "winselfmap.h"
 #include "wintoken.h"
+#include "winsud.h"
+#include "winintobj.h"
 
 ///
 /// @brief      The current guest state
@@ -1612,11 +1614,29 @@ IntGuestUpdateCoreOptions(
 
         if (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_SUD_EXEC)
         {
-            IntWinGuestProtectSudExec();
+            IntWinSudProtectSudExec();
         }
         else
         {
-            IntWinGuestUnprotectSudExec();
+            IntWinSudUnprotectSudExec();
+        }
+
+        if (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_SUD_INTEGRITY)
+        {
+            IntWinSudProtectIntegrity();
+        }
+        else
+        {
+            IntWinSudUnprotectIntegrity();
+        }
+
+        if (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_INTERRUPT_OBJ)
+        {
+            IntWinIntObjProtect();
+        }
+        else
+        {
+            IntWinIntObjUnprotect();
         }
     }
     else if (introGuestLinux == gGuest.OSType)

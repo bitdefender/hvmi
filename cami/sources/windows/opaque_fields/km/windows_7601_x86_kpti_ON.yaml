@@ -54,6 +54,7 @@ km_fields: !opaque_structures
             ClientSecurity: 0x248
             TrapFrame: 0x128
             Win32StartAddress: 0x260
+            PreviousMode: 0x13a
 
         DrvObj: !opaque_fields
             Size: 0xa8
@@ -65,6 +66,8 @@ km_fields: !opaque_structures
         Pcr: !opaque_fields
             CurrentThread: 0x124
             UserTime: 0x5cc
+            Prcb: 0x20
+            PrcbInterruptObject: 0x0
 
         PoolDescriptor: !opaque_fields
             TotalBytes: 0x50
@@ -94,9 +97,13 @@ km_fields: !opaque_structures
             WmiGetClockOffset: 0x18
             EtwDbgDataSiloOffset: 0x10
             # We want to treat it as "-2" so we send the unsigned int value which will be correctly treated by introcore
-            EtwSignatureOffset: 0xFFFFFFFE
-            SubsectionCtlArea: 0
-            HalPerfCntFunctionOffset: 0
+            EtwSignatureOffset: 0xfffffffe
+            SubsectionCtlArea: 0x0
+            HalPerfCntFunctionOffset: 0x0
+            RspOffsetOnZwCall: 0x0
+            HalIntCtrlTypeMaxOffset: 0x0
+            HalIntCtrlTypeMinOffset: 0x0
+            SharedUserDataSize: 0x5f0
 
         EprocessFlags: !opaque_fields
             NoDebugInherit: 0x2
@@ -105,6 +112,7 @@ km_fields: !opaque_structures
             3Crashed: 0x10
             VmDeleted: 0x20
             HasAddrSpace: 0x40000
+            OutSwapped: 0x80
 
         VadShort: !opaque_fields
             Parent: 0x0
@@ -126,8 +134,8 @@ km_fields: !opaque_structures
             TypeShift: 0x14
             TypeMask: 0x7
             ProtectionShift: 0x18
-            ProtectionMask: 0x1F
-            NoChangeBit: 19
+            ProtectionMask: 0x1f
+            NoChangeBit: 0x13
             PrivateFixup: 0x0
             DeleteInProgress: 0x0
 

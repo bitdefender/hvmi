@@ -190,6 +190,7 @@
     <ClInclude Include="include\introtypes.h" />
     <ClInclude Include="include\lixagent.h" />
     <ClInclude Include="include\lixagent_ondemand.h" />
+    <ClInclude Include="include\lixcmdline.h" />
     <ClInclude Include="include\lixcred.h" />
     <ClInclude Include="include\lixdeployer.h" />
     <ClInclude Include="include\lixhnd.h" />
@@ -254,6 +255,8 @@
     <ClInclude Include="include\deployer.h" />
     <ClInclude Include="include\rbtree.h" />
     <ClInclude Include="include\vecore.h" />
+    <ClInclude Include="include\winintobj.h" />
+    <ClInclude Include="include\winsecdesc.h" />
     <ClInclude Include="include\winagent.h" />
     <ClInclude Include="include\shellcode.h" />
     <ClInclude Include="include\slack.h" />
@@ -295,6 +298,7 @@
     <ClInclude Include="include\winprocess.h" />
     <ClInclude Include="include\winprocesshp.h" />
     <ClInclude Include="include\winstack.h" />
+    <ClInclude Include="include\winsud.h" />
     <ClInclude Include="include\winthread.h" />
     <ClInclude Include="include\wintoken.h" />
     <ClInclude Include="include\winumcache.h" />
@@ -358,6 +362,7 @@
     <ClCompile Include="src\guests\linux\lixagent_ondemand.c" />
     <ClCompile Include="src\guests\linux\lixaghnd.c" />
     <ClCompile Include="src\guests\linux\lixapi.c" />
+    <ClCompile Include="src\guests\linux\lixcmdline.c" />
     <ClCompile Include="src\guests\linux\lixcrash.c" />
     <ClCompile Include="src\guests\linux\lixcred.c" />
     <ClCompile Include="src\guests\linux\lixdeployer.c" />
@@ -386,6 +391,8 @@
     <ClCompile Include="src\guests\update\update_guests.c" />
     <ClCompile Include="src\guests\vasmonitor.c" />
     <ClCompile Include="src\guests\visibility.c" />
+    <ClCompile Include="src\guests\windows\kernel\winintobj.c" />
+    <ClCompile Include="src\guests\windows\kernel\winsecdesc.c" />
     <ClCompile Include="src\guests\windows\kernel\winapi.c" />
     <ClCompile Include="src\guests\windows\kernel\winbugcheck.c" />
     <ClCompile Include="src\guests\windows\kernel\windriver.c" />
@@ -399,6 +406,7 @@
     <ClCompile Include="src\guests\windows\kernel\winpool.c" />
     <ClCompile Include="src\guests\windows\kernel\winpower.c" />
     <ClCompile Include="src\guests\windows\kernel\winselfmap.c" />
+    <ClCompile Include="src\guests\windows\kernel\winsud.c" />
     <ClCompile Include="src\guests\windows\kernel\wintoken.c" />
     <ClCompile Include="src\guests\windows\kernel\winvad.c" />
     <ClCompile Include="src\guests\windows\user\wincmdline.c" />

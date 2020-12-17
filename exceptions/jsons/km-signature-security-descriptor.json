@@ -1,0 +1,36 @@
+{
+    "Type": "kernel",
+    "Signatures": [
+        // The hash value for the signatures can be found:
+        //      Within the exception log as (New SD Hash) Ex:
+        //          Security descriptor pointer was modified for process (csrss.exe [0x24324770] 524), 
+        //          WriteInfo: (208, ffff8007dfa0a260 -> ffff8007e0afdda0) New SD Hash:0x77fafa1a
+        //
+        //      Within the alert strucutre as:
+        //          pIntViolation->WriteInfo.NewValue[3] for introObjectTypeSecDesc
+        {
+            "sig_type": "value",
+            "sig_id": "sec-desc-msmpeng",
+            "score": 1,
+            "hashes": [
+                {
+                    "offset": 0,
+                    "size": 208,
+                    "hash": "0x32082dde"
+                },
+
+                {
+                    "offset": 0,
+                    "size": 128,
+                    "hash": "0xb793c029"
+                },
+                
+                {
+                    "offset": 0,
+                    "size": 152,
+                    "hash": "0x445de548"
+                }
+            ]
+        }
+    ]
+}

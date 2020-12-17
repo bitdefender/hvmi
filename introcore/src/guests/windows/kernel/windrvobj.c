@@ -637,6 +637,7 @@ IntWinDrvObjHandleWrite(
     BOOLEAN exitAfterInformation = FALSE;
     BOOLEAN fastIoPtrWritten = FALSE;
     BOOLEAN fastIoWrite = FALSE;
+    BOOLEAN fastIoUpdated = FALSE;
     QWORD gpa;
     KERNEL_DRIVER *pKm;
 
@@ -716,6 +717,8 @@ IntWinDrvObjHandleWrite(
         *Action = introGuestAllowed;
 
         status = INT_STATUS_SUCCESS;
+
+        fastIoUpdated = TRUE;
 
         goto cleanup_and_exit;
     }
@@ -801,6 +804,31 @@ _block_fastio_reloc:
 cleanup_and_exit:
     IntPolicyCoreForceBetaIfNeeded(INTRO_OPT_PROT_KM_DRVOBJ, Action);
 
+    if (*Action == introGuestAllowed &&
+        !fastIoUpdated &&
+        fastIoPtrWritten)
+    {
+        status = IntWinDrvObjUnprotectFastIoDispatch(pDrvObj);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinDrvObjUnprotectFastIoDispatch failed with status: 0x%08x\n", status);
+            return status;
+        }
+
+        pDrvObj->FastIOTableAddress = gGuest.Guest64 ? writtenValue.Value.QwordValues[0] :
+            writtenValue.Value.DwordValues[0];
+
+        if (pDrvObj->FastIOTableAddress != 0)
+        {
+            status = IntWinDrvObjProtectFastIoDispatch(pDrvObj);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntWinDrvObjUnprotectFastIoDispatch failed with status: 0x%08x\n", status);
+                return status;
+            }
+        }
+    }
+
     return status;
 }
 
@@ -824,8 +852,8 @@ IntWinDrvObjHandleModification(
     EXCEPTION_VICTIM_ZONE victim;
     EXCEPTION_KM_ORIGINATOR originator;
     INTSTATUS status;
-    BOOLEAN recalculate;
     DWORD offset;
+    BOOLEAN recalculate = FALSE;
 
     if (IntegrityRegion->Type != introObjectTypeDriverObject &&
         IntegrityRegion->Type != introObjectTypeFastIoDispatch)
@@ -837,7 +865,6 @@ IntWinDrvObjHandleModification(
     STATS_ENTER(statsExceptionsKern);
 
     offset = 0;
-    recalculate = FALSE;
     status = INT_STATUS_SUCCESS;
 
     while (offset < IntegrityRegion->Length)
@@ -886,9 +913,9 @@ IntWinDrvObjHandleModification(
         }
 
         if (((gGuest.Guest64 &&
-              victim.Integrity.Offset + fioDispOffset == OFFSET_OF(DRIVER_OBJECT64, DriverUnload)) ||
-             (!gGuest.Guest64 &&
-              victim.Integrity.Offset +fioDispOffset == OFFSET_OF(DRIVER_OBJECT32, DriverUnload))) &&
+            victim.Integrity.Offset + fioDispOffset == OFFSET_OF(DRIVER_OBJECT64, DriverUnload)) ||
+            (!gGuest.Guest64 &&
+            victim.Integrity.Offset + fioDispOffset == OFFSET_OF(DRIVER_OBJECT32, DriverUnload))) &&
             (originator.Original.NameHash == NAMEHASH_FLTMGR))
         {
             action = introGuestAllowed;
@@ -897,20 +924,48 @@ IntWinDrvObjHandleModification(
 
         IntExcept(&victim, &originator, exceptionTypeKm, &action, &reason, introEventIntegrityViolation);
 
+_do_action:
         if (IntPolicyCoreTakeAction(INTRO_OPT_PROT_KM_DRVOBJ, &action, &reason))
         {
             IntWinDrvObjSendIntegrityAlert(&victim, &originator, action, reason);
         }
 
-        if (IntPolicyCoreForceBetaIfNeeded(INTRO_OPT_PROT_KM_DRVOBJ, &action))
-        {
-            reason = introReasonAllowed;
-        }
+        IntPolicyCoreForceBetaIfNeeded(INTRO_OPT_PROT_KM_DRVOBJ, &action);
 
-_do_action:
         if (action == introGuestAllowed)
         {
             recalculate = TRUE;
+
+            if (IntegrityRegion->Type == introObjectTypeDriverObject && victim.Integrity.Offset == 0)
+            {
+                WIN_DRIVER_OBJECT *pDrvObj = victim.Object.DriverObject;
+
+                status = IntWinDrvObjUnprotectFastIoDispatch(pDrvObj);
+                if (!INT_SUCCESS(status))
+                {
+                    ERROR("[ERROR] IntWinDrvObjUnprotectFastIoDispatch failed with status: 0x%08x\n", status);
+                    goto _cleanup_and_exit;
+                }
+
+                if (gGuest.Guest64)
+                {
+                    pDrvObj->FastIOTableAddress = victim.WriteInfo.NewValue[0];
+                }
+                else
+                {
+                    pDrvObj->FastIOTableAddress = (DWORD)(victim.WriteInfo.NewValue[0]);
+                }
+
+                if (pDrvObj->FastIOTableAddress != 0)
+                {
+                    status = IntWinDrvObjProtectFastIoDispatch(pDrvObj);
+                    if (!INT_SUCCESS(status))
+                    {
+                        ERROR("[ERROR] IntWinDrvObjUnprotectFastIoDispatch failed with status: 0x%08x\n", status);
+                        goto _cleanup_and_exit;
+                    }
+                }
+            }
         }
         else if (action == introGuestNotAllowed)
         {

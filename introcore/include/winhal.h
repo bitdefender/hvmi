@@ -16,6 +16,8 @@ typedef struct _WIN_HAL_DATA
     QWORD           HalHeapAddress;
     /// @brief  The guest virtual address of the HAL interrupt controller.
     QWORD           HalIntCtrlAddress;
+    /// @brief  The guest virtual address of the HAL performance counter.
+    QWORD           HalPerfCounterAddress;
     /// @brief  The size of the HAL heap.
     DWORD           HalHeapSize;
 
@@ -33,6 +35,27 @@ typedef struct _WIN_HAL_DATA
     void            *HalIntCtrlWriteHook;
     /// @brief  The HAL dispatch table integrity hook object.
     void            *HalDispatchIntegrityHook;
+
+    /// @brief  A buffer containing the whole HAL image.
+    ///
+    /// This can be used when there is a need to fetch values
+    /// from the HAL image, such as exports, code, etc. Note that
+    /// this buffer should be valid only after #IntWinHalFinishRead
+    /// is called.
+    BYTE            *HalBuffer;
+
+    /// @brief  The size of HAL buffer.
+    DWORD           HalBufferSize;
+
+    /// @brief  The number of sections which are not yet read into HAL buffer.
+    DWORD           RemainingSections;
+
+    /// @brief  A list containing the swap handles for the swapped out sections
+    ///         which should be read in HalBuffer.
+    LIST_ENTRY      InitSwapHandles;
+
+    /// @brief  The HAL Performance Counter integrity hook object.
+    void            *HalPerfIntegrityObj;
 } WIN_HAL_DATA, *PWIN_HAL_DATA;
 
 
@@ -78,6 +101,16 @@ IntWinHalUnprotectHalIntCtrl(
 
 INTSTATUS
 IntWinHalUnprotectHalDispatchTable(
+    void
+    );
+
+INTSTATUS
+IntWinHalProtectHalPerfCounter(
+    void
+    );
+
+INTSTATUS
+IntWinHalUnprotectHalPerfCounter(
     void
     );
 

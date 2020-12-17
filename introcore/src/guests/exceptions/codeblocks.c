@@ -1201,7 +1201,7 @@ IntFragLogCodeBlocks(
 {
     DWORD previousOffset;
     int ret;
-    DWORD maxLength = sizeof(gCbLog);
+    int maxLength = sizeof(gCbLog);
     CHAR *pCbLine = NULL;
     BOOLEAN loggedRip = FALSE;
 
@@ -1231,10 +1231,10 @@ IntFragLogCodeBlocks(
             maxLength = sizeof(gCbLog);
 
             ret = snprintf(pCbLine, maxLength, "[CODEBLOCKS] ");
-
-            if (ret < 0)
+            if (ret < 0 || ret >= maxLength)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d.\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, maxLength);
+                return;
             }
             else
             {
@@ -1251,9 +1251,10 @@ IntFragLogCodeBlocks(
         {
 
             ret = snprintf(pCbLine, maxLength, "(%7s->0x%016llx), ", ReturnRip ? "Ret RIP" : "RIP", Rip);
-            if (ret < 0)
+            if (ret < 0 || ret >= maxLength)
             {
-                ERROR("[ERROR] Encoding error with sprintf: %d.\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, maxLength);
+                return;
             }
             else
             {
@@ -1269,9 +1270,10 @@ IntFragLogCodeBlocks(
                        (CodeBlock[i].PivotInstruction == codeInsJmp) ? "JMP" :
                        (CodeBlock[i].PivotInstruction == codeInsMovMem) ? "MOV MEM" :
                        (CodeBlock[i].PivotInstruction == codeInsMovFsGs) ? "MOV FS/GS" : "INVALID");
-        if (ret < 0)
+        if (ret < 0 || ret >= maxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d.\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, maxLength);
+            return;
         }
         else
         {

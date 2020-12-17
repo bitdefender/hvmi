@@ -6,6 +6,8 @@
 #include "defs.h"
 #include "common.h"
 
+#include "hvmi.h"
+
 struct inactive_task_frame {
     unsigned long r15;
     unsigned long r14;
@@ -138,6 +140,48 @@ char *d_path(void *path_struct)
     void *path = (void *)((unsigned long)hypercall_info.OsSpecificFields.PercpuMemPtr + (current_cpu * PAGE_SIZE));
 
     return hypercall_info.OsSpecificFields.DPathFnPtr(path_struct, path, PAGE_SIZE);
+}
+
+
+__default_fn_attr
+void *_memcpy (void *dest, const void *src, size_t len)
+{
+    char *d = dest;
+    const char *s = src;
+
+    while (len--)
+    {
+        *d++ = *s++;
+    }
+
+    return dest;
+}
+
+
+__default_fn_attr
+void store_regs(void)
+{
+    IG_ARCH_REGS regs;
+
+    regs.Rax = __read_reg("rax");
+    regs.Rcx = __read_reg("rcx");
+    regs.Rdx = __read_reg("rdx");
+    regs.Rbx = __read_reg("rbx");
+    regs.Rsp = __read_reg("rsp");
+    regs.Rbp = __read_reg("rbp");
+    regs.Rsi = __read_reg("rsi");
+    regs.Rdi = __read_reg("rdi");
+    regs.R8 = __read_reg("r8");
+    regs.R9 = __read_reg("r9");
+    regs.R10 = __read_reg("r10");
+    regs.R11 = __read_reg("r11");
+    regs.R12 = __read_reg("r12");
+    regs.R13 = __read_reg("r13");
+    regs.R14 = __read_reg("r14");
+    regs.R15 = __read_reg("r15");
+
+    void *dst = (void *)((unsigned long)hypercall_info.OsSpecificFields.PercpuMemPtr + (current_cpu * PAGE_SIZE));
+    _memcpy(dst, &regs, sizeof(regs));
 }
 
 

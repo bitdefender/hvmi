@@ -318,7 +318,7 @@ IntUpdateAddKernelUserException(
         return INT_STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    pException->OriginatorNameHash = UpdateException->OriginatorNameHash;
+    pException->Originator.NameHash = UpdateException->Originator.NameHash;
     pException->Victim.NameHash = UpdateException->Victim.NameHash;
     pException->Victim.ProcessHash = UpdateException->Victim.ProcessHash;
     pException->Flags = UpdateException->Flags;
@@ -335,7 +335,7 @@ IntUpdateAddKernelUserException(
     //
     // Now, let's find in which list this exception is
     //
-    if (pException->OriginatorNameHash == kmExcNameAny)
+    if (pException->Originator.NameHash == kumExcNameAny)
     {
         if (UpdateException->Flags & EXCEPTION_FLG_FEEDBACK)
         {
@@ -346,7 +346,7 @@ IntUpdateAddKernelUserException(
             head = &gGuest.Exceptions->GenericKernelUserExceptions;
         }
     }
-    else if (pException->OriginatorNameHash == kmExcNameNone)
+    else if (pException->Originator.NameHash == kumExcNameNone)
     {
         if (UpdateException->Flags & EXCEPTION_FLG_FEEDBACK)
         {
@@ -365,7 +365,7 @@ IntUpdateAddKernelUserException(
         }
         else
         {
-            DWORD id = EXCEPTION_TABLE_ID(pException->OriginatorNameHash);
+            DWORD id = EXCEPTION_TABLE_ID(pException->Originator.NameHash);
             head = &gGuest.Exceptions->KernelUserExceptions[id];
         }
     }
@@ -1100,6 +1100,7 @@ IntUpdateAddExportSignature(
 
     pSignature->Id.Value = UpdateSignature->Id;
     pSignature->Flags = UpdateSignature->Flags;
+    pSignature->LibraryNameHash = UpdateSignature->LibraryName;
     pSignature->ListsCount = UpdateSignature->ListsCount;
     pSignature->AlertSignature = FALSE;
 
@@ -1580,7 +1581,7 @@ IntUpdateAddKernelUserExceptionInOrder(
 ///
 {
     TRACE("[UPDATE] Add exception %08x -> %08x %08x, %d, %08x\n",
-          Exception->OriginatorNameHash, Exception->Victim.NameHash, Exception->Victim.ProcessHash,
+          Exception->Originator.NameHash, Exception->Victim.NameHash, Exception->Victim.ProcessHash,
           Exception->Type, Exception->Flags);
 
     TRACE("[UPDATE] Signatures = %d \n", Exception->SigCount);
@@ -1588,7 +1589,7 @@ IntUpdateAddKernelUserExceptionInOrder(
     for_each_kum_exception(gGuest.Exceptions->KernelUserAlertExceptions, pEx)
     {
         // Every list is ordered, so break when we got to a hash bigger than ours
-        if (pEx->OriginatorNameHash > Exception->OriginatorNameHash)
+        if (pEx->Originator.NameHash > Exception->Originator.NameHash)
         {
             pEx = CONTAINING_RECORD(pEx->Link.Blink, KUM_EXCEPTION, Link);
 
@@ -2031,7 +2032,7 @@ IntUpdateIsDuplicateKernelUserException(
 {
     for_each_kum_exception(gGuest.Exceptions->KernelUserAlertExceptions, pEx)
     {
-        if (Exception->Originator == pEx->OriginatorNameHash &&
+        if (Exception->Originator == pEx->Originator.NameHash &&
             Exception->Victim == pEx->Victim.NameHash &&
             Exception->Process == pEx->Victim.ProcessHash &&
             Exception->Flags == pEx->Flags &&
@@ -2042,7 +2043,7 @@ IntUpdateIsDuplicateKernelUserException(
                 if (IntUpdateIsDuplicateCbSignature(&Exception->CodeBlocks, pEx->Signatures, pEx->SigCount))
                 {
                     TRACE("[UPDATE] Ignoring duplicate exception with signature: %08x -> %08x - %08x, %d, %08x\n",
-                          pEx->OriginatorNameHash, pEx->Victim.NameHash, pEx->Victim.ProcessHash, pEx->Type, pEx->Flags);
+                          pEx->Originator.NameHash, pEx->Victim.NameHash, pEx->Victim.ProcessHash, pEx->Type, pEx->Flags);
 
                     return TRUE;
                 }
@@ -2051,13 +2052,13 @@ IntUpdateIsDuplicateKernelUserException(
             {
                 // We didn't give a signature, nor we have one in the current exception
                 TRACE("[UPDATE] Ignoring duplicate exception: %08x -> %08x %08x, %d, %08x\n",
-                      pEx->OriginatorNameHash, pEx->Victim.NameHash, pEx->Victim.ProcessHash, pEx->Type, pEx->Flags);
+                      pEx->Originator.NameHash, pEx->Victim.NameHash, pEx->Victim.ProcessHash, pEx->Type, pEx->Flags);
                 return TRUE;
             }
         }
 
         // Every list is ordered, so break when we got to a hash bigger than ours
-        if (pEx->OriginatorNameHash > Exception->Originator)
+        if (pEx->Originator.NameHash > Exception->Originator)
         {
             break;
         }
@@ -2429,7 +2430,7 @@ IntUpdateAddKmUmException(
     }
 
     pException->Context = Context;
-    pException->OriginatorNameHash = Exception->Originator;
+    pException->Originator.NameHash = Exception->Originator;
     pException->Victim.NameHash = Exception->Victim;
     pException->Victim.ProcessHash = Exception->Process;
     pException->Flags = Exception->Flags;

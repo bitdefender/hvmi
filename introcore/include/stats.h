@@ -93,7 +93,19 @@ typedef enum _STAT_ID
     statsNtEatRead,             ///< Measures reads done from the kernel EAT.
     statsTokenWrites,           ///< Token writes.
 
+    statsTokenChangeCheck,      ///< Measures the checks to see if the token has been changed when a write occurs over the token.
+    statsTokenSwapCheck,        ///< Measures the checks to see if the token has been changed when a token swap occurs.
+
     statsKmUmWrites,            ///< Writes done from kernel mode over user mode.
+    statsSetProcInfo,           ///< Measures exits on NtSetInformationProcess.
+
+    statsDpiSdAcl,              ///< Measures the security descriptor DPI protection information gathering.
+
+    statsSudIntegrity,          ///< Measures the checks done on SharedUserData.
+
+    statsSudExec,               ///< Measures the execution handling on SharedUserData page.
+
+    statsSecDesc,               ///< Measures the integrity checks on the process security descriptor.
 
     /// @brief  The number of valid stats IDs. Not a valid ID. Must always be the last entry in the enum.
     statsMaxCounter

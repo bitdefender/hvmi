@@ -4,7 +4,9 @@ all: build link
 
 CC=
 
-CFLAGS := -m64 -Os -fverbose-asm -ffreestanding -fno-jump-tables -masm=intel -fPIE -fomit-frame-pointer -mgeneral-regs-only -march=nehalem -fno-stack-protector -Wall -Wextra -Wno-unused-parameter
+INCLUDE_DIR := ../../../../../include/public/
+
+CFLAGS := -m64 -Os -fverbose-asm -ffreestanding -fno-jump-tables -masm=intel -fPIE -fomit-frame-pointer -mgeneral-regs-only -march=nehalem -fno-stack-protector -Wall -Wextra -Wno-unused-parameter -I$(INCLUDE_DIR)
 
 build:
 	@gcc $(CFLAGS) -c handlers.c -S

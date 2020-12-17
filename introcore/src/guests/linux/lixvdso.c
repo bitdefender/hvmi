@@ -808,7 +808,7 @@ IntLixVdsoFixedProtect(
     status = IntTranslateVirtualAddress(LIX_VDSO_FIXED, gGuest.Mm.SystemCr3, &vdsoPhys);
     if (!INT_SUCCESS(status))
     {
-        LOG("[INFO] Fixed VDSO is not present @%lx: 0x%08x\n", LIX_VDSO_FIXED, status);
+        LOG("[INFO] Fixed VDSO is not present @ 0x%016llx (0x%08x)\n", LIX_VDSO_FIXED, status);
         return status;
     }
 
@@ -817,16 +817,16 @@ IntLixVdsoFixedProtect(
         status = IntHookObjectCreate(introObjectTypeVdso, 0, &gVdsoHook);
         if (!INT_SUCCESS(status))
         {
-            ERROR("[ERROR] IntHookObjectCreate failed: 0x%08x\n", status);
+            ERROR("[ERROR] IntHookObjectCreate failed with status: 0x%08x\n", status);
             return status;
         }
     }
 
-    gLixGuest->Vdso.VsysCall = LIX_VDSO_FIXED;
+    gLixGuest->Vdso.Vsyscall = LIX_VDSO_FIXED;
 
     status = IntHookObjectHookRegion(gVdsoHook,
                                      0,
-                                     gLixGuest->Vdso.VsysCall,
+                                     gLixGuest->Vdso.Vsyscall,
                                      PAGE_SIZE,
                                      IG_EPT_HOOK_WRITE,
                                      IntLixVdsoHandleWriteCommon,
@@ -835,11 +835,11 @@ IntLixVdsoFixedProtect(
                                      NULL);
     if (!INT_SUCCESS(status))
     {
-        ERROR("[ERROR] Failed setting hook on vsyscall: 0x%08x!\n", status);
+        ERROR("[ERROR] Failed setting hook on vsyscall with status: 0x%08x\n", status);
     }
     else
     {
-        TRACE("[INFO] Protected VSYSCALL at %lx\n", 0xffffffffff600000);
+        TRACE("[INFO] Protected VSYSCALL @ 0x%016llx\n", LIX_VDSO_FIXED);
     }
 
     return status;

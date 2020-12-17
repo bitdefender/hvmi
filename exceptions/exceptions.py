@@ -208,7 +208,7 @@ def check_missing_signatures(signatures, exceptions):
 
             if not found:
                 raise ValueError("Signature %d not found in %r!" % (e_sig_id, exc.signatures))
-
+                
 
 def sanitize_json_file(json_file):
     """ I couldn't resist. Makes my job much more easier keeping the changes.

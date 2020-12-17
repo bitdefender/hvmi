@@ -117,4 +117,17 @@ IntWinProcMapEprocess(
     _Outptr_ void **Ptr
     );
 
+void
+IntWinProcLstUnsafeReInit(void);
+
+void
+IntWinProcLstInsertProcess(
+    _In_ WIN_PROCESS_OBJECT *Process
+    );
+
+void
+IntWinProcLstRemoveProcess(
+    _In_ WIN_PROCESS_OBJECT *Process
+    );
+
 #endif // _WINPROCESSHP_H_

@@ -356,6 +356,20 @@ The :code:`object_type` field may be one of the following:
 +---------------------------+-----------------------------------------------------------------------------------------------------------------+
 | infinity-hook             | The modified object is WMI\_LOGGER\_CONTEXT.GetCpuClock used by InfinityHook (valid only for windows guests).   |
 +---------------------------+-----------------------------------------------------------------------------------------------------------------+
+| token-privs               | The modified object is the Privileges field of a TOKEN structure.                                               |
++---------------------------+-----------------------------------------------------------------------------------------------------------------+
+| sud-exec                  | The object allows SharedUserData executions from a kernel-mode.                                                 |
++---------------------------+-----------------------------------------------------------------------------------------------------------------+
+| hal-perf-counter          | The modified object is a HalPerformanceCounter function.                                                        |
++---------------------------+-----------------------------------------------------------------------------------------------------------------+
+| sud-modification          | The modified object is a field contained within SharedUserData or the zone filled with zero after the structure.|
++---------------------------+-----------------------------------------------------------------------------------------------------------------+
+| security-descriptor       | The modified object is the security descriptor pointer (valid only for windows guests).                         |
++---------------------------+-----------------------------------------------------------------------------------------------------------------+
+| acl-edit                  | The modified object is an Access Control List - SACL/DACL (valid only for windows guests).                      |
++---------------------------+-----------------------------------------------------------------------------------------------------------------+
+| interrupt-obj             | The modified object is an interrupt object from KPRCB's InterruptObject array.                                  |
++---------------------------+-----------------------------------------------------------------------------------------------------------------+
 
 +-------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | User-Mode Object Type   | Description                                                                                                                            |
@@ -385,6 +399,10 @@ The :code:`object_type` field may be one of the following:
 | double-agent            | The object allows only dlls which are detected as suspicous (e.g. module loads before kernel32.dll through double agent technique).    |
 +-------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | process-creation-dpi    | The object allows only process creation with deep-process-inspection (DPI) flags.                                                      |
++-------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| sud-exec                | The object allows SharedUserData executions from an application.                                                                       |
++-------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| instrumentation-callback| The object allows instrumentation callbacks.                                                                                           |
 +-------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 
 +---------------------------+-----------------------------------------------------------+
@@ -936,6 +954,8 @@ Process Creation DPI Flags
   - :code:`heap-spray` - for process creation in which the parent seems to have been heap-sprayed.
   - :code:`token-privs` - for process creation where the parent has the privileges increased in a malicious manner.
   - :code:`thread-start` - when the thread which creates the process seem to have started in a section containing malicious code.
+  - :code:`security-descriptor` - for process creation in which the parent has an altered security descriptor pointer.
+  - :code:`acl-edit` - for process creation in which the parent has an altered ACL (SACL/DACL).
 
 .. code-block:: none
 

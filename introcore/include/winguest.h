@@ -7,6 +7,7 @@
 
 #include "introcore.h"
 #include "patsig.h"
+#include "detours.h"
 
 typedef struct _GUEST_STATE GUEST_STATE, *PGUEST_STATE;
 
@@ -89,6 +90,7 @@ typedef struct _WIN_UNEXPORTED_FUNCTION_PATTERN
     CHAR                SectionHint[8];
     /// @brief  The pattern signature
     PATTERN_SIGNATURE   Signature;
+    DETOUR_ARGS         Arguments;
 } WIN_UNEXPORTED_FUNCTION_PATTERN, *PWIN_UNEXPORTED_FUNCTION_PATTERN;
 
 
@@ -288,6 +290,7 @@ typedef enum _WIN_KM_FIELD_PROCESS
     ///
     /// It is safe for introcore to change these fields (for example, for inserting protection data).
     winKmFieldProcessSpare,
+
     /// @brief  The end of the fields.
     ///
     /// This must always be the last entry in this enum. New entries must be added right before this one in order to
@@ -315,6 +318,7 @@ typedef enum _WIN_KM_FIELD_THREAD
     winKmFieldThreadClientSecurity,     ///< Offset of ClientSecurity.
     winKmFieldThreadTrapFrame,          ///< Offset of Tcb.TrapFrame.
     winKmFieldThreadWin32StartAddress,  ///< Offset of Win32StartAddress.
+    winKmFieldThreadPreviousMode,       ///< Offset of PreviousMode.
     /// @brief  The end of the fields.
     ///
     /// This must always be the last entry in this enum. New entries must be added right before this one in order to
@@ -357,8 +361,10 @@ typedef enum _WIN_KM_FIELD_DRVOBJ
 /// The #WIN_KM_FIELD macro can be used to access these more easily.
 typedef enum _WIN_KM_FIELD_PCR
 {
-    winKmFieldPcrCurrentThread = 0, ///< Offset of PrcbData.CurrentThread.
-    winKmFieldPcrUserTime,          ///< Offset of PrcbData.UserTime.
+    winKmFieldPcrCurrentThread = 0,         ///< Offset of PrcbData.CurrentThread.
+    winKmFieldPcrUserTime,                  ///< Offset of PrcbData.UserTime.
+    winKmFieldPcrPcrb,                      ///< Offset of Prcb inside KPCR.
+    winKmFieldPcrPrcbInterruptObject,       ///< Offset of InterruptObject inside KPRCB.
     /// @brief  The end of the fields.
     ///
     /// This must always be the last entry in this enum. New entries must be added right before this one in order to
@@ -446,6 +452,13 @@ typedef enum _WIN_KM_FIELD_UNGROUPED
     /// @brief The offset relative tot he EtwDebuggerData structure at which the ETW signature is found.
     winKmFieldUngroupedEtwSignatureOffset,
     winKmFieldUngroupedSubsectionCtlArea,       ///< Offset of ControlArea in _SUBSECTION.
+    winKmFieldUngroupedHalPerfCntFunctionOffset,///< Offset of protected function in HalPerformanceCounter.
+    /// @brief The offset of the restored RSP value taken from RBP, which serves as a fake trapframe on
+    /// Zw* calls on x64. This will be equal to 0 on x86 and should not be used on this architecture.
+    winKmFieldUngroupedRspOffsetOnZwCall,
+    winKmFieldUngroupedHalIntCtrlTypeMaxOffset, ///< The maximum offset of Type inside HalInterruptController.
+    winKmFieldUngroupedHalIntCtrlTypeMinOffset, ///< The minimum offset of Type inside HalInterruptController.
+    winKmFieldUngroupedSharedUserDataSize,      ///< The size of the _KUSER_SHARED_DATA structure.
     /// @brief  The end of the fields.
     ///
     /// This must always be the last entry in this enum. New entries must be added right before this one in order to
@@ -467,6 +480,7 @@ typedef enum _WIN_KM_FIELD_EPROCESSFLAGS
     winKmFieldEprocessFlags3Crashed,           ///< Mask for Flag3Crashed from _EPROCESS.Flags.
     winKmFieldEprocessFlagsVmDeleted,          ///< Mask for VmDeleted from _EPROCESS.Flags.
     winKmFieldEprocessFlagsHasAddrSpace,       ///< Mask for HasAddrSpace from _EPROCESS.Flags.
+    winKmFieldEprocessFlagsOutSwapped,         ///< Mask for OutSwapped from _EPROCESS.Flags.
     /// @brief  The end of the fields.
     ///
     /// This must always be the last entry in this enum. New entries must be added right before this one in order to
@@ -883,16 +897,6 @@ IntWinGetVersionString(
     _In_ DWORD VersionStringSize,
     _Out_ CHAR *FullString,
     _Out_ CHAR *VersionString
-    );
-
-INTSTATUS
-IntWinGuestProtectSudExec(
-    void
-    );
-
-INTSTATUS
-IntWinGuestUnprotectSudExec(
-    void
     );
 
 #endif // _WINGUEST_H_

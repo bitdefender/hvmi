@@ -47,4 +47,10 @@ UtilSortQwords(
     _In_ const DWORD NumberOfElements
     );
 
+BOOLEAN
+UtilIsBufferZero(
+    _In_bytecount_(BufferSize) void *Buffer,
+    _In_ size_t BufferSize
+    );
+
 #endif // _UTILS_H_

@@ -18,6 +18,8 @@
 #include "wincmdline.h"
 #include "windpi.h"
 #include "wintoken.h"
+#include "winpe.h"
+#include "winsecdesc.h"
 
 /// @brief The maximum length (in bytes) of the data read from the guest when reading the command line of a process
 /// that is not protected with the #PROC_OPT_PROT_SCAN_CMD_LINE.
@@ -335,6 +337,11 @@ IntWinProcPatchSpareValue(
         if (Process->ProtQueueApc)
         {
             c[1] |= winProcExitQueueApc;
+        }
+
+        if (Process->ProtInstrument)
+        {
+            c[1] |= winProcExitSetProcInfo;
         }
     }
 
@@ -898,7 +905,7 @@ IntWinProcReadCommandLine(
 ///
 /// @param[in]  Process     The process to read the command line from.
 ///
-/// @retval     #INT_STATUS_SUCCESS     On success.
+/// @retval     #INT_STATUS_SUCCESS         On success.
 ///
 {
     INTSTATUS status;
@@ -1319,7 +1326,7 @@ IntWinProcHandleDuplicate(
 static void
 IntWinProcSetUserCr3(
     _Inout_ WIN_PROCESS_OBJECT *Process,
-    _In_ const BYTE *EprocessBuffer 
+    _In_ const BYTE *EprocessBuffer
     )
 ///
 /// @brief  Sets the User CR3 value for a newly created process.
@@ -1408,6 +1415,49 @@ IntWinProcLockCr3(
 
             return status;
         }
+    }
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+static INTSTATUS
+IntWinProcUnlockCr3(
+    _In_ WIN_PROCESS_OBJECT *Process
+    )
+///
+/// @brief  Unlocks the kernel and user Cr3 of a process in memory.
+///
+/// Unlocking is done using #IntWinPfnRemoveLock.
+///
+/// @param[in, out] Process The process for which to unlock the CR3. The #WIN_PFN_LOCK handle will be saved inside
+///                         the process object.
+///
+/// @returns        #INT_STATUS_SUCCESS in case of success, or an appropriate #INTSTATUS value in case of error.
+///
+{
+    INTSTATUS status;
+
+    if (NULL != Process->Cr3PageLockObject)
+    {
+        status = IntWinPfnRemoveLock(Process->Cr3PageLockObject, FALSE);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinPfnRemoveLock failed: 0x%08x\n", status);
+        }
+
+        Process->Cr3PageLockObject = NULL;
+    }
+
+    if (NULL != Process->UserCr3PageLockObject)
+    {
+        status = IntWinPfnRemoveLock(Process->UserCr3PageLockObject, FALSE);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinPfnRemoveLock failed: 0x%08x\n", status);
+        }
+
+        Process->UserCr3PageLockObject = NULL;
     }
 
     return INT_STATUS_SUCCESS;
@@ -1508,6 +1558,15 @@ IntWinProcCreateProcessObject(
 /// command line if necessary, importing its main module VAD, protecting the process, sending a notification to the
 /// integrator, etc.
 ///
+/// If the process is swapped-out we no longer:
+///     - lock the CR3
+///     - read the command line
+///     - check the self-map bits
+///     - import the main module vad
+///     - activate protection
+///
+/// The protection is activated when the process is swapped-in (IntWinProcSwapIn).
+///
 /// @param[out] Process             The internally allocate process object.
 /// @param[in]  EprocessAddress     The EPROCESS address of the process.
 /// @param[in]  EprocessBuffer      The address of the EPROCESS mapping.
@@ -1526,6 +1585,7 @@ IntWinProcCreateProcessObject(
     WIN_PROCESS_OBJECT *pProc, *pParent, *pRealParent;
     const BOOLEAN protTokenPtr = 0 != (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_TOKEN_PTR);
     const BOOLEAN protTokenPrivs = 0 != (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_TOKEN_PRIVS);
+    DWORD flags = 0;
 
     if (NULL == Process)
     {
@@ -1549,6 +1609,9 @@ IntWinProcCreateProcessObject(
     {
         return INT_STATUS_INSUFFICIENT_RESOURCES;
     }
+
+    flags = *(DWORD *)(EprocessBuffer + WIN_KM_FIELD(Process, Flags));
+    pProc->Outswapped = !!(flags & WIN_KM_FIELD(EprocessFlags, OutSwapped));
 
     // Now we can actually initialize the process.
     STATIC_ASSERT(IMAGE_BASE_NAME_LEN == 2 * sizeof(QWORD), "QWORD by QWORD copy of process name will fail");
@@ -1579,13 +1642,17 @@ IntWinProcCreateProcessObject(
 
     IntWinProcSetUserCr3(pProc, EprocessBuffer);
 
-    // Lock the CR3 of this process in memory. We don't want the OS to mangle with the CR3, since it is used
-    // for exceptions.
-    // NOTE: This is a hard-error, we disable Introcore if this fails.
-    status = IntWinProcLockCr3(pProc);
-    if (!INT_SUCCESS(status))
+
+    if (!pProc->Outswapped)
     {
-        goto cleanup_and_exit;
+        // Lock the CR3 of this process in memory. We don't want the OS to mangle with the CR3, since it is used
+        // for exceptions.
+        // NOTE: This is a hard-error, we disable Introcore if this fails.
+        status = IntWinProcLockCr3(pProc);
+        if (!INT_SUCCESS(status))
+        {
+            goto cleanup_and_exit;
+        }
     }
 
     if (4 != Pid)
@@ -1660,6 +1727,12 @@ IntWinProcCreateProcessObject(
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntWinTokenPrivsProtectOnProcess failed: 0x%08x\n", status);
+    }
+
+    status = IntWinSDProtectSecDesc(pProc);
+    if (!INT_SUCCESS(status))
+    {
+        WARNING("[WARNING] IntWinSDProtectSecDesc failed: 0x%08x\n", status);
     }
 
     // Get the original spare value. Applying the protection will overwrite the Spare field
@@ -1832,27 +1905,30 @@ IntWinProcCreateProcessObject(
     //      1) Napoca does not support the scan engines, so they can not call our callback function
     //         (resulting in a memory leak since the callback function is used to free the command line buffer).
     //      2) Reading the command line using #PF can bring an unnecessary performance penalty.
-    if ((pProc->ProtectionMask & PROC_OPT_PROT_SCAN_CMD_LINE) && GlueIsScanEnginesApiAvailable())
+    if (!pProc->Outswapped)
     {
-        status = IntWinProcReadCommandLine(pProc);
-        if (!INT_SUCCESS(status))
+        if ((pProc->ProtectionMask & PROC_OPT_PROT_SCAN_CMD_LINE) && GlueIsScanEnginesApiAvailable())
         {
-            ERROR("[ERROR] IntWinProcReadCommandLine failed: 0x%x\n", status);
-        }
-    }
-    else
-    {
-        for (DWORD i = 0; i < ARRAYSIZE(gCmdLineProcesses); i++)
-        {
-            if (0 == strncmp(pProc->Name, gCmdLineProcesses[i], strlen(pProc->Name)))
+            status = IntWinProcReadCommandLine(pProc);
+            if (!INT_SUCCESS(status))
             {
-                status = IntWinProcReadCommandLine(pProc);
-                if (!INT_SUCCESS(status))
+                ERROR("[ERROR] IntWinProcReadCommandLine failed: 0x%x\n", status);
+            }
+        }
+        else
+        {
+            for (DWORD i = 0; i < ARRAYSIZE(gCmdLineProcesses); i++)
+            {
+                if (0 == strncmp(pProc->Name, gCmdLineProcesses[i], strlen(pProc->Name)))
                 {
-                    ERROR("[ERROR] IntWinProcReadCommandLine failed: 0x%x\n", status);
-                }
+                    status = IntWinProcReadCommandLine(pProc);
+                    if (!INT_SUCCESS(status))
+                    {
+                        ERROR("[ERROR] IntWinProcReadCommandLine failed: 0x%x\n", status);
+                    }
 
-                break;
+                    break;
+                }
             }
         }
     }
@@ -1873,27 +1949,20 @@ IntWinProcCreateProcessObject(
               pProc->Name, pProc->ExploitGuardEnabled ? "Enabled" : "Disabled");
     }
 
-    InsertTailList(&gWinProcesses, &pProc->Link);
-
-    // Note: we cannot have errors here, because:
-    // 1. we supply valid arguments (so no STATUS_INVALID_PARAMETER can occur)
-    // 2. at the beginning of the function, we check for duplicates by searching for both the CR3 and EPROCESS (so
-    //    we cannot have STATUS_KEY_ALREADY_PRESENT either).
-    RbInsertNode(&gWinProcTreeCr3, &pProc->NodeCr3);
-
-    RbInsertNode(&gWinProcTreeUserCr3, &pProc->NodeUserCr3);
-
-    RbInsertNode(&gWinProcTreeEprocess, &pProc->NodeEproc);
+    IntWinProcLstInsertProcess(pProc);
 
     if (pProc->StaticDetected && !pProc->IsAgent)
     {
         pProc->IsAgent = pProc->IsPreviousAgent = '?' == pProc->Name[14];
     }
 
-    status = IntWinSelfMapGetAndCheckSelfMapEntry(pProc);
-    if (!INT_SUCCESS(status))
+    if (!pProc->Outswapped)
     {
-        ERROR("[ERROR] IntWinProcGetAndCheckSelfMapEntry failed: 0x%08x\n", status);
+        status = IntWinSelfMapGetAndCheckSelfMapEntry(pProc);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinProcGetAndCheckSelfMapEntry failed: 0x%08x\n", status);
+        }
     }
 
     if (__unlikely(4 == pProc->Pid))
@@ -1905,14 +1974,19 @@ IntWinProcCreateProcessObject(
         }
     }
 
-    status = IntWinProcProtect(pProc);
-    if (!INT_SUCCESS(status))
+    if (!pProc->Outswapped)
     {
-        ERROR("[ERROR] IntWinProcProtect failed: 0x%08x\n", status);
+        status = IntWinProcProtect(pProc);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinProcProtect failed: 0x%08x\n", status);
+        }
     }
 
-    if (!pProc->MonitorVad)
+    if (!pProc->MonitorVad && !pProc->Outswapped)
     {
+        // NOTE: The VAD tree is not imported when the process is out-swapped because the #WIN_PROCESS_OBJECT will be
+        // deleted and a new #WIN_PROCESS_OBJECT will be created.
         status = IntWinVadProcImportMainModuleVad(pProc);
         if (!INT_SUCCESS(status))
         {
@@ -1933,10 +2007,11 @@ IntWinProcCreateProcessObject(
     }
 
     TRACE("[PROCESS] '%s' (%08x), path %s, pid %d, EPROCESS 0x%016llx, CR3 0x%016llx, "
-          "UserCR3 0x%016llx, parent at 0x%016llx/0x%016llx; %s, %s.\n",
+          "UserCR3 0x%016llx, parent at 0x%016llx/0x%016llx; %s, %s %s\n",
           pProc->Name, pProc->NameHash, pProc->Path ? utf16_for_log(pProc->Path->Path) : "<invalid>",
           Pid, pProc->EprocessAddress, pProc->Cr3, pProc->UserCr3, ParentEprocess, RealParentEprocess,
-          pProc->SystemProcess ? "SYSTEM" : "not system", pProc->IsAgent ? "AGENT" : "not agent");
+          pProc->SystemProcess ? "SYSTEM" : "not system", pProc->IsAgent ? "AGENT" : "not agent",
+          pProc->Outswapped ? ", Outswapped" : "");
 
     *Process = pProc;
 
@@ -2204,13 +2279,7 @@ IntWinProcDeleteProcessObject(
                 }
             }
 
-            RemoveEntryList(&pProc->Link);
-
-            RbDeleteNode(&gWinProcTreeCr3, &pProc->NodeCr3);
-
-            RbDeleteNode(&gWinProcTreeUserCr3, &pProc->NodeUserCr3);
-
-            RbDeleteNode(&gWinProcTreeEprocess, &pProc->NodeEproc);
+            IntWinProcLstRemoveProcess(pProc);
 
             status = IntWinSelfMapUnprotectSelfMapIndex(pProc);
             if (!INT_SUCCESS(status))
@@ -2277,7 +2346,7 @@ INTSTATUS
 IntWinProcPatchPspInsertProcess86(
     _In_ QWORD FunctionAddress,
     _In_ void *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This functions is responsible for patching the detour that handles the "PspInsertProcess".
@@ -2289,7 +2358,7 @@ IntWinProcPatchPspInsertProcess86(
 ///
 /// @param[in]  FunctionAddress         The address of the function.
 /// @param[in]  Handler                 An #API_HOOK_HANDLER structure.
-/// @param[in]  HandlerAddress          The address of the handler.
+/// @param[in]  Descriptor              Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @retval     #INT_STATUS_SUCCESS             On success.
 ///
@@ -2298,7 +2367,7 @@ IntWinProcPatchPspInsertProcess86(
     DWORD offsetRetn = 0x09;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     if (gGuest.OSVersion == 7600 || gGuest.OSVersion == 9200)
     {
@@ -2309,6 +2378,113 @@ IntWinProcPatchPspInsertProcess86(
     {
         pHandler->Code[offsetRetn] = 0x20;
     }
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+INTSTATUS
+IntWinProcPatchSwapOut64(
+    _In_ QWORD FunctionAddress,
+    _In_ void *Handler,
+    _In_ void *Descriptor
+    )
+///
+/// @brief      This functions is responsible for patching the detour that handles the "KiOutSwapProcesses".
+///
+/// @param[in]  FunctionAddress         The address of the function.
+/// @param[in]  Handler                 An #API_HOOK_HANDLER structure.
+/// @param[in]  Descriptor              Pointer to a structure that describes the hook and the detour handler.
+///
+/// @retval     #INT_STATUS_SUCCESS             On success.
+///
+{
+    PAPI_HOOK_HANDLER pHandler = Handler;
+    PAPI_HOOK_DESCRIPTOR pDescriptor = Descriptor;
+    DWORD offset = 0x01;
+    BYTE instruction[7] = { 0 };
+
+    UNREFERENCED_PARAMETER(FunctionAddress);
+
+    instruction[0] = 0x48;
+    instruction[1] = 0x8b;
+
+    switch (pDescriptor->Arguments.Argv[0])
+    {
+        case NDR_RBX:
+            instruction[2] = 0x83;
+            break;
+
+        case NDR_RDI:
+            instruction[2] = 0x87;
+            break;
+
+        case NDR_RSI:
+            instruction[2] = 0x86;
+            break;
+
+        case NDR_RBP:
+            instruction[1] = 0x85;
+            break;
+
+        default:
+            return INT_STATUS_NOT_SUPPORTED;
+    }
+
+    *(DWORD *)(instruction + 3) = WIN_KM_FIELD(Process, Flags);
+
+    memcpy(pHandler->Code + offset, instruction, sizeof(instruction));
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+INTSTATUS
+IntWinProcPatchSwapOut32(
+    _In_ QWORD FunctionAddress,
+    _In_ void *Handler,
+    _In_ void *Descriptor
+    )
+///
+/// @brief      This functions is responsible for patching the detour that handles the "KiOutSwapProcesses".
+///
+/// @param[in]  FunctionAddress         The address of the function.
+/// @param[in]  Handler                 An #API_HOOK_HANDLER structure.
+/// @param[in]  Descriptor              Pointer to a structure that describes the hook and the detour handler.
+///
+/// @retval     #INT_STATUS_SUCCESS             On success.
+///
+{
+    PAPI_HOOK_HANDLER pHandler = Handler;
+    PAPI_HOOK_DESCRIPTOR pDescriptor = Descriptor;
+    BYTE instruction[6] = { 0 };
+    DWORD offset = 0x01;
+
+    UNREFERENCED_PARAMETER(FunctionAddress);
+
+    instruction[0] = 0x8b;
+
+    switch (pDescriptor->Arguments.Argv[0])
+    {
+        case NDR_RSI:
+            instruction[1] = 0x86;
+            break;
+
+        case NDR_RBX:
+            instruction[1] = 0x83;
+            break;
+
+        case NDR_RDI:
+            instruction[1] = 0x87;
+            break;
+
+        default:
+            return INT_STATUS_NOT_SUPPORTED;
+    }
+
+    *(DWORD *)(instruction + 2) = WIN_KM_FIELD(Process, Flags);
+
+    memcpy(pHandler->Code + offset, instruction, sizeof(instruction));
 
     return INT_STATUS_SUCCESS;
 }
@@ -2570,7 +2746,7 @@ INTSTATUS
 IntWinProcPatchCopyMemoryDetour(
     _In_ QWORD FunctionAddress,
     _In_ void *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     )
 ///
 /// @brief      This functions is responsible for patching the detour that handles the "MmCopyVirtualMemory".
@@ -2582,7 +2758,7 @@ IntWinProcPatchCopyMemoryDetour(
 ///
 /// @param[in]  FunctionAddress         The address of the function.
 /// @param[in]  Handler                 An #API_HOOK_HANDLER structure.
-/// @param[in]  HandlerAddress          The address of the handler.
+/// @param[in]  Descriptor              Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @retval     #INT_STATUS_SUCCESS             On success.
 ///
@@ -2590,7 +2766,7 @@ IntWinProcPatchCopyMemoryDetour(
     PAPI_HOOK_HANDLER pHandler = Handler;
 
     UNREFERENCED_PARAMETER(FunctionAddress);
-    UNREFERENCED_PARAMETER(HandlerAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
 
     if (gGuest.Guest64)
     {
@@ -3803,14 +3979,7 @@ IntWinProcUninit(
             IntWinProcMarkAgent(pProc, TRUE);
         }
 
-        // Remove the process from the list & RB tree.
-        RemoveEntryList(&pProc->Link);
-
-        RbDeleteNode(&gWinProcTreeCr3, &pProc->NodeCr3);
-
-        RbDeleteNode(&gWinProcTreeUserCr3, &pProc->NodeUserCr3);
-
-        RbDeleteNode(&gWinProcTreeEprocess, &pProc->NodeEproc);
+        IntWinProcLstRemoveProcess(pProc);
 
         if (pProc->Protected)
         {
@@ -4039,3 +4208,479 @@ IntWinProcChangeProtectionFlags(
 
     return INT_STATUS_SUCCESS;
 }
+
+
+INTSTATUS
+IntWinProcSwapIn(
+    _In_ void *Detour
+    )
+///
+/// @brief      Detour handler for the MmInSwapProcess Windows kernel API.
+/// @ingroup    group_detours
+///
+/// The detour on MmInSwapProcess is set inside the function after/before the EPROCESS.OutSwapped bit is disabled.
+/// The guest virtual address of EPROCESS structure is stored in a register and is provided by 'IntDetGetArgument'.
+/// An example for an instruction that is detoured is 'lock and dword ptr [rbx+440h],0FFFFFF7Fh'; in this case the
+/// guest virtual address of the EPROCESS is stored in RBX register.
+///
+/// When the process is swapped-in, the #WIN_PROCESS_OBJECT is destroyed and a new one is created because some
+/// information about EPROCESS may change.
+///
+/// At this point, the process is swapped-in and the protection is activated.
+///
+/// @param[in]  Detour  The detour.
+///
+/// @retval     #INT_STATUS_SUCCESS             On success.
+/// @retval     #INT_STATUS_INVALID_DATA_TYPE   If the callback is called and the process was not swapped-out.
+///
+{
+    INTSTATUS status = INT_STATUS_SUCCESS;
+    WIN_PROCESS_OBJECT *pProcess = NULL;
+    QWORD eprocessAddr = 0;
+    BYTE *pEprocessBuffer = NULL;
+    QWORD eprocessParentAddr = 0;
+    QWORD eprocessRealParentAddr = 0;
+    QWORD cr3 = 0;
+    DWORD pid = 0;
+
+    status = IntDetGetArgument(Detour, 0, NULL, 0, &eprocessAddr);
+    if (!INT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    pProcess = IntWinProcFindObjectByEprocess(eprocessAddr);
+    if (!pProcess)
+    {
+        ERROR("[ERROR] IntWinProcFindObjectByEprocess failed for Eprocess 0x%016llx with status: 0x%08x",
+               eprocessAddr, status);
+        return status;
+    }
+
+    if (!pProcess->Outswapped)
+    {
+        ERROR("[ERROR] Process '%s' swapped-in, but not swapped out!", pProcess->Name);
+        return INT_STATUS_INVALID_DATA_TYPE;
+    }
+
+    pProcess->Outswapped = FALSE;
+
+    TRACE("[PROCESS-SWAP] Swapped in: '%s' (%08x), path %s, pid %d, EPROCESS 0x%016llx, CR3 0x%016llx, "
+          "UserCR3 0x%016llx, parent at 0x%016llx/0x%016llx; %s, %s\n",
+          pProcess->Name, pProcess->NameHash, pProcess->Path ? utf16_for_log(pProcess->Path->Path) : "<invalid>",
+          pProcess->Pid, pProcess->EprocessAddress, pProcess->Cr3, pProcess->UserCr3, pProcess->ParentEprocess, pProcess->RealParentEprocess,
+          pProcess->SystemProcess ? "SYSTEM" : "not system", pProcess->IsAgent ? "AGENT" : "not agent");
+
+    eprocessParentAddr = pProcess->ParentEprocess;
+    eprocessRealParentAddr = pProcess->RealParentEprocess;
+    pid = pProcess->Pid;
+
+    status = IntWinProcDeleteProcessObject(pProcess->EprocessAddress, pProcess->Cr3, pProcess->Pid);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinProcDeleteProcessObject failed with status: 0x%08x\n", status);
+    }
+
+    pProcess = NULL;
+
+    status = IntWinProcMapEprocess(eprocessAddr, &pEprocessBuffer);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinProcMapEprocess failed: 0x%08x\n", status);
+        return status;
+    }
+
+    pid = *(DWORD *)(pEprocessBuffer + WIN_KM_FIELD(Process, Id));
+
+    if (gGuest.Guest64)
+    {
+        cr3 = *(QWORD *)(pEprocessBuffer + WIN_KM_FIELD(Process, Cr3));
+    }
+    else
+    {
+        cr3 = *(DWORD *)(pEprocessBuffer + WIN_KM_FIELD(Process, Cr3));
+    }
+
+    status = IntWinProcCreateProcessObject(&pProcess, eprocessAddr, pEprocessBuffer, eprocessParentAddr,
+                                           eprocessRealParentAddr, cr3, pid, TRUE);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinProcCreateProcessObject failed with status: 0x%08x\n", status);
+    }
+
+    IntVirtMemUnmap(&pEprocessBuffer);
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+INTSTATUS
+IntWinProcSwapOut(
+    _In_  void *Detour
+    )
+///
+/// @brief      Detour handler for the KiOutSwapProcess Windows kernel API.
+/// @ingroup    group_detours
+///
+/// The detour on KiOutSwapProcess is set after the MiOutSwapProcess is called (e.g. 'xor r15b, r15b').
+/// The guest virtual address of EPROCESS structure is stored in a register and is provided by 'IntDetGetArgument'.
+/// An example for that is detoured sequence is 'mov rcx, rbx / call nt!MmOutSwapProcess / xor r15b, r15b' ; in this case
+/// the guest virtual address of the EPROCESS is stored in RBX register.
+///
+/// When the process is swapped-out, the #WIN_PROCESS_OBJECT is marked as swapped-out.
+/// The protection for this process is deactivated and all swap-mem transactions are removed.
+///
+/// @param[in]  Detour  The detour.
+///
+/// @retval     #INT_STATUS_SUCCESS Always.
+///
+{
+    INTSTATUS status = INT_STATUS_SUCCESS;
+    WIN_PROCESS_OBJECT *pProcess = NULL;
+    QWORD eprocessAddr = 0;
+
+    status = IntDetGetArgument(Detour, 0, NULL, 0, &eprocessAddr);
+    if (!INT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    pProcess = IntWinProcFindObjectByEprocess(eprocessAddr);
+    if (!pProcess)
+    {
+        ERROR("[ERROR] IntWinProcFindObjectByEprocess failed for Eprocess 0x%016llx with status: 0x%08x",
+               eprocessAddr, status);
+        return status;
+    }
+
+    if (pProcess->Outswapped)
+    {
+        ERROR("[ERROR] Process '%s' already outswapped!", pProcess->Name);
+        return INT_STATUS_INVALID_DATA_TYPE;
+    }
+
+    pProcess->Outswapped = TRUE;
+
+    status = IntWinProcUnlockCr3(pProcess);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinProcUnlockCr3 failed for 0x%016llx with status: 0x%08x\n", pProcess->Cr3, status);
+    }
+
+    if (NULL != pProcess->CmdBufSwapHandle)
+    {
+        status = IntSwapMemRemoveTransaction(pProcess->CmdBufSwapHandle);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntSwapMemRemoveTransaction failed: 0x%08x\n", status);
+        }
+        else
+        {
+            pProcess->CmdBufSwapHandle = NULL;
+        }
+    }
+
+    if (NULL != pProcess->ParamsSwapHandle)
+    {
+        status = IntSwapMemRemoveTransaction(pProcess->ParamsSwapHandle);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntSwapMemRemoveTransaction failed: 0x%08x\n", status);
+        }
+        else
+        {
+            pProcess->ParamsSwapHandle = NULL;
+        }
+    }
+
+    if (NULL != pProcess->CmdLineSwapHandle)
+    {
+        status = IntSwapMemRemoveTransaction(pProcess->CmdLineSwapHandle);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntSwapMemRemoveTransaction failed: 0x%08x\n", status);
+        }
+        else
+        {
+            pProcess->CmdLineSwapHandle = NULL;
+        }
+    }
+
+    status = IntWinProcUnprotect(pProcess);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinProcUnprotect failed: 0x%08x\n", status);
+    }
+
+    status = IntSwapMemRemoveTransactionsForVaSpace(pProcess->Cr3);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntSwapMemRemoveTransactionsForVaSpace failed for CR3 0x%016llx with status: 0x%08x\n",
+              pProcess->Cr3, status);
+    }
+
+    TRACE("[PROCESS-SWAP] Swapped out: '%s' (%08x), path %s, pid %d, EPROCESS 0x%016llx, CR3 0x%016llx, "
+          "UserCR3 0x%016llx, parent at 0x%016llx/0x%016llx; %s, %s\n",
+          pProcess->Name, pProcess->NameHash, pProcess->Path ? utf16_for_log(pProcess->Path->Path) : "<invalid>",
+          pProcess->Pid, pProcess->EprocessAddress, pProcess->Cr3, pProcess->UserCr3, pProcess->ParentEprocess, pProcess->RealParentEprocess,
+          pProcess->SystemProcess ? "SYSTEM" : "not system", pProcess->IsAgent ? "AGENT" : "not agent");
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+INTSTATUS
+IntWinProcHandleInstrument(
+    _In_ void *Detour
+    )
+///
+/// @brief      Handles an exit on NtSetInformationProcess calls where the InformationClass argument is 40 (instrumentation callback).
+/// @ingroup    group_detours
+///
+/// The originator is considered to be the current process (by cr3).
+/// The victim is taken from the first argument of the API call, which is a handle to the target process. However, we
+/// receive an _EPROCESS address thanks to the hook handler.
+///
+/// Since this is an injection technique, we consider the address of the desired callback to be the address of the injected
+/// buffer and, since we don't have a size for it, the buffer is always considerd to have a PAGE_SIZE size.
+///
+/// This will check wether or not the instrumentation attempt is valid or not via exceptions and take propper action.
+/// If the attempt is deemed malicious, we will set the guest to return from the function with a STATUS_ACCESS_DENIED or to
+/// continue normal execution otherwise.
+///
+/// @param[in]  Detour  The detour.
+///
+/// @returns    #INT_STATUS_SUCCESS if successful, or an appropriate INTSTATUS error value.
+///
+{
+    WIN_PROCESS_OBJECT *pOrig;
+    WIN_PROCESS_OBJECT *pVic;
+
+    IG_ARCH_REGS *regs;
+
+    QWORD rip;
+
+    INTRO_ACTION action;
+    INTRO_ACTION_REASON reason;
+
+    EXCEPTION_UM_ORIGINATOR originator = { 0 };
+    EXCEPTION_VICTIM_ZONE victim = { 0 };
+
+    EVENT_MEMCOPY_VIOLATION *evt;
+
+    INTSTATUS status;
+
+    union
+    {
+        struct
+        {
+            QWORD DstEproc;
+            QWORD Class;
+            QWORD Information;
+        };
+
+        QWORD Array[3];
+    } args = { 0 };
+
+    STATS_ENTER(statsSetProcInfo);
+
+    regs = &gVcpu->Regs;
+
+    action = introGuestAllowed;
+    reason = introReasonAllowed;
+
+    rip = 0;
+    pVic = NULL;
+
+    status = IntDetGetArguments(Detour, ARRAYSIZE(args.Array), args.Array);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntDetGetArguments failed: 0x%08x\n", status);
+        goto _cleanup_and_exit;
+    }
+
+    pOrig = IntWinProcFindObjectByCr3(regs->Cr3);
+    if (NULL == pOrig)
+    {
+        ERROR("[ERROR] Failed to get source process by cr3 0x%016llx\n", regs->Cr3);
+        status = INT_STATUS_NOT_FOUND;
+        goto _cleanup_and_exit;
+    }
+
+    pVic = IntWinProcFindObjectByEprocess(args.DstEproc);
+    if (NULL == pVic)
+    {
+        ERROR("[ERROR] Failed to get destination process by eprocess 0x%016llx\n", args.DstEproc);
+        status = INT_STATUS_NOT_FOUND;
+        goto _cleanup_and_exit;
+    }
+
+    // The structure passed to NtSetInformationProcess in order to place an instrumentation callback
+    // seems to have a structure as follows:
+    // WoW64:  { VOID *Callback; ULONG Version; ULONG Reserved; }
+    // Native: { ULONG Version; ULONG Reserved; VOID *Callback; }
+    if (pVic->Wow64Process)
+    {
+        status = IntVirtMemFetchDword(args.Information, pOrig->Cr3, (DWORD *)&rip);
+    }
+    else
+    {
+        status = IntVirtMemFetchWordSize(args.Information + 8, pOrig->Cr3, &rip);
+    }
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntVirtMemFetchWordSize failed: 0x%08x\n", status);
+        goto _cleanup_and_exit;
+    }
+
+    STATS_ENTER(statsExceptionsUser);
+
+    status = IntExceptUserGetOriginator(pOrig, FALSE, 0, NULL, &originator);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntExceptUserGetOriginator failed: 0x%08x\n", status);
+        reason = introReasonInternalError;
+        goto _send_notification;
+    }
+
+    status = IntExceptGetVictimProcess(pVic, rip, PAGE_SIZE, ZONE_PROC_INSTRUMENT | ZONE_WRITE, &victim);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[EROR] IntExceptGetVictimProcess failed: 0x%08x\n", status);
+        reason = introReasonInternalError;
+        goto _send_notification;
+    }
+
+    IntExcept(&victim, &originator, exceptionTypeUm, &action, &reason, introEventInjectionViolation);
+
+_send_notification:
+    STATS_EXIT(statsExceptionsUser);
+
+    if (!IntPolicyProcTakeAction(PROC_OPT_PROT_INSTRUMENT, pVic, &action, &reason))
+    {
+        goto _cleanup_and_exit;
+    }
+
+    evt = &gAlert.Injection;
+
+    memzero(evt, sizeof(*evt));
+
+    LOG("[INSTRUMENTATION] From process '%s' into process '%s' to rip 0x%016llx\n", pOrig->Name, pVic->Name, rip);
+
+    evt->Header.Action = action;
+    evt->Header.Reason = reason;
+    evt->Header.MitreID = idProcInject;
+    evt->Header.Flags = IntAlertProcGetFlags(PROC_OPT_PROT_INSTRUMENT, pVic, reason, 0);
+
+    status = IntVirtMemRead(rip & PAGE_MASK, sizeof(evt->RawDump), pVic->UserCr3, evt->RawDump, NULL);
+    if (!INT_SUCCESS(status))
+    {
+        WARNING("[WARNING] IntVirtMemRead failed: 0x%08x\n", status);
+        evt->DumpValid = FALSE;
+    }
+    else
+    {
+        evt->DumpValid = TRUE;
+        evt->CopySize = sizeof(evt->RawDump);
+        IntDumpBuffer(evt->RawDump, 0, sizeof(evt->RawDump), 16, 1, 0, 0);
+    }
+
+    IntAlertFillCpuContext(FALSE, &evt->Header.CpuContext);
+    IntAlertFillWinProcess(pOrig, &evt->Originator.Process);
+    IntAlertFillWinProcess(pVic, &evt->Victim.Process);
+
+    evt->DestinationVirtualAddress = rip;
+    evt->ViolationType = memCopyViolationInstrument;
+
+    IntAlertFillVersionInfo(&evt->Header);
+
+    status = IntNotifyIntroEvent(introEventInjectionViolation, evt, sizeof(*evt));
+    if (!INT_SUCCESS(status))
+    {
+        WARNING("[WARNING] IntNotifyIntroEvent failed: 0x%08x\n", status);
+    }
+
+_cleanup_and_exit:
+    if (NULL != pVic)
+    {
+        IntPolicyProcForceBetaIfNeeded(PROC_OPT_PROT_INSTRUMENT, pVic, &action);
+    }
+
+    status = IntDetSetReturnValue(Detour, &gVcpu->Regs,
+                                 (action == introGuestNotAllowed) ? WIN_STATUS_ACCESS_DENIED : WIN_STATUS_SUCCESS);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntDetSetReturnValue failed: 0x%08x\n", status);
+    }
+
+    STATS_EXIT(statsSetProcInfo);
+
+    return status;
+}
+
+
+INTSTATUS
+IntWinProcPrepareInstrument(
+    _In_ QWORD FunctionAddress,
+    _In_ void *Handler,
+    _In_ void *Descriptor
+    )
+///
+/// @brief      This function is responsible for patching the detour that handles "NtSetInformationProcess".
+///
+/// This function is called before the hook is placed in the guest memory in order "patch" the values of
+/// any exports or field offsets that it may need. Specifically, this patches PsProcessType, ObReferenceObjectByHandle,
+/// ObDereferenceObject and the offset to Spare in the _EPROCESS structure.
+///
+/// @param[in]  FunctionAddress     The guest virtual address of the hooked function.
+/// @param[in]  Handler             Optional pointer to a #API_HOOK_HANDLER structure.
+/// @param[in]  Descriptor          Pointer to a structure that describes the hook and the detour handler.
+///
+/// @returns    #INT_STATUS_SUCCESS if successful, or an appropriate INTSTATUS error value.
+///
+{
+    API_HOOK_HANDLER *h = Handler;
+
+    struct
+    {
+        const char *Name;
+        void *Addr;
+    } exports[] =
+    {
+        { .Name = "PsProcessType",             .Addr = &h->Code[gGuest.Guest64 ? 0x1f : 0x34] },
+        { .Name = "ObReferenceObjectByHandle", .Addr = &h->Code[gGuest.Guest64 ? 0x3b : 0x3c] },
+        { .Name = "ObDereferenceObject",       .Addr = &h->Code[gGuest.Guest64 ? 0x81 : 0x60] },
+    };
+
+    UNREFERENCED_PARAMETER(FunctionAddress);
+    UNREFERENCED_PARAMETER(Descriptor);
+
+    for (size_t i = 0; i < ARRAYSIZE(exports); i++)
+    {
+        INTSTATUS status;
+        QWORD addr;
+
+        status = IntPeFindKernelExport(exports[i].Name, &addr);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntPeFindKernelExport failed for %s: 0x%08x\n", exports[i].Name, status);
+            return status;
+        }
+
+        TRACE("[INFO] Export %s found at gva 0x%016llx\n", exports[i].Name, addr);
+
+        if (gGuest.Guest64)
+        {
+            *(QWORD *)(exports[i].Addr) = addr;
+        }
+        else
+        {
+            *(DWORD *)(exports[i].Addr) = (DWORD)addr;
+        }
+    }
+
+    *(DWORD *)(void *)(&h->Code[gGuest.Guest64 ? 0x59 : 0x4c]) = WIN_KM_FIELD(Process, Spare);
+
+    return INT_STATUS_SUCCESS;
+}
+

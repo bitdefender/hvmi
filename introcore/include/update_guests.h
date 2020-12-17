@@ -187,6 +187,18 @@ typedef struct _CAMI_WIN_FUNCTION
     DWORD   _Reserved3;                             ///< Reserved for future use.
 } CAMI_WIN_FUNCTION, *PCAMI_WIN_FUNCTION;
 
+/// @brief Describe the arguments for a function.
+typedef struct _CAMI_WIN_FUNCTION_PATTERN_EXTENSION
+{
+    DWORD   ArgumentsCount;                         ///< Arguments count
+    DWORD   ArgumentsTable;                         ///< Arguments file offset. (pointer to a DWORD array)
+
+    QWORD   _Reserved1;                             ///< Reserved for future use.
+    QWORD   _Reserved2;                             ///< Reserved for future use.
+    QWORD   _Reserved3;                             ///< Reserved for future use.
+    QWORD   _Reserved4;                             ///< Reserved for future use.
+} CAMI_WIN_FUNCTION_PATTERN_EXTENSION, *PCAMI_WIN_FUNCTION_PATTERN_EXTENSION;
+
 /// @brief Describe a function pattern.
 typedef struct _CAMI_WIN_FUNCTION_PATTERN
 {
@@ -195,7 +207,7 @@ typedef struct _CAMI_WIN_FUNCTION_PATTERN
     DWORD   HashOffset;                             ///< Pattern file pointer. (pointer to a DWORD array)
 
     DWORD   _Reserved1;                             ///< Reserved for future use.
-    DWORD   _Reserved2;                             ///< Reserved for future use.
+    DWORD   Extended;                               ///< The file pointer of this structure's extension.
 } CAMI_WIN_FUNCTION_PATTERN, *PCAMI_WIN_FUNCTION_PATTERN;
 
 /// @brief Describe a pattern signature.

@@ -471,6 +471,145 @@ __section(".detours") =
 
     {
         .ModuleName    = u"ntoskrnl.exe",
+        .FunctionName  = "NtSetInformationProcess",
+        .MinVersion    = DETOUR_MIN_VERSION_ANY,
+        .MaxVersion    = DETOUR_MAX_VERSION_ANY,
+        .Callback      = IntWinProcHandleInstrument,
+        .PreCallback   = IntWinProcPrepareInstrument,
+        .Tag           = detTagSetProcInformation,
+        .Exported      = TRUE,
+        .NotCritical   = FALSE,
+        .DisableFlags  = 0,
+        .EnableFlags   = INTRO_OPT_ENABLE_UM_PROTECTION,
+        .Arguments     = DET_ARGS_DEFAULT_WIN86,
+        .HandlersCount = 1,
+        .Handlers =
+        {
+            {
+                .MinVersion    = DETOUR_MIN_VERSION_ANY,
+                .MaxVersion    = DETOUR_MAX_VERSION_ANY,
+                .HypercallType = hypercallTypeInt3,
+
+                .CodeLength = 0x7f,
+                .Code =
+                {
+                    // 0x00: cmp    DWORD PTR [esp+0x8],0x28
+                    0x83, 0x7c, 0x24, 0x08, 0x28,
+                    // 0x05: jne    0x7a <_irelevant>
+                    0x75, 0x73,
+                    // 0x07: push   eax
+                    0x50,
+                    // 0x08: push   ecx
+                    0x51,
+                    // 0x09: push   edx
+                    0x52,
+                    // 0x0a: mov    ecx,DWORD PTR [esp+0x10]
+                    0x8b, 0x4c, 0x24, 0x10,
+                    // 0x0e: sub    esp,0x10
+                    0x83, 0xec, 0x10,
+                    // Save everything early on the stack in the location where intro expects them
+                    // 0x11: mov    eax,DWORD PTR [esp+0x24]
+                    0x8b, 0x44, 0x24, 0x24,
+                    // 0x15: mov    DWORD PTR [esp+0x8],eax
+                    0x89, 0x44, 0x24, 0x08,
+                    // 0x19: mov    eax,DWORD PTR [esp+0x28]
+                    0x8b, 0x44, 0x24, 0x28,
+                    // 0x1d: mov    DWORD PTR [esp+0xc],eax
+                    0x89, 0x44, 0x24, 0x0c,
+                    // 0x21: lea    eax,[esp+0x4]
+                    0x8d, 0x44, 0x24, 0x04,
+                    // 0x25: mov    DWORD PTR [esp+0x4],0x0
+                    0xc7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00,
+                    // 0x2d: push   0x0
+                    0x6a, 0x00,
+                    // 0x2f: push   eax
+                    0x50,
+                    // 0x30: push   0x1
+                    0x6a, 0x01,
+                    // PsProcessType
+                    // 0x32: push   DWORD PTR ds:0xfffff800
+                    0xff, 0x35, 0x00, 0xf8, 0xff, 0xff,
+                    // 0x38: push   0x10
+                    0x6a, 0x10,
+                    // 0x3a: push   ecx
+                    0x51,
+                    // ObReferenceObjectByHandle
+                    // 0x3b: mov    eax,0xfffff800
+                    0xb8, 0x00, 0xf8, 0xff, 0xff,
+                    // 0x40: call   eax
+                    0xff, 0xd0,
+                    // 0x42: test   eax,eax
+                    0x85, 0xc0,
+                    // 0x44: jne    0x67 <_exit>
+                    0x75, 0x21,
+                    // 0x46: mov    ecx,DWORD PTR [esp+0x4]
+                    0x8b, 0x4c, 0x24, 0x04,
+                    // This offset will be patched by intro with the offset of `_EPROCESS.Spare`
+                    // 0x4a: mov    eax,DWORD PTR [ecx+0x150]
+                    0x8b, 0x81, 0x50, 0x01, 0x00, 0x00,
+                    // 0x50: cmp    al,0x2a
+                    0x3c, 0x2a,
+                    // 0x52: bt     eax,0xd
+                    0x0f, 0xba, 0xe0, 0x0d,
+                    // 0x56: jne    5d <_dereference_and_exit>
+                    0x75, 0x05,
+                    // 0x58: jae    5d <_dereference_and_exit>
+                    0x73, 0x03,
+                                        
+                    // 0x5a <_hypercall>:
+                    // 0x5a: int3
+                    0xcc,
+                    // 0x5b: nop
+                    0x90,
+                    // 0x5c: nop
+                    0x90,
+                                        
+                    // 0x5d <_dereference_and_exit>:
+                    // 0x5d: push   eax
+                    0x50,
+                    // 0x5e: push   ecx
+                    0x51,
+                    // ObDereferenceObject
+                    // 0x5f: mov    eax,0xfffff800
+                    0xb8, 0x00, 0xf8, 0xff, 0xff,
+                    // 0x64: call   eax
+                    0xff, 0xd0,
+                    // 0x66: pop    eax
+                    0x58,
+                                        
+                    // 0x67 <_exit>:
+                    // 0x67: add    esp,0x10
+                    0x83, 0xc4, 0x10,
+                    // 0x6a: pop    edx
+                    0x5a,
+                    // 0x6b: pop    ecx
+                    0x59,
+                    // 0x6c: cmp    eax,0xc0000022
+                    0x3d, 0x22, 0x00, 0x00, 0xc0,
+                    // 0x71: jne    0x79 <_allow>
+                    0x75, 0x06,
+                    // 0x73: add    esp,0x4
+                    0x83, 0xc4, 0x04,
+                    // 0x76: ret    0x10
+                    0xc2, 0x10, 0x00,
+                                        
+                    // 0x79 <_allow>:
+                    // 0x79: pop    eax
+                    0x58,
+                                        
+                    // 0x7a <_irelevant>:
+                    // 0x7a: jmp    0x74 <_irelevant+0x1>
+                    0xe9, 0xfc, 0xff, 0xff, 0xff,
+
+                },
+                .HypercallOffset        = 0x5a,
+                .RelocatedCodeOffset    = 0x7a,
+            },
+        },
+    },
+
+    {
+        .ModuleName    = u"ntoskrnl.exe",
         .FunctionName  = "NtQueueApcThreadEx",
         .MinVersion    = DETOUR_MIN_VERSION_ANY,
         .MaxVersion    = DETOUR_MAX_VERSION_ANY,
@@ -1132,7 +1271,7 @@ __section(".detours") =
                 .CodeLength = 0x37,
                 .Code =
                 {
-                    // 0x00: 
+                    // 0x00: TEST byte ptr [ecx+0x1d], 0x01
                     0xf6, 0x41, 0x1d, 0x1,
                     // 0x04: JZ        0x32
                     0x74, 0x2c,
@@ -1578,10 +1717,95 @@ __section(".detours") =
             },
         },
     },
+
+    {
+        .ModuleName     = u"ntoskrnl.exe",
+        .FunctionName   = "MmInSwapProcessHijack",
+        .MinVersion     = DETOUR_MIN_VERSION_ANY,
+        .MaxVersion     = DETOUR_MAX_VERSION_ANY,
+        .Callback       = IntWinProcSwapIn,
+        .Tag            = detTagProcSwapIn,
+        .Exported       = FALSE,
+        .NotCritical    = FALSE,
+        .DisableFlags   = 0,
+        .EnableFlags    = DETOUR_ENABLE_ALWAYS,
+        .Arguments      = DET_ARGS_DEFAULT_WIN86,
+        .HandlersCount  = 1,
+        .Handlers       =
+        {
+            {
+                .MinVersion    = DETOUR_MIN_VERSION_ANY,
+                .MaxVersion    = DETOUR_MAX_VERSION_ANY,
+                .HypercallType = hypercallTypeInt3,
+
+                .CodeLength = 0x8,
+                .Code =
+                {
+
+                    // 0x00: INT3
+                    0xCC,
+                    // 0x01: NOP
+                    0x90,
+                    // 0x02: NOP
+                    0x90,
+                    // 0x03: JMP       0x8
+                    0xE9, 0x00, 0x00, 0x00, 0x00
+                },
+                .HypercallOffset     = 0x0,
+                .RelocatedCodeOffset = 0x3,
+            },
+        },
+    },
+
+    {
+        .ModuleName     = u"ntoskrnl.exe",
+        .FunctionName   = "KiOutSwapProcessesHijack",
+        .MinVersion     = DETOUR_MIN_VERSION_ANY,
+        .MaxVersion     = DETOUR_MAX_VERSION_ANY,
+        .PreCallback    = IntWinProcPatchSwapOut32,
+        .Callback       = IntWinProcSwapOut,
+        .Tag            = detTagProcSwapOut,
+        .Exported       = FALSE,
+        .NotCritical    = FALSE,
+        .DisableFlags   = 0,
+        .EnableFlags    = DETOUR_ENABLE_ALWAYS,
+        .Arguments      = DET_ARGS_DEFAULT_WIN86,
+        .HandlersCount  = 1,
+        .Handlers       =
+        {
+            {
+                .MinVersion    = DETOUR_MIN_VERSION_ANY,
+                .MaxVersion    = DETOUR_MAX_VERSION_ANY,
+                .HypercallType = hypercallTypeInt3,
+
+                .CodeLength = 0x14,
+                .Code =
+                {
+                    // 0x00: PUSH       eax
+                    0x50,
+                    // 0x01: MOV        eax, DWORD PTR [edi + _EPROCESS.Flags]
+                    0x8B, 0x87, 0x00, 0x00, 0x00, 0x00,
+                    // 0x07: BT         eax, 0x07
+                    0x0f, 0xba, 0xe0, 0x07,
+                    // 0x0B: JNC        0x0E
+                    0x73, 0x01,
+                    // 0x0D: INT3
+                    0xCC,
+                    // 0x0E: POP        eax
+                    0x58,
+                    // 0x0F: JMP        0x10
+                    0xE9, 0x00, 0x00, 0x00, 0x00
+                },
+                .HypercallOffset     = 0x0D,
+                .RelocatedCodeOffset = 0x0F,
+            },
+        },
+    },
 };
 
 /// The number of functions to be hooked for 32-bit Windows guests.
 const size_t gHookableApisX86Size = ARRAYSIZE(gHookableApisX86);
+
 
 ///
 /// @brief  The functions to be hooked for 64-bit Windows guests
@@ -1735,6 +1959,161 @@ __section(".detours") =
                 },
                 .HypercallOffset        = 0x0,
                 .RelocatedCodeOffset    = 0x3,
+            },
+        },
+    },
+
+    {
+        .ModuleName    = u"ntoskrnl.exe",
+        .FunctionName  = "NtSetInformationProcess",
+        .MinVersion    = DETOUR_MIN_VERSION_ANY,
+        .MaxVersion    = DETOUR_MAX_VERSION_ANY,
+        .Callback      = IntWinProcHandleInstrument,
+        .PreCallback   = IntWinProcPrepareInstrument,
+        .Tag           = detTagSetProcInformation,
+        .Exported      = TRUE,
+        .NotCritical   = FALSE,
+        .DisableFlags  = 0,
+        .EnableFlags   = INTRO_OPT_ENABLE_UM_PROTECTION,
+        .Arguments     = DET_ARGS_DEFAULT_WIN64,
+        .HandlersCount = 1,
+        .Handlers =
+        {
+            {
+                .MinVersion    = DETOUR_MIN_VERSION_ANY,
+                .MaxVersion    = DETOUR_MAX_VERSION_ANY,
+                .HypercallType = hypercallTypeInt3,
+
+                .CodeLength = 0xb8,
+                .Code =
+                {
+                    // 0x00: cmp    edx,0x28
+                    0x83, 0xfa, 0x28,
+                    // 0x03: jne    0xb3 <_irelevant>
+                    0x0f, 0x85, 0xaa, 0x00, 0x00, 0x00,
+                    // 0x09: push   rax
+                    0x50,
+                    // 0x0a: push   rcx
+                    0x51,
+                    // 0x0b: push   rdx
+                    0x52,
+                    // 0x0c: push   r8
+                    0x41, 0x50,
+                    // 0x0e: push   r9
+                    0x41, 0x51,
+                    // 0x10: push   r10
+                    0x41, 0x52,
+                    // 0x12: push   r11
+                    0x41, 0x53,
+                    // reserve space for locals
+                    // 0x14: sub    rsp,0x10
+                    0x48, 0x83, 0xec, 0x10,
+                    // 0x18: mov    edx,0x10
+                    0xba, 0x10, 0x00, 0x00, 0x00,
+                    // PsProcessType
+                    // 0x1d: movabs rax,0xfffff00000000000
+                    0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0xff, 0xff,
+                    // 0x27: mov    r8,QWORD PTR [rax]
+                    0x4c, 0x8b, 0x00,
+                    // 0x2a: mov    r9,0x1
+                    0x49, 0xc7, 0xc1, 0x01, 0x00, 0x00, 0x00,
+                    // 0x31: lea    rax,[rsp+0x8]
+                    0x48, 0x8d, 0x44, 0x24, 0x08,
+                    // 0x36: push   0x0
+                    0x6a, 0x00,
+                    // 0x38: push   rax
+                    0x50,
+                    // ObReferenceObjectByHandle
+                    // 0x39: movabs rax,0xfffff00000000000
+                    0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0xff, 0xff,
+                    // 0x43: sub    rsp,0x20
+                    0x48, 0x83, 0xec, 0x20,
+                    // 0x47: call   rax
+                    0xff, 0xd0,
+                    // 0x49: add    rsp,0x30
+                    0x48, 0x83, 0xc4, 0x30,
+                    // 0x4d: test   eax,eax
+                    0x85, 0xc0,
+                    // 0x4f: jne    0x94 <_exit>
+                    0x75, 0x43,
+                    // 0x51: mov    rcx,QWORD PTR [rsp+0x8]
+                    0x48, 0x8b, 0x4c, 0x24, 0x08,
+                    // This offset will be overwritten by intro with the offset of `_EPROCESS.Spare`
+                    // 0x56: mov    rax,QWORD PTR [rcx+0x150]
+                    0x48, 0x8b, 0x81, 0x50, 0x01, 0x00, 0x00,
+                    // 0x5d: cmp    al,0x2a
+                    0x3c, 0x2a,
+                    // 0x5f: bt     rax,0xd
+                    0x48, 0x0f, 0xba, 0xe0, 0x0d,
+                    // 0x64: jne    75 <_dereference_and_exit>
+                    0x75, 0x0f,
+                    // 0x66: jae    75 <_dereference_and_exit>
+                    0x73, 0x0d,
+                    // 0x68: mov    rdx,QWORD PTR [rsp+0x30]
+                    0x48, 0x8b, 0x54, 0x24, 0x30,
+                    // 0x6d: mov    r8,QWORD PTR [rsp+0x28]
+                    0x4c, 0x8b, 0x44, 0x24, 0x28,
+
+                    // 0x72 <_hypercall>:
+                    // 0x72: int3
+                    0xcc,
+                    // 0x73: nop
+                    0x90,
+                    // 0x74: nop
+                    0x90,
+
+                    // 0x75 <_dereference_and_exit>:
+                    // 0x75: mov    rcx,QWORD PTR [rsp+0x08]
+                    0x48, 0x8b, 0x4c, 0x24, 0x08,
+                    // 0x7a: mov    QWORD PTR [rsp+0x08],rax
+                    0x48, 0x89, 0x44, 0x24, 0x08,
+                    // ObDereferenceObject
+                    // 0x7f: movabs rax,0xfffff00000000000
+                    0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0xff, 0xff,
+                    // 0x89: sub    rsp,0x20
+                    0x48, 0x83, 0xec, 0x20,
+                    // 0x8d: call   rax
+                    0xff, 0xd0,
+                    // 0x8f: add    rsp,0x20
+                    0x48, 0x83, 0xc4, 0x20,
+                    // 0x93: mov    rax,QWORD PTR[rsp+0x08]
+                    0x48, 0x8b, 0x44, 0x24, 0x08,
+
+                    // 0x98 <_exit>:
+                    // 0x98: add    rsp,0x10
+                    0x48, 0x83, 0xc4, 0x10,
+                    // 0x9c: pop    r11
+                    0x41, 0x5b,
+                    // 0x9e: pop    r10
+                    0x41, 0x5a,
+                    // 0xa0: pop    r9
+                    0x41, 0x59,
+                    // 0xa2: pop    r8
+                    0x41, 0x58,
+                    // 0xa4: pop    rdx
+                    0x5a,
+                    // 0xa5: pop    rcx
+                    0x59,
+                    // 0xa6: cmp    eax,0xc0000022
+                    0x3d, 0x22, 0x00, 0x00, 0xc0,
+                    // 0xab: jne    a2 <_allow>
+                    0x75, 0x05,
+                    // 0xad: add    rsp,0x8
+                    0x48, 0x83, 0xc4, 0x08,
+                    // 0xb1: ret
+                    0xc3,
+
+                    // 0xb2 <_allow>:
+                    // 0xb2: pop    rax
+                    0x58,
+
+                    // 0xb3 <_irelevant>:
+                    // 0xb3: jmp    a8 <_irelevant+0x5>
+                    0xe9, 0x00, 0x00, 0x00, 0x00,
+
+                },
+                .HypercallOffset        = 0x72,
+                .RelocatedCodeOffset    = 0xb3,
             },
         },
     },
@@ -4517,6 +4896,89 @@ __section(".detours") =
                 },
                 .HypercallOffset     = 0x0,
                 .RelocatedCodeOffset = 0x3,
+            },
+        },
+    },
+
+    {
+        .ModuleName     = u"ntoskrnl.exe",
+        .FunctionName   = "MmInSwapProcessHijack",
+        .MinVersion     = DETOUR_MIN_VERSION_ANY,
+        .MaxVersion     = DETOUR_MAX_VERSION_ANY,
+        .Callback       = IntWinProcSwapIn,
+        .Tag            = detTagProcSwapIn,
+        .Exported       = FALSE,
+        .NotCritical    = FALSE,
+        .DisableFlags   = 0,
+        .EnableFlags    = DETOUR_ENABLE_ALWAYS,
+        .Arguments      = DET_ARGS_DEFAULT_WIN64,
+        .HandlersCount  = 1,
+        .Handlers       =
+        {
+            {
+                .MinVersion    = DETOUR_MIN_VERSION_ANY,
+                .MaxVersion    = DETOUR_MAX_VERSION_ANY,
+                .HypercallType = hypercallTypeInt3,
+
+                .CodeLength = 0x8,
+                .Code =
+                {
+                    // 0x00: INT3
+                    0xCC,
+                    // 0x01: NOP
+                    0x90,
+                    // 0x02: NOP
+                    0x90,
+                    // 0x03: JMP       0x8
+                    0xE9, 0x00, 0x00, 0x00, 0x00
+                },
+                .HypercallOffset     = 0x0,
+                .RelocatedCodeOffset = 0x3,
+            },
+        },
+    },
+
+    {
+        .ModuleName     = u"ntoskrnl.exe",
+        .FunctionName   = "KiOutSwapProcessesHijack",
+        .MinVersion     = DETOUR_MIN_VERSION_ANY,
+        .MaxVersion     = DETOUR_MAX_VERSION_ANY,
+        .PreCallback    = IntWinProcPatchSwapOut64,
+        .Callback       = IntWinProcSwapOut,
+        .Tag            = detTagProcSwapOut,
+        .Exported       = FALSE,
+        .NotCritical    = FALSE,
+        .DisableFlags   = 0,
+        .EnableFlags    = DETOUR_ENABLE_ALWAYS,
+        .Arguments      = DET_ARGS_DEFAULT_WIN64,
+        .HandlersCount  = 1,
+        .Handlers       =
+        {
+            {
+                .MinVersion    = DETOUR_MIN_VERSION_ANY,
+                .MaxVersion    = DETOUR_MAX_VERSION_ANY,
+                .HypercallType = hypercallTypeInt3,
+
+                .CodeLength = 0x16,
+                .Code =
+                {
+                    // 0x00: PUSH       rax
+                    0x50,
+                    // 0x01: MOV        rax, QWORD PTR [rbx + _EPROCESS.Flags]
+                    0x48, 0x8B, 0x83, 0x00, 0x00, 0x00, 0x00,
+                    // 0x08: BT         rax, 0x07
+                    0x48, 0x0f, 0xba, 0xe0, 0x07,
+                    // 0x0D: JNC        0x10
+                    0x73, 0x01,
+                    // 0x0F: INT3
+                    0xCC,
+                    // 0x10: POP        rax
+                    0x58,
+                    // 0x11: JMP        0x16
+                    0xE9, 0x00, 0x00, 0x00, 0x00
+                },
+                .HypercallOffset     = 0x0F,
+                .RelocatedCodeOffset = 0x11,
             },
         },
     },

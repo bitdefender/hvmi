@@ -296,7 +296,7 @@ INTSTATUS
 IntWinPatchVadHandleCommit(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 BOOLEAN
@@ -309,7 +309,7 @@ INTSTATUS
 IntWinVadPatchInsertPrivate(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 _Function_class_(PFUNC_PreDetourCallback)
@@ -317,7 +317,7 @@ INTSTATUS
 IntWinVadPatchInsertMap(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 _Function_class_(PFUNC_PreDetourCallback)
@@ -325,7 +325,7 @@ INTSTATUS
 IntWinVadPatchVirtualProtect(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 _Function_class_(PFUNC_PreDetourCallback)
@@ -333,7 +333,7 @@ INTSTATUS
 IntWinVadPatchDeleteVaRange(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 _Function_class_(PFUNC_PreDetourCallback)
@@ -341,7 +341,7 @@ INTSTATUS
 IntWinVadPatchFinishVadDeletion(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 _Function_class_(PFUNC_PreDetourCallback)
@@ -349,7 +349,7 @@ INTSTATUS
 IntWinVadPatchInsert(
     _In_ QWORD FunctionAddress,
     _Inout_ API_HOOK_HANDLER *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 INTSTATUS

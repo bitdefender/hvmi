@@ -10,6 +10,7 @@
 #include "winprocesshp.h"
 #include "winummoduleblock.h"
 #include "winumdoubleagent.h"
+#include "winthread.h"
 
 
 ///
@@ -427,6 +428,305 @@ IntWinModGetProtectionOptionForModule(
 
 
 static INTSTATUS
+IntWinModIsKernelWriteInjection(
+    _In_ EXCEPTION_KM_ORIGINATOR *Originator,
+    _Out_ BOOLEAN *IsInjection
+    )
+///
+/// @brief  Verifies if the current KM-UM write is due to an injection.
+///
+/// This function will parse the originator's stacktrace in order to find whether the detoured
+/// MmCopyVirtualMemory is on the stack. If it is on the stack, we consider the current write
+/// to be due to an injection.
+///
+/// @param[in]  Originator  The extracted originator of the current KM-UM write.
+/// @param[out] IsInjection Will be set to TRUE if this write is considered to be due to an injection.
+///
+/// @returns    #INT_STATUS_SUCCESS on success or other appropiate INTSTATUS values in case of failure.
+///
+{
+    INTSTATUS status;
+    QWORD copyMemFunc = 0;
+
+    status = IntDetGetFunctionAddressByTag(detTagProcInject, &copyMemFunc);
+    if (!INT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    for (DWORD trace = 0; trace < Originator->StackTrace.NumberOfTraces; trace++)
+    {
+        if (Originator->StackTrace.Traces[trace].CalledAddress == copyMemFunc)
+        {
+            *IsInjection = TRUE;
+
+            return INT_STATUS_SUCCESS;
+        }
+    }
+
+    *IsInjection = FALSE;
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+static INTSTATUS
+IntWinModFillDriverInjectionData(
+    _In_ QWORD ReturnRip,
+    _Inout_ EXCEPTION_KM_ORIGINATOR *Originator
+    )
+///
+/// @brief  Fills the return driver data in the Originator when the write is caused by an injection
+///         which was made by a driver.
+/// This function will retrieve data about the driver which called ZwWriteVirtualMemory or other
+/// APIs which result in KM-UM writes from MmCopyVirtualMemory. The data is filled into the Originator
+/// exactly as in the case where the given driver is the return driver on the stack.
+///
+/// @param[in]      ReturnRip   The RIP where the ZwWriteVirtualMemory call returns.
+/// @param[in, out] Originator  The Originator structure which will be filled with appropiate data
+///                             based on the driver which caused the injection.
+///
+/// @returns    #INT_STATUS_SUCCESS on success or other appropiate INTSTATUS values in case of failure.
+///
+{
+    INTSTATUS status = INT_STATUS_SUCCESS;
+    KERNEL_DRIVER *pDrv;
+
+    pDrv = IntDriverFindByAddress(ReturnRip);
+
+    Originator->Injection.Kernel = TRUE;
+    Originator->Return.Driver = pDrv;
+    Originator->Return.Rip = ReturnRip;
+
+    if (NULL != pDrv)
+    {
+        IMAGE_SECTION_HEADER sectionHeader = { 0 };
+
+        Originator->Return.NameHash = pDrv->NameHash;
+        Originator->Return.PathHash = pDrv->Win.PathHash;
+
+        status = IntPeGetSectionHeaderByRva(pDrv->BaseVa,
+                                            pDrv->Win.MzPeHeaders,
+                                            (DWORD)(Originator->Return.Rip - pDrv->BaseVa),
+                                            &sectionHeader);
+        if (!INT_SUCCESS(status))
+        {
+            WARNING("[WARNING] IntPeGetSectionHeaderByRva failed: 0x%08x\n", status);
+            return status;
+        }
+
+        memcpy(Originator->Return.Section, sectionHeader.Name, sizeof(sectionHeader.Name));
+    }
+    else
+    {
+        Originator->Return.NameHash = INITIAL_CRC_VALUE;
+        Originator->Return.PathHash = INITIAL_CRC_VALUE;
+    }
+
+    return status;
+}
+
+
+static INTSTATUS
+IntWinModFillProcessInjectionData(
+    _In_ QWORD CurrentThread,
+    _Inout_ EXCEPTION_KM_ORIGINATOR *Originator
+    )
+///
+/// @brief  Fills the originating process data in the Originator when the write is caused by an injection
+///         which was made by a process in the current process.
+///
+/// When the process A injects into process B, the kernel will attach A's thread to the process B in order
+/// to perform the requested writes. The thread owner remains A, so we'll consider the thread owner, that is
+/// the original ETHREAD.Process field, to be the originating process.
+///
+/// @param[in]      CurrentThread   The thread in which context the current write occurs.
+/// @param[in, out] Originator      The Originator structure which will be filled with appropiate data
+///                                 based on the process which caused the injection.
+///
+/// @retval     #INT_STATUS_SUCCESS     On success.
+/// @retval     #INT_STATUS_NOT_FOUND   If there is no process owning the current thread.   
+///
+{
+    QWORD eprocess = 0;
+    WIN_PROCESS_OBJECT *pProc = NULL;
+    INTSTATUS status;
+
+    // The injected process is attached in the current thread, but thread.Process should contain the
+    // process that was performing the injection.
+    status = IntKernVirtMemFetchWordSize(CurrentThread + WIN_KM_FIELD(Thread, Process), &eprocess);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntKernVirtMemFetchWordSize failed: 0x%08x\n", status);
+        return status;
+    }
+
+    pProc = IntWinProcFindObjectByEprocess(eprocess);
+    if (NULL == pProc)
+    {
+        ERROR("[ERROR] IntWinProcFindObjectByEprocess failed for 0x%016llx\n", eprocess);
+        return INT_STATUS_NOT_FOUND;
+    }
+
+    Originator->Injection.User = TRUE;
+    Originator->Process.WinProc = pProc;
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+static INTSTATUS
+IntWinModFillInjectionData(
+    _Inout_ EXCEPTION_KM_ORIGINATOR *Originator
+    )
+///
+/// @brief  Fills the originating caller which led to the detected injection and respectively the
+///         current KM-UM writes.
+///
+/// On x64, this function will decide based on KTHREAD.PreviousMode whether the caller is a kernel
+/// driver, in which case the return RIP is retrieved from a "fake TrapFrame", found inside the RBP
+/// register, or a process, in which case we can get the current thread's owner process which is the
+/// process which performed the injection in the first place. On x86, the algorithm is basically the
+/// same, but for drivers the return can be fetched from the real TrapFrame from KTHREAD, constructed 
+/// at the moment of the call.
+///
+/// @param[in, out] Originator      The Originator structure which will be filled with appropiate data
+///                                 based on the driver or process which caused the injection.
+///
+/// @returns    #INT_STATUS_SUCCESS on success or other appropiate INTSTATUS values in case of failure.
+///
+{
+    INTSTATUS status;
+
+    if (gGuest.Guest64)
+    {
+        QWORD ethread = 0;
+        BYTE previousMode = 0;
+
+        status = IntWinThrGetCurrentThread(gVcpu->Index, &ethread);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinThrGetCurrentThread failed: 0x%08x\n", status);
+            return status;
+        }
+
+        status = IntKernVirtMemRead(ethread + WIN_KM_FIELD(Thread, PreviousMode), 1, &previousMode, NULL);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntKernVirtMemRead failed: 0x%08x\n", status);
+            return status;
+        }
+
+        if (previousMode == 0)
+        {
+            QWORD realRsp = 0, realRet = 0;
+
+            // On x64 there is a fake trapframe at Zw* calls which is only kept on the stack and in KTHREAD
+            // is just another trapframe... This trapframe only contains some registers and the stack, so it
+            // can't be mapped over a KTRAP_FRAME64. It is constructed in KiServiceInternal. For our purpose
+            // it doesn't seem that Rbp is ever overwritten during a ZwWriteVirtualMemory, but maybe we should
+            // see if we can make it more generic somehow...
+            status = IntKernVirtMemFetchQword(gVcpu->Regs.Rbp + WIN_KM_FIELD(Ungrouped, RspOffsetOnZwCall), &realRsp);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntKernVirtMemFetchQword failed: 0x%08x\n", status);
+                return status;
+            }
+
+            status = IntKernVirtMemFetchQword(realRsp, &realRet);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntKernVirtMemFetchQword failed: 0x%08x\n", status);
+                return status;
+            }
+
+            status = IntWinModFillDriverInjectionData(realRet, Originator);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntWinModFillDriverInjectionData failed: 0x%08x\n", status);
+            }
+        }
+        else
+        {
+            status = IntWinModFillProcessInjectionData(ethread, Originator);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntWinModFillProcessInjectionData failed: 0x%08x\n", status);
+            }
+        }
+    }
+    else
+    {
+        KTRAP_FRAME32 trapFrame = { 0 };
+        QWORD ethread = 0;
+        DWORD trapFrameAddr;
+
+        status = IntWinThrGetCurrentThread(gVcpu->Index, &ethread);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinThrGetCurrentThread failed: 0x%08x\n", status);
+            return status;
+        }
+
+        status = IntKernVirtMemFetchDword(ethread + WIN_KM_FIELD(Thread, TrapFrame), &trapFrameAddr);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntKernVirtMemFetchDword failed: 0x%08x\n", status);
+            return status;
+        }
+
+        status = IntKernVirtMemRead(trapFrameAddr, sizeof(trapFrame), &trapFrame, NULL);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntKernVirtMemRead failed: 0x%08x\n", status);
+            return status;
+        }
+
+        if (IS_KERNEL_POINTER_WIN(gGuest.Guest64, trapFrame.Eip))
+        {
+            // It seems too easy, but the real return is always at trapFrame.HardwareEsp.
+            // This happens because of the following code at KiServiceExit:
+            //     nt!KiServiceExit + 0x15b:
+            //     81b76439 8d6554          lea     esp, [ebp + 54h]
+            //     81b7643c 5f              pop     edi
+            //     81b7643d 5e              pop     esi
+            //     81b7643e 5b              pop     ebx
+            //     81b7643f 5d              pop     ebp
+            //     81b76440 83c404          add     esp, 4
+            //     81b76443 f744240401000000 test    dword ptr[esp + 4], 1
+            //     81b7644b 7505            jne     nt!KiSystemCallExit2 (81b76452)  Branch
+            // 
+            //     nt!KiSystemCallExitBranch + 0x2:
+            //     81b7644d 5a              pop     edx
+            //     81b7644e 59              pop     ecx
+            //     81b7644f 9d              popfd
+            //     81b76450 ffe2            jmp     edx
+
+            // So it can be seen that the stack will remain pointing to TrapFrame.HardwareEsp. Jumping to
+            // the Zw* function, there will be a ret there, returning to the caller driver. So at HardwareEsp
+            // there is always the caller driver.
+            status = IntWinModFillDriverInjectionData(trapFrame.HardwareEsp, Originator);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntWinModFillDriverInjectionData failed: 0x%08x\n", status);
+            }
+        }
+        else
+        {
+            status = IntWinModFillProcessInjectionData(ethread, Originator);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntWinModFillProcessInjectionData failed: 0x%08x\n", status);
+            }
+        }
+    }
+
+    return status;
+}
+
+
+
+static INTSTATUS
 IntWinModHandleKernelWrite(
     _In_ void *Context,
     _In_ void *Hook,
@@ -451,18 +751,34 @@ IntWinModHandleKernelWrite(
     BOOLEAN informationOnly = FALSE;
     WIN_PROCESS_MODULE *pModule = (WIN_PROCESS_MODULE *)Context;
     WIN_PROCESS_OBJECT *pProcess = pModule->Subsystem->Process;
+    BOOLEAN isInjection = FALSE;
 
     *Action = introGuestNotAllowed;
 
     STATS_ENTER(statsKmUmWrites);
 
-    status = IntExceptKernelGetOriginator(&originator, 0);
+    status = IntExceptKernelGetOriginator(&originator, EXCEPTION_KM_ORIGINATOR_OPT_FULL_STACK);
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntExceptKernelGetOriginator failed with status: 0x%08x\n", status);
 
         reason = introReasonInternalError;
         informationOnly = TRUE;
+    }
+
+    status = IntWinModIsKernelWriteInjection(&originator, &isInjection);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntWinModIsKernelWriteInjection failed: 0x%08x\n", status);
+    }
+
+    if (isInjection)
+    {
+        status = IntWinModFillInjectionData(&originator);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinModFillInjectionData failed: 0x%08x\n", status);
+        }
     }
 
     status = IntExceptGetVictimEpt(Context,
@@ -514,6 +830,11 @@ IntWinModHandleKernelWrite(
         IntAlertFillExecContext(0, &pEptViol->ExecContext);
 
         IntAlertFillVersionInfo(&pEptViol->Header);
+
+        pEptViol->Originator.Injection.User = originator.Injection.User;
+        pEptViol->Originator.Injection.Kernel = originator.Injection.Kernel;
+
+        IntAlertFillWinProcess(originator.Process.WinProc, &pEptViol->Originator.Process);
 
         status = IntNotifyIntroEvent(introEventEptViolation, pEptViol, sizeof(*pEptViol));
         if (!INT_SUCCESS(status))
@@ -632,7 +953,13 @@ IntWinModHandleUserWrite(
     pOriginatorProc = pMod->Subsystem->Process;
 
     status = IntExceptUserGetOriginator(pOriginatorProc, TRUE, regs->Rip, &gVcpu->Instruction, &originator);
-    if (!INT_SUCCESS(status))
+    if (status == INT_STATUS_STACK_SWAPPED_OUT)
+    {
+        *Action = introGuestRetry;
+        status = INT_STATUS_SUCCESS;
+        goto _send_notification;
+    }
+    else if (!INT_SUCCESS(status))
     {
         reason = introReasonInternalError;
         *Action = introGuestNotAllowed;
@@ -1565,8 +1892,10 @@ IntWinModHookPoly(
     sec = (IMAGE_SECTION_HEADER *)(pPage + peInfo.SectionOffset);
     for (i = 0; i < peInfo.NumberOfSections; i++, sec++)
     {
+        DWORD secsize = sec->Misc.VirtualSize;
+
         // Skip sections larger than 4 MB.
-        if (sec->Misc.VirtualSize > 4 * ONE_MEGABYTE)
+        if (secsize > 4 * ONE_MEGABYTE)
         {
             continue;
         }
@@ -1577,9 +1906,9 @@ IntWinModHookPoly(
             (sec->Characteristics == (IMAGE_SCN_MEM_WRITE | IMAGE_SCN_MEM_READ)))
         {
             TRACE("[MODULE] Protecting pageable section: 0x%016llx, VA space 0x%016llx, length %x\n",
-                  Module->VirtualBase + sec->VirtualAddress, pProc->Cr3, sec->Misc.VirtualSize);
+                  Module->VirtualBase + sec->VirtualAddress, pProc->Cr3, secsize);
 
-            for (DWORD j = 0; j < sec->Misc.VirtualSize; j += 0x1000)
+            for (DWORD j = 0; j < secsize; j += 0x1000)
             {
                 status = IntUnpWatchPage(pProc->Cr3,
                                          Module->VirtualBase + sec->VirtualAddress + j,

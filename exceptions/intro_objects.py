@@ -112,6 +112,8 @@ def get_binary_name(name, cls, wide=True, trim=0):
         predefined = excfg.get("Predefined", "kernel-mode")
     elif cls is UserException:
         predefined = excfg.get("Predefined", "user-mode")
+    elif cls is KernelUserException:
+        predefined = excfg.get("Predefined", "kenrel-user-mode")
     elif cls is Signature:
         predefined = excfg.get("Predefined", "signature")
     else:
@@ -142,6 +144,10 @@ def get_binary_flags(flags, cls):
         cfg_flags = excfg.get("Flags", "kernel-mode")
     elif cls is UserException or cls is UserGlobException:
         cfg_flags = excfg.get("Flags", "user-mode")
+    elif cls is KernelUserException:
+        cfg_flags = excfg.get("Flags", "user-mode")
+        cfg_flags.update(excfg.get("Flags", "kernel-mode"))
+        cfg_flags.update(excfg.get("Flags", "kernel-user-mode"))
     elif cls is Signature:
         cfg_flags = excfg.get("Flags", "signatures")
         cfg_cflags = []
@@ -290,7 +296,7 @@ class KernelException(IntroObject):
 
         Raises ValueError if anything is not valid. """
 
-        if not self.originator and self.object_type not in ("token-privs",):
+        if not self.originator and self.object_type not in ("token-privs", "security-descriptor", "acl-edit", "sud-modification"):
             raise ValueError("originator cannot be missing!")
 
         if not self.object_type:
@@ -305,11 +311,14 @@ class KernelException(IntroObject):
             "drvobj",
             "fastio",
             "driver exports",
-            "token-privs"
+            "token-privs",
+            "security-descriptor",
+            "acl-edit",
+            "sud-modification"
         ):
             raise ValueError("Type %s requires a victim name!" % self.object_type)
 
-        if self.victim and self.object_type in ("msr", "ssdt", "cr4", "idt", "idt-reg", "gdt-reg", "infinity-hook", "hal-perf-counter"):
+        if self.victim and self.object_type in ("msr", "ssdt", "cr4", "idt", "idt-reg", "gdt-reg", "infinity-hook", "hal-perf-counter", "interrupt-obj"):
             raise ValueError("Type %s must miss victim name!" % self.object_type)
 
         if self.flags is None:
@@ -338,7 +347,7 @@ class KernelException(IntroObject):
         if "return" in flagsl:
             self.flags += " return-drv"
 
-        if "integrity" in flagsl and self.object_type in ("token-privs",):
+        if "integrity" in flagsl and self.object_type in ("token-privs", "sud-modification"):
             if self.originator:
                 raise ValueError("Type %s with integrity flag must not have originator!" % self.object_type)
             self.originator = "-"
@@ -346,13 +355,27 @@ class KernelException(IntroObject):
         elif self.object_type in ("token-privs",) and not self.originator:
             raise ValueError("Originator cannot be missing for %s without integrity flag!" % self.object_type)
 
+        if self.object_type in ("security-descriptor", "acl-edit"):
+            if "integrity" in flagsl:
+                if self.originator:
+                    raise ValueError("Type %s with integrity flag must not have originator!" % self.object_type)
+                self.originator = "-"
+                self.originator_name = "-"
+            else: 
+                raise ValueError("%s only works with integrity flag for now!" % self.object_type)
+
         # sanitize the input
         if "linux" in self.flags:
             self.victim = self.victim if self.victim else "*"
         else:
             self.originator = self.originator.lower()
             self.originator_name = self.originator_name.lower()
-            self.victim = self.victim.lower() if self.victim else "*"
+            
+            # for sud fields we need case sensitive hashes
+            if self.object_type in ("sud-modification",):
+                self.victim = self.victim if self.victim else "*"
+            else:
+                self.victim = self.victim.lower() if self.victim else "*"
 
     def _complete_binary_args(self):
         """ Complete self.binary dictionary with the binary representations
@@ -371,8 +394,10 @@ class KernelException(IntroObject):
         self.binary["name"] = bin_name
         self.binary["path"] = -1
 
-        if self.object_type in ("token-privs", ):
+        if self.object_type in ("sud-modification"):
             self.binary["victim"] = get_binary_name(self.victim, KernelException, wide=False)
+        elif self.object_type in ("token-privs", "security-descriptor", "acl-edit"):
+            self.binary["victim"] = get_binary_name(self.victim, KernelException, wide=False, trim=IMAGE_BASE_NAME_LEN)
         else:
             self.binary["victim"] = get_binary_name(self.victim, KernelException)
 
@@ -553,7 +578,7 @@ class UserException(IntroObject):
         self.binary["object"] = excfg.get("Types", "user-mode")[self.object_type]
 
         if self.object_type in (
-            'process', 'thread-context', 'peb32', 'peb64', 'apc-thread', 'process-creation', 'process-creation-dpi') and 'module-load' not in self.flags:
+            'process', 'thread-context', 'peb32', 'peb64', 'apc-thread', 'process-creation', 'process-creation-dpi', 'instrumentation-callback') and 'module-load' not in self.flags:
             if "linux" in self.flags:
                 self.binary['originator'] = get_binary_name(self.originator, UserException,
                                                         wide=False, trim=LIX_COMM_LEN)
@@ -563,7 +588,7 @@ class UserException(IntroObject):
         else:
             self.binary["originator"] = get_binary_name(self.originator, UserException)
 
-        if self.object_type in ('process', 'thread-context', 'peb32', 'peb64', 'apc-thread', 'process-creation', 'double-agent', 'process-creation-dpi'):
+        if self.object_type in ('process', 'thread-context', 'peb32', 'peb64', 'apc-thread', 'process-creation', 'double-agent', 'process-creation-dpi', 'instrumentation-callback'):
             if "linux" in self.flags:
                 self.binary['victim'] = get_binary_name(self.victim, UserException,
                                                     wide=False, trim=LIX_COMM_LEN)
@@ -801,7 +826,7 @@ class UserApcException(IntroObject):
         self.binary["object"] = excfg.get("Types", "user-mode")[self.object_type]
 
         if (
-            self.object_type in ("process", "thread-context", "peb32", "peb64", "apc-thread", "double-agent")
+            self.object_type in ("process", "thread-context", "peb32", "peb64", "apc-thread", "double-agent", "instrumentation-callback")
             and "module-load" not in self.flags
         ):
             self.binary["originator"] = get_binary_name(
@@ -810,7 +835,7 @@ class UserApcException(IntroObject):
         else:
             self.binary["originator"] = get_binary_name(self.originator, UserException)
 
-        if self.object_type in ("process", "thread-context", "peb32", "peb64", "apc-thread", "double-agent"):
+        if self.object_type in ("process", "thread-context", "peb32", "peb64", "apc-thread", "double-agent", "instrumentation-callback"):
             self.binary["victim"] = get_binary_name(
                 self.victim, UserException, wide=False, trim=IMAGE_BASE_NAME_LEN
             )
@@ -1221,6 +1246,9 @@ class KernelUserException(IntroObject):
         if "return" in flagsl:
             self.flags += " return-drv"
 
+        if "user" in flagsl and "kernel" in flagsl:
+            raise ValueError("Both user and kernel injection flags were given!")
+
         if "linux" in self.flags:
             self.victim = self.victim if self.victim else "*"
             self.originator = self.originator if self.originator else "*"
@@ -1239,10 +1267,14 @@ class KernelUserException(IntroObject):
 
         self.binary["object"] = excfg.get("Types", "kernel-user-mode")[self.object_type]
 
-        self.binary["originator"] = get_binary_name(self.originator, KernelException)
+        if "user" in self.flags:
+            self.binary["originator"] = get_binary_name(self.originator, UserException, wide=False, trim=IMAGE_BASE_NAME_LEN)
+        else:
+            self.binary["originator"] = get_binary_name(self.originator, KernelException)
+
         self.binary["victim"] = get_binary_name(self.victim, UserException)
 
-        self.binary["flags"] = get_binary_flags(self.flags, KernelException)
+        self.binary["flags"] = get_binary_flags(self.flags, KernelUserException)
         self.binary["signatures"] = get_binary_signatures(self.signatures)
         self.binary["process"] = get_binary_name(self.process, UserException, wide=False, trim=IMAGE_BASE_NAME_LEN)
 

@@ -505,7 +505,7 @@ utf16tolowerutf8(
 
 WCHAR *
 utf8toutf16(
-    _Out_writes_z_(DestinationMaxLength) WCHAR *Destination,
+    _Out_writes_bytes_(DestinationMaxLength) WCHAR *Destination,
     _In_z_ const char *Source,
     _In_ DWORD DestinationMaxLength
     )

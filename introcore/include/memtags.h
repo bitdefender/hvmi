@@ -89,6 +89,8 @@
 #define IC_TAG_PTPA             'APTP'          ///< Page Table Hook Manager array.
 
 #define IC_TAG_KRNB             'BNRK'          ///< Kernel Buffer, cached by the introspection
+#define IC_TAG_HALB             'BLAH'          ///< Hal Buffer, cached by the introspection
+
 
 #define IC_TAG_VAD              ':daV'          ///< Virtual Address Descriptor for user mode address ranges
 #define IC_TAG_VAD_PGARR        'PGAR'          ///< Virtual page array with the pages contained by a VAD
@@ -131,5 +133,9 @@
 
 #define IC_TAG_VMA              'AMV:'          ///< Used for Linux VMA structs
 #define IC_TAG_GUEST            'TSG:'          ///< Used for Linux/Windows guest structure
+
+#define IC_TAG_SUD_BUFFER       'BDUS'          ///< Used for keeping the SharedUserData buffer internally
+
+#define IC_TAG_IOBD             'DBOI'          ///< Used for interrupt object protection descriptors.
 
 #endif // _MEMTAGS_H_

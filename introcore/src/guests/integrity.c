@@ -77,8 +77,8 @@ IntIntegrityIsOverlappedRegions(
             (pIntRegion->Gva + pIntRegion->Length > Descriptor->Gva &&
              pIntRegion->Gva + pIntRegion->Length < Descriptor->Gva + Descriptor->Length))
         {
-            ERROR("[ERROR] Found integrity regions overlapped @ %llx (0x%08X) - @ %llx (0x%08X)",
-                  pIntRegion->Gva, pIntRegion->Length, Descriptor->Gva, Descriptor->Length);
+            WARNING("[WARNING] Found integrity regions overlapped @ %llx (0x%08X) - @ %llx (0x%08X)",
+                    pIntRegion->Gva, pIntRegion->Length, Descriptor->Gva, Descriptor->Length);
             return TRUE;
         }
     }

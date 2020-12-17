@@ -26,6 +26,8 @@
 #include "exceptions.h"
 #include "alerts.h"
 #include "winthread.h"
+#include "winsud.h"
+#include "winintobj.h"
 
 ///
 /// @brief  Global variable holding the state of a Windows guest
@@ -65,12 +67,6 @@ WINDOWS_GUEST *gWinGuest = NULL;
 /// settings from CAMI. Since this offset remained constant on all Windows versions from 7 to 10, it is safe
 /// to have it defined here.
 #define CR3_OFFSET_IN_KPROCESS              (DWORD)((gGuest.Guest64) ? 0x28 : 0x18)
-
-/// @brief  The address where the SharedUserData is mapped in the Windows kernel.
-#define WIN_SHARED_USER_DATA_PTR            (gGuest.Guest64 ? 0xFFFFF78000000000 : 0xFFDF0000)
-
-/// @brief  The hook object protecting against executions on SharedUserData.
-static HOOK_GVA *gSudExecHook = NULL;
 
 
 static INTSTATUS
@@ -737,428 +733,6 @@ IntWinGuestUninit(
 }
 
 
-static void
-IntWinGuestSendSudAlert(
-    _In_ void *Originator,
-    _In_ EXCEPTION_VICTIM_ZONE *Victim,
-    _In_ BOOLEAN IsKernel,
-    _In_ INTRO_ACTION Action,
-    _In_ INTRO_ACTION_REASON Reason
-    )
-///
-/// @brief  Constructs and sends an #EVENT_EPT_VIOLATION alert which occurred due to an
-///         execution in SharedUserData.
-///
-/// @param[in]  Originator  Depending on the IsKernel parameter, can be #EXCEPTION_KM_ORIGINATOR
-///                         or #EXCEPTION_UM_ORIGINATOR. Represents the originator of the execution.
-/// @param[in]  Victim      The #EXCEPTION_VICTIM_ZONE representing the victim of the violation.
-/// @param[in]  IsKernel    TRUE if the alert occurred in kernel-mode, FALSE for user-mode.
-/// @param[in]  Action      The action which was decided by the exception engine.
-/// @param[in]  Reason      The reason why the given action has been taken.
-///
-{
-    EVENT_EPT_VIOLATION *pEpt = &gAlert.Ept;
-    INTSTATUS status;
-
-    memzero(pEpt, sizeof(*pEpt));
-
-    pEpt->Header.Action = Action;
-    pEpt->Header.Reason = Reason;
-    pEpt->Header.MitreID = idExploitRemote;
-
-    IntAlertEptFillFromVictimZone(Victim, pEpt);
-
-    IntAlertFillCpuContext(TRUE, &pEpt->Header.CpuContext);
-
-    IntAlertFillWinProcessByCr3(gVcpu->Regs.Cr3, &pEpt->Header.CurrentProcess);
-
-    pEpt->Header.Flags = IntAlertCoreGetFlags(INTRO_OPT_PROT_KM_SUD_EXEC, Reason);
-
-    pEpt->ExecInfo.Rsp = gVcpu->Regs.Rsp;
-    pEpt->ExecInfo.Length = gVcpu->Instruction.Length;
-
-    if (IsKernel)
-    {
-        EXCEPTION_KM_ORIGINATOR *originator = Originator;
-
-        IntAlertEptFillFromKmOriginator(originator, pEpt);
-    }
-    else
-    {
-        EXCEPTION_UM_ORIGINATOR *originator = Originator;
-
-        IntAlertFillWinUmModule(originator->Return.Library, &pEpt->Originator.ReturnModule);
-        pEpt->ReturnRip = originator->Return.Rip;
-    }
-
-    IntAlertFillCodeBlocks(gVcpu->Regs.Rip, gVcpu->Regs.Cr3, TRUE, &pEpt->CodeBlocks);
-    IntAlertFillExecContext(0, &pEpt->ExecContext);
-
-    IntAlertFillVersionInfo(&pEpt->Header);
-
-    status = IntNotifyIntroEvent(introEventEptViolation, pEpt, sizeof(*pEpt));
-    if (!INT_SUCCESS(status))
-    {
-        WARNING("[WARNING] IntNotifyIntroEvent failed: 0x%08x\n", status);
-    }
-}
-
-
-static INTSTATUS
-IntWinGuestHandleKernelSudExec(
-    _In_ QWORD Address,
-    _Inout_ INTRO_ACTION *Action
-    )
-///
-/// @brief  Handles a kernel mode execution inside SharedUserData.
-///
-/// This function will call the exceptions mechanism, decide if an alert should be sent,
-/// and sends it, if it is the case, for the given kernel-mode execution in SharedUserData.
-///
-/// @param[in]      Address     The physical address on which the execution occurred.
-/// @param[in, out] Action      The action which is decided by the exception mechanism and
-///                             the current policy.
-///
-/// @retval #INT_STATUS_SUCCESS     On success.
-///
-{
-    EXCEPTION_VICTIM_ZONE victim = { 0 };
-    EXCEPTION_KM_ORIGINATOR originator = { 0 };
-    BOOLEAN exitAfterInformation = FALSE;
-    INTRO_ACTION_REASON reason = introReasonUnknown;
-    INTSTATUS status;
-
-    STATS_ENTER(statsExceptionsKern);
-
-    status = IntExceptKernelGetOriginator(&originator, 0);
-    if (status == INT_STATUS_EXCEPTION_BLOCK)
-    {
-        reason = introReasonNoException;
-        exitAfterInformation = TRUE;
-    }
-    else if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntExceptKernelGetOriginator failed: %08x\n", status);
-        reason = introReasonInternalError;
-        exitAfterInformation = TRUE;
-    }
-
-    status = IntExceptGetVictimEpt(NULL,
-                                   Address,
-                                   gVcpu->Regs.Rip,
-                                   introObjectTypeSharedUserData,
-                                   ZONE_EXECUTE,
-                                   &victim);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntExceptGetVictimEpt failed: %08x\n", status);
-        reason = introReasonInternalError;
-        exitAfterInformation = TRUE;
-    }
-
-    if (exitAfterInformation)
-    {
-        IntExceptKernelLogInformation(&victim, &originator, *Action, reason);
-    }
-    else
-    {
-        IntExcept(&victim, &originator, exceptionTypeKm, Action, &reason, introEventEptViolation);
-    }
-
-    STATS_EXIT(statsExceptionsKern);
-
-    if (IntPolicyCoreTakeAction(INTRO_OPT_PROT_KM_SUD_EXEC, Action, &reason))
-    {
-        LOG("[SUD-EXEC] An execution on shared user data occured in kernel-mode!\n");
-
-        IntDumpCodeAndRegs(gVcpu->Regs.Rip, Address, &gVcpu->Regs);
-
-        IntWinGuestSendSudAlert(&originator, &victim, TRUE, *Action, reason);
-    }
-
-    IntPolicyCoreForceBetaIfNeeded(INTRO_OPT_PROT_KM_SUD_EXEC, Action);
-
-    return status;
-}
-
-
-static INTSTATUS
-IntWinGuestHandleUserSudExec(
-    _In_ QWORD Address,
-    _Inout_ INTRO_ACTION *Action
-    )
-///
-/// @brief  Handles an user-mode execution inside SharedUserData.
-///
-/// This function will call the exceptions mechanism, decide if an alert should be sent,
-/// and sends it, if it is the case, for the given user-mode execution in SharedUserData.
-///
-/// @param[in]      Address     The physical address on which the execution occurred.
-/// @param[in, out] Action      The action which is decided by the exception mechanism and
-///                             the current policy.
-///
-/// @retval #INT_STATUS_SUCCESS     On success.
-/// @retval #INT_STATUS_NOT_FOUND   If there doesn't exist a process with the current CR3.
-///
-{
-    EXCEPTION_UM_ORIGINATOR originator = { 0 };
-    EXCEPTION_VICTIM_ZONE victim = { 0 };
-    WIN_PROCESS_OBJECT *pProc;
-    INTRO_ACTION_REASON reason = introReasonUnknown;
-    BOOLEAN exitAfterInformation = FALSE;
-    INTSTATUS status;
-
-    pProc = IntWinProcFindObjectByCr3(gVcpu->Regs.Cr3);
-    if (NULL == pProc)
-    {
-        ERROR("[ERROR] No process found with cr3: 0x%016llx, but ring is 3! Will inject #UD!",
-              gVcpu->Regs.Cr3);
-        return INT_STATUS_NOT_FOUND;
-    }
-
-    STATS_ENTER(statsExceptionsUser);
-
-    status = IntExceptUserGetExecOriginator(pProc, &originator);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] Failed getting originator: 0x%08x\n", status);
-        exitAfterInformation = TRUE;
-    }
-
-    status = IntExceptGetVictimEpt(pProc,
-                                   Address,
-                                   gVcpu->Regs.Rip,
-                                   introObjectTypeSharedUserData,
-                                   ZONE_EXECUTE,
-                                   &victim);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] Failed getting modified zone: 0x%08x\n", status);
-        exitAfterInformation = TRUE;
-    }
-    if (exitAfterInformation)
-    {
-        IntExceptUserLogInformation(&victim, &originator, *Action, reason);
-    }
-    else
-    {
-        IntExcept(&victim, &originator, exceptionTypeUm, Action, &reason, introEventEptViolation);
-    }
-
-    STATS_EXIT(statsExceptionsUser);
-
-    if (IntPolicyCoreTakeAction(INTRO_OPT_PROT_KM_SUD_EXEC, Action, &reason))
-    {
-        LOG("[SUD-EXEC] An execution on shared user data occured in user-mode!\n");
-
-        IntDumpCodeAndRegs(gVcpu->Regs.Rip, Address, &gVcpu->Regs);
-
-        IntWinGuestSendSudAlert(&originator, &victim, FALSE, *Action, reason);
-    }
-
-    IntPolicyCoreForceBetaIfNeeded(INTRO_OPT_PROT_KM_SUD_EXEC, Action);
-
-    return status;
-}
-
-
-static INTSTATUS
-IntWinGuestHandleSudExec(
-    _In_ void *Context,
-    _In_ void *Hook,
-    _In_ QWORD Address,
-    _Out_ INTRO_ACTION *Action
-    )
-///
-/// @brief  Ept callback which handles executions inside SharedUserData.
-///
-/// This will handle the executions, based on current ring, separately on kernel mode and user mode.
-/// For kernel mode executions, if the execution is deemed malicious, we will overwrite the first
-/// instruction from the executed area with a RET instruction, so that the execution is returned
-/// to the driver which called this region, limiting as much as possible the damage that can be
-/// provoked by such an execution, and limiting the possibility of a system crash. However, if the
-/// current ring points to an execution in user mode, we will instead inject an UD exception into
-/// the guest, trying to crash the process trying the execution, so that we limit the ability of
-/// this given process to continue execution.
-///
-/// @param[in]  Context     User-supplied context. Unused in this case.
-/// @param[in]  Hook        The hook object for the given protection. Unused in this case.
-/// @param[in]  Address     The physical address on which the violation occurred.
-/// @param[out] Action      The #INTRO_ACTION which is decided for the given execution in this handler.
-///
-/// @retval     #INT_STATUS_SUCCESS     On success
-///
-{
-    INTSTATUS status;
-    DWORD ring;
-    INFO_UD_PENDING *pending = NULL;
-    QWORD currentThread = 0;
-
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(Hook);
-
-    *Action = introGuestNotAllowed;
-
-    status = IntGetCurrentRing(gVcpu->Index, &ring);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntGetCurrentRing failed: 0x%08x\n", status);
-        IntBugCheck();
-    }
-
-    if (ring == IG_CS_RING_0)
-    {
-        status = IntWinGuestHandleKernelSudExec(Address, Action);
-        if (!INT_SUCCESS(status))
-        {
-            ERROR("[ERROR] IntWinGuestHandleKernelSudExec failed: 0x%08x\n", status);
-        }
-    }
-    else
-    {
-        status = IntWinThrGetCurrentThread(gVcpu->Index, &currentThread);
-        if (!INT_SUCCESS(status))
-        {
-            ERROR("[ERROR] IntWinThrGetCurrentThread failed: 0x%08x\n", status);
-            return status;
-        }
-
-        pending = IntUDGetEntry(gVcpu->Regs.Cr3, gVcpu->Regs.Rip, currentThread);
-        if (NULL != pending)
-        {
-            goto cleanup_and_take_action;
-        }
-
-        status = IntWinGuestHandleUserSudExec(Address, Action);
-        if (!INT_SUCCESS(status))
-        {
-            ERROR("[ERROR] IntWinGuestHandleKernelSudExec failed: 0x%08x\n", status);
-        }
-    }
-
-cleanup_and_take_action:
-    if (*Action == introGuestNotAllowed)
-    {
-        if (ring == IG_CS_RING_0)
-        {
-            BYTE ret = 0xc3;
-
-            status = IntPhysicalMemWrite(Address, sizeof(ret), &ret);
-            if (!INT_SUCCESS(status))
-            {
-                ERROR("[ERROR] IntVirtMemWrite failed: 0x%08x\n", status);
-            }
-
-            // Force action to introGuestAllowed, in order to force emulation, otherwise we'll end up in an infinite
-            // cycle, depending on the hypervisor by forcing it to introGuestRetry. For example, this happens on xen.
-            *Action = introGuestAllowed;
-        }
-        else
-        {
-            // We are already waiting for the current #UD to get injected.
-            if (NULL != pending && gVcpu->CurrentUD == pending)
-            {
-                goto _skip_inject;
-            }
-
-            status = IntInjectExceptionInGuest(VECTOR_UD, 0, NO_ERRORCODE, gVcpu->Index);
-            if (!INT_SUCCESS(status))
-            {
-                ERROR("[ERROR] IntInjectExceptionInGuest failed: 0x%08x\n", status);
-            }
-            else
-            {
-                if (NULL == pending)
-                {
-                    status = IntUDAddToPendingList(gVcpu->Regs.Cr3,
-                                                   gVcpu->Regs.Rip,
-                                                   currentThread,
-                                                   &pending);
-                    if (!INT_SUCCESS(status))
-                    {
-                        ERROR("[ERROR] IntUDAddToPendingList failed: 0x%08x\n", status);
-                        return status;
-                    }
-                }
-
-                gVcpu->CurrentUD = pending;
-            }
-
-_skip_inject:
-            *Action = introGuestRetry;
-        }
-    }
-
-    // Even if the action has been set as allowed by the exceptions mechanism, we'll not remove the hook,
-    // as the hook needs to remain established.
-
-    return INT_STATUS_SUCCESS;
-}
-
-
-INTSTATUS
-IntWinGuestProtectSudExec(
-    void
-    )
-///
-/// @brief  Protects SharedUserData against executions by establishing an EPT hook on it.
-///
-/// @retval #INT_STATUS_SUCCESS                 On success.
-/// @retval #INT_STATUS_ALREADY_INITIALIZED     If the hook is already established.
-///
-{
-    INTSTATUS status;
-
-    if (NULL != gSudExecHook)
-    {
-        return INT_STATUS_ALREADY_INITIALIZED;
-    }
-
-    status = IntHookGvaSetHook(gGuest.Mm.SystemCr3,
-                               WIN_SHARED_USER_DATA_PTR,
-                               PAGE_SIZE,
-                               IG_EPT_HOOK_EXECUTE,
-                               IntWinGuestHandleSudExec,
-                               NULL,
-                               NULL,
-                               0,
-                               &gSudExecHook);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntHookGvaSetHook failed: 0x%08x\n", status);
-    }
-
-    return status;
-}
-
-INTSTATUS
-IntWinGuestUnprotectSudExec(
-    void
-    )
-///
-/// @brief  Removes the execution EPT hook on SharedUserData.
-///
-/// @retval #INT_STATUS_SUCCESS         On success.
-/// @retval #INT_STATUS_NOT_INITIALIZED If the hook was not previously established.
-///
-{
-    INTSTATUS status;
-
-    if (NULL == gSudExecHook)
-    {
-        return INT_STATUS_NOT_INITIALIZED;
-    }
-
-    status = IntHookGvaRemoveHook(&gSudExecHook, 0);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntHookGvaRemoveHook failed: 0x%08x\n", status);
-    }
-
-    return status;
-}
-
-
 INTSTATUS
 IntWinGuestActivateProtection(
     void
@@ -1227,10 +801,30 @@ IntWinGuestActivateProtection(
 
     if (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_SUD_EXEC)
     {
-        status = IntWinGuestProtectSudExec();
+        status = IntWinSudProtectSudExec();
         if (!INT_SUCCESS(status))
         {
-            ERROR("[ERROR] IntWinGuestProtectSudExec failed: 0x%08x\n", status);
+            ERROR("[ERROR] IntWinSudProtectSudExec failed: 0x%08x\n", status);
+            return status;
+        }
+    }
+
+    if (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_SUD_INTEGRITY)
+    {
+        status = IntWinSudProtectIntegrity();
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinSudProtectIntegrity failed: 0x%08x\n", status);
+            return status;
+        }
+    }
+
+    if (gGuest.CoreOptions.Current & INTRO_OPT_PROT_KM_INTERRUPT_OBJ)
+    {
+        status = IntWinIntObjProtect();
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinIntObjProtect failed: 0x%08x\n", status);
             return status;
         }
     }
@@ -1373,33 +967,20 @@ IntWinGuestFetchProductType(
 ///
 /// @retval     #INT_STATUS_SUCCESS in case of success
 /// @retval     #INT_STATUS_NOT_NEEDED_HINT for 32-bit guests, when ProductType is always #winProductTypeWinNt
-/// @retval     #INT_STATUS_INVALID_DATA_STATE if the information from the guest is not valid
 /// @retval     #INT_STATUS_INVALID_DATA_VALUE if the type obtained from the guest is not a known good value as
 ///             described by the #WIN_PRODUCT_TYPE enum
 ///
 {
-// It seems they are hardcoded on every os but we might think about moving them to cami.
+// It seems it is hardcoded on every os but we might think about moving it to cami.
 #define WIN_SHARED_USER_DATA_OFFSET_PRODUCT     0x264
-#define WIN_SHARED_USER_DATA_OFFSET_PROD_VALID  0x268
 
     INTSTATUS status;
-    DWORD valid, productType;
+    DWORD productType;
 
     if (!gGuest.Guest64)
     {
         *ProductType = winProductTypeWinNt;
         return INT_STATUS_NOT_NEEDED_HINT;
-    }
-
-    status = IntKernVirtMemFetchDword(WIN_SHARED_USER_DATA_PTR + WIN_SHARED_USER_DATA_OFFSET_PROD_VALID, &valid);
-    if (!INT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    if (!valid)
-    {
-        return INT_STATUS_INVALID_DATA_STATE;
     }
 
     status = IntKernVirtMemFetchDword(WIN_SHARED_USER_DATA_PTR + WIN_SHARED_USER_DATA_OFFSET_PRODUCT, &productType);
@@ -1420,7 +1001,6 @@ IntWinGuestFetchProductType(
     return INT_STATUS_SUCCESS;
 
 #undef WIN_SHARED_USER_DATA_OFFSET_PRODUCT
-#undef WIN_SHARED_USER_DATA_OFFSET_PROD_VALID
 }
 
 
@@ -1757,7 +1337,7 @@ IntWinGuestReadKernel(
     {
         PIMAGE_NT_HEADERS64 pNth64;
 
-        if ((QWORD)pDosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS64) < PAGE_SIZE)
+        if ((QWORD)(DWORD)pDosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS64) < PAGE_SIZE)
         {
             // We are in the same page, so it's safe to use this
             pNth64 = (PIMAGE_NT_HEADERS64)(KernelHeaders + pDosHeader->e_lfanew);
@@ -1789,7 +1369,7 @@ IntWinGuestReadKernel(
     {
         PIMAGE_NT_HEADERS32 pNth32;
 
-        if ((QWORD)pDosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS32) < PAGE_SIZE)
+        if ((QWORD)(DWORD)pDosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS32) < PAGE_SIZE)
         {
             // We are in the same page, so it's safe to use this
             pNth32 = (PIMAGE_NT_HEADERS32)(KernelHeaders + pDosHeader->e_lfanew);
@@ -1818,9 +1398,15 @@ IntWinGuestReadKernel(
         }
     }
 
+    if (secStartOffset >= PAGE_SIZE)
+    {
+        ERROR("[ERROR] Sections get outside the first page. We don't support this yet!\n");
+        return INT_STATUS_NOT_SUPPORTED;
+    }
+
     if (secStartOffset + secCount * sizeof(IMAGE_SECTION_HEADER) > PAGE_SIZE)
     {
-        ERROR("[ERROR] Sections gets outside the first page. We don't support this yet!\n");
+        ERROR("[ERROR] Sections get outside the first page. We don't support this yet!\n");
         return INT_STATUS_NOT_SUPPORTED;
     }
 
@@ -2084,8 +1670,8 @@ IntWinGuestFindBuildNumber(
     status = IntCamiGetWinSupportedList(IsKptiInstalled, Guest64, pNtList, &cb);
     if (!INT_SUCCESS(status) || 0 == cb)
     {
-        ERROR("[ERROR] IntCamiGetWinSupportedList failed: 0x%08x\n", status);
-        return status;
+        ERROR("[ERROR] IntCamiGetWinSupportedList failed with count %u: 0x%08x\n", cb, status);
+        return INT_STATUS_NOT_FOUND;
     }
 
     TRACE("[INFO] %d supported os versions from cami\n", cb);
@@ -3080,7 +2666,7 @@ IntWinGetVersionString(
 /// @retval     #INT_STATUS_DATA_BUFFER_TOO_SMALL if any of the buffers is not large enough
 ///
 {
-    DWORD count;
+    int count;
 
     if (NULL == gWinGuest->NtBuildLabString)
     {
@@ -3123,7 +2709,12 @@ IntWinGetVersionString(
                          strcasestr(FullString, "lts") ? "ltsb" : "", appendix);
     }
 
-    if (count >= VersionStringSize)
+    if (count < 0)
+    {
+        return INT_STATUS_INVALID_DATA_VALUE;
+    }
+
+    if ((DWORD)count >= VersionStringSize)
     {
         return INT_STATUS_DATA_BUFFER_TOO_SMALL;
     }

@@ -1,0 +1,79 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        {
+            "flags": "integrity",
+            "victim": "msmpeng.exe",
+            "object_type": "security-descriptor",
+            "signatures": [
+                "sec-desc-msmpeng"
+            ]
+        },
+        
+        {
+            "flags": "integrity",
+            "victim": "system",
+            "object_type": "security-descriptor"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "microsoftedge.exe",
+            "object_type": "security-descriptor"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "csrss.exe",
+            "object_type": "security-descriptor"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "svchost.exe",
+            "object_type": "security-descriptor"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "smsvchost.exe",
+            "object_type": "security-descriptor"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "acrord32.exe",
+            "object_type": "security-descriptor"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "citrix.deliver",
+            "object_type": "security-descriptor"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "lsass.exe",
+            "object_type": "security-descriptor"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "startmenuexperiencehost",
+            "object_type": "security-descriptor"
+        },
+        
+        {
+            "flags": "integrity",
+            "victim": "msiexec.exe",
+            "object_type": "security-descriptor"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "winstore.app.exe",
+            "object_type": "security-descriptor"
+        }
+    ]
+}

@@ -13,6 +13,18 @@
 #include "bitmask.h"
 #include "structs.h"
 
+/// @brief Maximum allowed count for the tcpip!PartitionCount value.
+///
+/// For newer Windows versions, this value is the maximum that can be returned from
+/// tcpip!TcpNumPartitionsForProcessorCount.
+///
+/// For older Windows versions, this value is obtained using the maximum returned value
+/// from tcpip!TcpMaxPartitionShift. In this case, the count is calulated as (1 << shift).
+///
+/// However, for all of these, the maximum count remains the same.
+///
+#define TCPIP_MAX_PARTITION_CNT 0x40
+
 /// @brief Switch a WORD from network endianness to little endina.
 #define NET_BYTE_ORDER(Word)    (((Word) >> 8) | ((Word) << 8))
 
@@ -1225,6 +1237,11 @@ IntWinNetFindTcpPartition(
     cnt = 0;
     status = IntKernVirtMemRead(addr, sz, &cnt, NULL);
     if (!INT_SUCCESS(status))
+    {
+        goto _exit;
+    }
+
+    if (cnt > TCPIP_MAX_PARTITION_CNT)
     {
         goto _exit;
     }

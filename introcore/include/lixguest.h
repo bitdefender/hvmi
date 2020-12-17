@@ -181,6 +181,7 @@ typedef enum _LIX_FIELD_DENTRY
     lixFieldDentryName,                 ///< The offset of dentry.d_name.
     lixFieldDentryDiname,               ///< The offset of dentry.d_iname.
     lixFieldDentryInode,                ///< The offset of dentry.d_inode.
+    lixFieldDentryHashList,             ///< The offset of dentry.d_hash.
     lixFieldDentryEnd                   ///< The end of tags.
 } LIX_FIELD_DENTRY;
 
@@ -511,7 +512,7 @@ typedef struct _LINUX_GUEST
 
     struct
     {
-        QWORD           VsysCall;               ///< The guest virtual address of the vsyscall.
+        QWORD           Vsyscall;               ///< The guest virtual address of the vsyscall.
 
         QWORD           VdsoStart;              ///< The guest virtual address where the vDSO starts.
         QWORD           VdsoEnd;                ///< The guest virtual address where the vDSO ends.

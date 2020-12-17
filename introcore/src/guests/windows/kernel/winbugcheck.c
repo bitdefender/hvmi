@@ -167,7 +167,7 @@ IntLogCurrentIP(
     pDriver = IntDriverFindByAddress(Rip);
     if (NULL == pDriver)
     {
-        ERROR("[ERROR] IntDriverFindByAddress failed : 0x%018llx", Rip);
+        ERROR("[ERROR] IntDriverFindByAddress failed: 0x%016llx", Rip);
         return;
     }
 
@@ -626,6 +626,8 @@ IntLogExceptionRecord(
              excpStructure.ExceptionAddress, excpStructure.ExceptionCode,
              excpStructure.ExceptionFlags, excpStructure.NumberParameters);
 
+        excpStructure.NumberParameters = MIN(excpStructure.NumberParameters, EXCEPTION_MAXIMUM_PARAMETERS);
+
         for (DWORD excpParam = 0; excpParam < excpStructure.NumberParameters; excpParam++)
         {
             NLOG("   Parameter[%d]: 0x%016llx\n", excpParam, excpStructure.ExceptionInformation[excpParam]);
@@ -651,6 +653,8 @@ IntLogExceptionRecord(
              "NumberParameters: 0x%x\n",
              excpStructure.ExceptionAddress, excpStructure.ExceptionCode,
              excpStructure.ExceptionFlags, excpStructure.NumberParameters);
+
+        excpStructure.NumberParameters = MIN(excpStructure.NumberParameters, EXCEPTION_MAXIMUM_PARAMETERS);
 
         for (DWORD excpParam = 0; excpParam < excpStructure.NumberParameters; excpParam++)
         {

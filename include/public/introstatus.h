@@ -461,6 +461,10 @@ typedef _Return_type_success_(return >= 0) int INTSTATUS;
 #define INT_STATUS_POWER_STATE_BLOCK \
     INT_MAKE_STATUS(INT_STATUS_SEVERITY_ERROR, INT_FACILITY_HVI, 0x0060L)
 
+/// Indicates that the stack was needed in order to match the exceptions, but it is swapped out.
+#define INT_STATUS_STACK_SWAPPED_OUT \
+    INT_MAKE_STATUS(INT_STATUS_SEVERITY_ERROR, INT_FACILITY_HVI, 0x0061L)
+
 /// An unrecoverable error was detected. Introcore must be unloaded.
 #define INT_STATUS_FATAL_ERROR \
     INT_MAKE_STATUS(INT_STATUS_SEVERITY_ERROR, INT_FACILITY_HVI, 0x00FF)

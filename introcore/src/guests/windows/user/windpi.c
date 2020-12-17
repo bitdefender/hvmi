@@ -10,6 +10,7 @@
 #include "winthread.h"
 #include "wintoken.h"
 #include "shellcode.h"
+#include "winsecdesc.h"
 
 ///
 /// @file windpi.c
@@ -98,6 +99,16 @@ IntWinDpiGetDpiMitreId(
     if (INT_PC_VIOLATION_DPI_THREAD_START & Flags)
     {
         return idExploitClientExec;
+    }
+
+    if (INT_PC_VIOLATION_DPI_SEC_DESC & Flags)
+    {
+        return idAccessToken;
+    }
+
+    if (INT_PC_VIOLATION_DPI_ACL_EDIT & Flags)
+    {
+        return idAccessToken;
     }
 
     LOG("[ERROR] We do not have any known DPI flag set -> Flags:0x%x\n", Flags);
@@ -284,7 +295,8 @@ IntWinDpiHandleDpiTokenPrivs(
     _In_ WIN_PROCESS_OBJECT *RealParent,
     _Out_ WIN_PROCESS_OBJECT **Originator,
     _Out_ WIN_PROCESS_OBJECT **Victim,
-    _Out_ INTRO_PC_VIOLATION_TYPE *PcType)
+    _Out_ INTRO_PC_VIOLATION_TYPE *PcType
+    )
 ///
 /// @brief      Checks if a process creation breaks the DPI token privileges policy set
 /// by #INTRO_OPT_PROT_DPI_TOKEN_PRIVS.
@@ -322,6 +334,100 @@ IntWinDpiHandleDpiTokenPrivs(
     *Originator = Child;
     *Victim = RealParent;
     *PcType = INT_PC_VIOLATION_DPI_TOKEN_PRIVS;
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+static INTSTATUS
+IntWinDpiHandleDpiSecDesc(
+    _In_ WIN_PROCESS_OBJECT *Child,
+    _In_ WIN_PROCESS_OBJECT *RealParent,
+    _Out_ WIN_PROCESS_OBJECT **Originator,
+    _Out_ WIN_PROCESS_OBJECT **Victim,
+    _Out_ INTRO_PC_VIOLATION_TYPE *PcType
+    )
+///
+/// @brief      Checks if a process creation breaks the DPI security descriptor policy set
+/// by #INTRO_OPT_PROT_DPI_SD_ACL (modified security descriptor).
+///
+/// @param[in]  Child           The child process.
+/// @param[in]  RealParent      The real parent process.
+/// @param[out] Originator      On success, will contain a pointer to the originator process.
+/// @param[out] Victim          On success, will contain a pointer to the victim process.
+/// @param[out] PcType          The DPI flags. This will either be 0, if no violation was detected, or
+///                             #INT_PC_VIOLATION_DPI_SEC_DESC.
+///
+/// @retval     #INT_STATUS_NOT_NEEDED_HINT     Signals that there is no reason to treat this as a malicious action.
+/// @retval     #INT_STATUS_SUCCESS             Signals that an alert should be sent.
+///
+{
+    *Originator = NULL;
+    *Victim = NULL;
+    *PcType = 0;
+
+    if (!(gGuest.CoreOptions.Current & INTRO_OPT_PROT_DPI_SD_ACL))
+    {
+        return INT_STATUS_NOT_NEEDED_HINT;
+    }
+
+    if (!Child->CreationInfo.ParentHasAlteredSecDescPtr)
+    {
+        return INT_STATUS_NOT_NEEDED_HINT;
+    }
+
+    // We are going to consider that the child process is the originator (after a successful exploit, the parent process
+    // will attempt to launch a "payload" process).
+    *Originator = Child;
+    *Victim = RealParent;
+    *PcType = INT_PC_VIOLATION_DPI_SEC_DESC;
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+static INTSTATUS
+IntWinDpiHandleDpiAclEdit(
+    _In_ WIN_PROCESS_OBJECT *Child,
+    _In_ WIN_PROCESS_OBJECT *RealParent,
+    _Out_ WIN_PROCESS_OBJECT **Originator,
+    _Out_ WIN_PROCESS_OBJECT **Victim,
+    _Out_ INTRO_PC_VIOLATION_TYPE *PcType
+    )
+///
+/// @brief      Checks if a process creation breaks the DPI security descriptor policy set
+/// by #INTRO_OPT_PROT_DPI_SD_ACL (SACL/DACL).
+///
+/// @param[in]  Child           The child process.
+/// @param[in]  RealParent      The real parent process.
+/// @param[out] Originator      On success, will contain a pointer to the originator process.
+/// @param[out] Victim          On success, will contain a pointer to the victim process.
+/// @param[out] PcType          The DPI flags. This will either be 0, if no violation was detected, or
+///                             #INT_PC_VIOLATION_DPI_ACL_EDIT.
+///
+/// @retval     #INT_STATUS_NOT_NEEDED_HINT     Signals that there is no reason to treat this as a malicious action.
+/// @retval     #INT_STATUS_SUCCESS             Signals that an alert should be sent.
+///
+{
+    *Originator = NULL;
+    *Victim = NULL;
+    *PcType = 0;
+
+    if (!(gGuest.CoreOptions.Current & INTRO_OPT_PROT_DPI_SD_ACL))
+    {
+        return INT_STATUS_NOT_NEEDED_HINT;
+    }
+
+    if (!Child->CreationInfo.ParentHasEditedAcl)
+    {
+        return INT_STATUS_NOT_NEEDED_HINT;
+    }
+
+    // We are going to consider that the child process is the originator (after a successful exploit, the parent process
+    // will attempt to launch a "payload" process).
+    *Originator = Child;
+    *Victim = RealParent;
+    *PcType = INT_PC_VIOLATION_DPI_ACL_EDIT;
 
     return INT_STATUS_SUCCESS;
 }
@@ -668,6 +774,8 @@ IntWinDpiCheckCreation(
     //  5. Check for a debug flag
     //  6. Check for a heap spray
     //  7. Check if a thread was created on a zone considered suspicious
+    //  8. Check for altered security descriptor
+    //  9. Check for edited ACL (SACL/DACL)
     // The first check that generates an alert sends it and we don't do the other checks (unless in beta/feedback only,
     // when we want to see everything)
     PFUNC_IntWinDpiProcessCreationHandler handlers[] =
@@ -678,7 +786,9 @@ IntWinDpiCheckCreation(
         IntWinDpiHandleDpiPivotedStack,
         IntWinDpiHandleDpiDebug,
         IntWinDpiHandleDpiHeapSpray,
-        IntWinDpiHandleDpiThreadStart
+        IntWinDpiHandleDpiThreadStart,
+        IntWinDpiHandleDpiSecDesc,
+        IntWinDpiHandleDpiAclEdit
     };
 
     for (DWORD i = 0; i < ARRAYSIZE(handlers); i++)
@@ -971,9 +1081,113 @@ IntWinDpiValidateParentProcessToken(
 
 
 static INTSTATUS
+IntWinDpiValidateParentSecDesc(
+    _In_ WIN_PROCESS_OBJECT *Process,
+    _In_ WIN_PROCESS_OBJECT *Parent
+    )
+///
+/// @brief      Determines if the parent process has a an altered security descriptor pointer.
+///
+/// @param[in]  Process         The child process.
+/// @param[in]  Parent          The parent process.
+///
+/// @retval     #INT_STATUS_SUCCESS             On success.
+///
+{
+    static BYTE securityDescriptorBuffer[INTRO_SECURITY_DESCRIPTOR_SIZE];
+    WIN_PROCESS_OBJECT *pStolenFrom = NULL;
+    INTSTATUS status;
+    DWORD totalSize = 0;
+    QWORD oldValue = 0;
+    QWORD newValue = 0;
+    ACL *sacl = NULL;
+    ACL *dacl = NULL;
+
+    memset(securityDescriptorBuffer, 0, INTRO_SECURITY_DESCRIPTOR_SIZE);
+
+    if (IntWinSDIsSecDescPtrAltered(Parent, &pStolenFrom, &oldValue, &newValue))
+    {
+        Process->CreationInfo.ParentHasAlteredSecDescPtr = TRUE;
+
+        Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.SecDescStolenFromEproc =
+            pStolenFrom ? pStolenFrom->EprocessAddress : 0;
+        Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.NewPtrValue = newValue;
+        Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.OldPtrValue = oldValue;
+
+        status = IntWinSDReadSecDesc(newValue,
+                                     INTRO_SECURITY_DESCRIPTOR_SIZE,
+                                     securityDescriptorBuffer,
+                                     &totalSize,
+                                     &sacl,
+                                     &dacl);
+        if (INT_SUCCESS(status))
+        {
+            if (sacl)
+            {
+                memcpy(&Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.NewSacl, sacl, sizeof(ACL));
+            }
+
+            if (dacl)
+            {
+                memcpy(&Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.NewDacl, dacl, sizeof(ACL));
+            }
+        }
+        
+        memcpy(&Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.OldSacl, &Parent->SecurityDescriptor.Sacl, sizeof(ACL));
+        memcpy(&Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.OldDacl, &Parent->SecurityDescriptor.Dacl, sizeof(ACL));
+    }
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+static INTSTATUS
+IntWinDpiValidateParentAclEdit(
+    _In_ WIN_PROCESS_OBJECT *Process,
+    _In_ WIN_PROCESS_OBJECT *Parent
+    )
+///
+/// @brief      Determines if the parent process has a an altered ACL (SACL/DACL).
+///
+/// @param[in]  Process         The child process.
+/// @param[in]  Parent          The parent process.
+///
+/// @retval     #INT_STATUS_SUCCESS             On success.
+///
+{
+    static BYTE securityDescriptorBuffer[INTRO_SECURITY_DESCRIPTOR_SIZE];
+    DWORD totalSize;
+    ACL *sacl = NULL;
+    ACL *dacl = NULL;
+
+    memset(securityDescriptorBuffer, 0, INTRO_SECURITY_DESCRIPTOR_SIZE);
+
+    if (IntWinSDIsAclEdited(Parent, INTRO_SECURITY_DESCRIPTOR_SIZE, securityDescriptorBuffer, &totalSize, &sacl, &dacl))
+    {
+        Process->CreationInfo.ParentHasEditedAcl = TRUE;
+
+        if (sacl)
+        {
+            memcpy(&Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.NewSacl, sacl, sizeof(ACL));
+        }
+
+        if (dacl)
+        {
+            memcpy(&Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.NewDacl, dacl, sizeof(ACL));
+        }
+
+        memcpy(&Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.OldSacl, &Parent->SecurityDescriptor.Sacl, sizeof(ACL));
+        memcpy(&Parent->DpiExtraInfo.DpiSecDescAclExtraInfo.OldDacl, &Parent->SecurityDescriptor.Dacl, sizeof(ACL));
+    }
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+static INTSTATUS
 IntWinDpiValidateTokenPrivs(
-    _In_ WIN_PROCESS_OBJECT* Process,
-    _In_ WIN_PROCESS_OBJECT* Parent
+    _In_ WIN_PROCESS_OBJECT *Process,
+    _In_ WIN_PROCESS_OBJECT *Parent
     )
 ///
 /// @brief      Determines if the parent process token privileges have not been altered in a malicious way.
@@ -990,6 +1204,7 @@ IntWinDpiValidateTokenPrivs(
 
     status = IntWinTokenCheckCurrentPrivileges(Parent,
                                                Parent->OriginalTokenPtr,
+                                               FALSE,
                                                &presentIncreased,
                                                &enabledIncreased,
                                                &present,
@@ -1065,13 +1280,20 @@ IntWinDpiValidateHeapSpray(
             continue;
         }
 
+        // We can safely mark it as mapped at this point.
+        Process->DpiExtraInfo.DpiHeapSprayExtraInfo.HeapPages[val - 1].Mapped = 1;
+
+        if (!tr.IsExecutable)
+        {
+            continue;
+        }
+
         status = IntVirtMemMap(heapVal & PAGE_MASK, PAGE_SIZE, Parent->Cr3, 0, &mappedBytes);
         if (!INT_SUCCESS(status))
         {
             continue;
         }
 
-        Process->DpiExtraInfo.DpiHeapSprayExtraInfo.HeapPages[val - 1].Mapped = 1;
         Process->DpiExtraInfo.DpiHeapSprayExtraInfo.HeapPages[val - 1].Executable = tr.IsExecutable;
 
         totalMappedPages++;
@@ -1389,5 +1611,24 @@ IntWinDpiGatherDpiInfo(
         }
 
         STATS_EXIT(statsDpiThreadStart);
+    }
+
+    if (gGuest.CoreOptions.Current & INTRO_OPT_PROT_DPI_SD_ACL)
+    {
+        STATS_ENTER(statsDpiSdAcl);
+
+        INTSTATUS status = IntWinDpiValidateParentSecDesc(Process, Parent);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinDpiValidateParentSecDesc failed: 0x%08x\n", status);
+        }
+
+        status = IntWinDpiValidateParentAclEdit(Process, Parent);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntWinDpiValidateParentAcl failed: 0x%08x\n", status);
+        }
+
+        STATS_EXIT(statsDpiSdAcl);
     }
 }

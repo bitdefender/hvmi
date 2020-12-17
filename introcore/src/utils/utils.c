@@ -407,3 +407,20 @@ UtilSortQwords(
         }
     }
 }
+
+
+BOOLEAN
+UtilIsBufferZero(
+    _In_bytecount_(BufferSize) void *Buffer,
+    _In_ size_t BufferSize
+    ) 
+{
+    static const char zeroPage[PAGE_SIZE] = { 0 };
+
+    if (BufferSize > PAGE_SIZE || NULL == Buffer)
+    {
+        return FALSE;
+    }
+
+    return memcmp(Buffer, zeroPage, BufferSize) == 0;
+}

@@ -448,7 +448,7 @@ view, a descriptor contains information about:
   not exported this is simply an identifier that links it against the
   proper :ref:`CAMI function pattern <chapters/5-os-support-mechanism:Function patterns>`.
 - The OS versions for which this hook is available.
-- A list of :ref:`handlers <chapters/9-development-guideline:Windows Hook handlers>` that will be 
+- A list of :ref:`handlers <chapters/9-development-guideline:Windows Hook handlers>` that will be
   injected inside the guest.
 - A description of the arguments passed when the in-guest handler issues a hypercall.
 - A list patterns that are used to find functions that are not exported.
@@ -599,9 +599,9 @@ These callbacks can disable or entirely remove the hook.
 Reading and changing arguments
 ------------------------------
 
-Detour arguments are described by :ref:`CAMI <chapters/5-os-support-mechanism:OS Support Mechanism>`. 
+Detour arguments are described by :ref:`CAMI <chapters/5-os-support-mechanism:OS Support Mechanism>`.
 Accessing them is done with the :code:`IntDetGetArguments` function which will return a list of 64-bit
-integer values. The meaning of these values is unique to each detour handler. 
+integer values. The meaning of these values is unique to each detour handler.
 Argument values can be changed using :code:`IntDetPatchArgument`. 
 
 Accessing guest memory
@@ -1287,16 +1287,16 @@ termination is :ref:`reported <chapters/3-alerts-and-events:Process Creation/Ter
 
 For processes started before Introcore, the process list is iterated and
 each process is imported in the Introcore process list, with the
-exception of processes that have the :code:`Delete`, :code:`Exiting`, or
-:code:`VmDeleted` :ref:`flags <chapters/5-os-support-mechanism:eprocessflags>` set,
+exception of processes that have the :code:`Delete`, :code:`Exiting`,
+:code:`VmDeleted` or :code:`OutSwapped` :ref:`flags <chapters/5-os-support-mechanism:eprocessflags>` set,
 as those processes will soon be removed from the process list.
 
 The in-guest process list is iterated for one additional reason: when
 doing a :ref:`thread safeness <chapters/9-development-guideline:Windows thread safeness>` check.
 
 During process creation events, other Introcore modules may be initialized. For example, when 
-*services.exe* is started Introcore enables :ref:`agent injections <chapters/7-agents-architecture:Agents Architecture>` 
-(and may inject the :ref:`PT filter <chapters/7-agents-architecture:in-guest pt filtering>` agent, if needed), 
+*services.exe* is started Introcore enables :ref:`agent injections <chapters/7-agents-architecture:Agents Architecture>`
+(and may inject the :ref:`PT filter <chapters/7-agents-architecture:in-guest pt filtering>` agent, if needed),
 and a static scan for :ref:`driver objects <chapters/9-development-guideline:Windows driver objects>` is started.
 
 For protected processes, the :code:`EPROCESS` structure might be
@@ -1319,10 +1319,12 @@ Introcore will need the currently active process for handling most of
 the events it can receive. The current process is detected by using the
 currently loaded guest **CR3**. However, there is no guarantee that
 the Windows kernel won't relocate the CR3 used by a process. This is
-problematic because we will no longer be ale to identify hooks by CR3,
+problematic because we will no longer be able to identify hooks by CR3,
 but even more so because guest virtual address memory hooks
 are set in the context of a CR3. To avoid these problems, Introcore
 locks the physical page used for the process CR3 using :ref:`PFN locks <chapters/9-development-guideline:PFN management>`.
+In addition, the :code:`KiOutSwapProcesses` and the :code:`MmInSwapProcess`
+APIs are hijacked to intercept if a process has been swapped (in/out).
 For guests that have KPTI patches installed and active, processes may use
 two CR3 values: one while executing user-mode code, and another for
 kernel-mode. In these cases both CR3 pages are locked and the kernel CR3
@@ -1340,7 +1342,7 @@ Each user-mode memory range used by a process is described by a :code:`VAD`
 search tree, with the root in the :code:`VadRoot` field of the 
 :ref:`EPROCESS <chapters/5-os-support-mechanism:process>` structure. 
 
-There are two types of VAD structures: :ref:`short <chapters/5-os-support-mechanism:vadshort>` 
+There are two types of VAD structures: :ref:`short <chapters/5-os-support-mechanism:vadshort>`
 (:code:`MMVAD_SHORT`), and :ref:`long <chapters/5-os-support-mechanism:vadlong>` (:code:`MMVAD`,
 which contains a :code:`MMVAD_SHORT` structure). 
 
@@ -1435,7 +1437,7 @@ Reading a process command line
 ------------------------------
 
 Introcore can read the command line of a Windows process. This may be
-needed for the :ref:`engines scan mechanism <chapters/6-engines-scan-mechanism:Engines Scan Mechanism>` 
+needed for the :ref:`engines scan mechanism <chapters/6-engines-scan-mechanism:Engines Scan Mechanism>`
 for reporting it in an event, or for other heuristics applied by Introcore
 (for example, the Chrome command line is used to detect if NaCl is enabled or not).
 
@@ -1511,7 +1513,7 @@ Unloading is handled when the :code:`VAD` that maps the module is destroyed.
 
 Each module is represented by a WIN_PROCESS_MODULE_ structure.
 
-:ref:`Module events <chapters/3-alerts-and-events:Module load/unload (EVENT_MODULE_EVENT)>` 
+:ref:`Module events <chapters/3-alerts-and-events:Module load/unload (EVENT_MODULE_EVENT)>`
 are not sent every time a module is loaded and unloaded, but every time
 a write or a double agent is detected for the process that owns the modules. 
 
@@ -1649,7 +1651,7 @@ The size of the entries varies based on the type of paging that is being used:
 | 64-bit            | 48 bytes   |
 +-------------------+------------+
 
-The parts of the entries that are used by Introcore included 
+The parts of the entries that are used by Introcore included
 in :ref:`CAMI <chapters/5-os-support-mechanism:mmpfn>`.
 
 Introcore uses the PFN Database to lock certain memory pages in memory,
@@ -1712,8 +1714,8 @@ For notifications received directly from the hypervisor, if the guest
 enters the sleep state, all future events (for example, EPT violations,
 MSR violations, etc) will be blocked and Introcore will attempt to
 handle them only when the guest resumes from sleep.
-If the :ref:`#VE filtering <chapters/7-agents-architecture:#ve filtering>` 
-or the :ref:`In-guest PT filtering <chapters/7-agents-architecture:in-guest pt filtering>` 
+If the :ref:`#VE filtering <chapters/7-agents-architecture:#ve filtering>`
+or the :ref:`In-guest PT filtering <chapters/7-agents-architecture:in-guest pt filtering>`
 agents are enabled they will be re-injected in the guest when it resumes
 from sleep. This will be done asynchronously, not necessarily as soon as
 the OS resumes from sleep. For other transitions Introcore will simply
@@ -1752,8 +1754,8 @@ module is imported. This is done after the entire kernel image is read.
 Modules found in this way are considered to be statically detected.
 
 If the :code:`INTRO_OPT_EVENT_MODULES` 
-:ref:`Introcore option <chapters/2-activation-and-protection-options:global introcore options>` 
-is set :ref:`load and unload events <chapters/3-alerts-and-events:Module load/unload (EVENT_MODULE_EVENT)>` 
+:ref:`Introcore option <chapters/2-activation-and-protection-options:global introcore options>`
+is set :ref:`load and unload events <chapters/3-alerts-and-events:Module load/unload (EVENT_MODULE_EVENT)>`
 will be sent.
 
 Linux Process management
@@ -1773,7 +1775,7 @@ by Introcore to block malicious 
 
 Process termination is detected by detouring :code:`do_exit`.
 
-If the currently loaded policy requests this, each process creation and termination is 
+If the currently loaded policy requests this, each process creation and termination is
 :ref:`reported <chapters/3-alerts-and-events:Process Creation/Termination (EVENT_PROCESS_EVENT)>`.
 
 For processes started before Introcore, the process list is iterated and

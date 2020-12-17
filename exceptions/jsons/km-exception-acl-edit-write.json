@@ -1,0 +1,25 @@
+{
+    "Type": "kernel",
+    "Exceptions": [
+        {
+            "flags": "integrity",
+            "victim": "system",
+            "object_type": "acl-edit",
+            "signatures": [
+                "acl-edit-system"
+            ]
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "citrix.deliver",
+            "object_type": "acl-edit"
+        },
+
+        {
+            "flags": "integrity",
+            "victim": "microsoftedge.exe",
+            "object_type": "acl-edit"
+        }
+    ]
+}

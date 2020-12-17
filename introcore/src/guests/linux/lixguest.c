@@ -17,6 +17,7 @@
 #include "dtr_protection.h"
 #include "lixfiles.h"
 #include "lixksym.h"
+#include "memcloak.h"
 
 #include "linux/agents/agents_content.h"
 #include "detours_hypercall.h"
@@ -1788,46 +1789,6 @@ IntLixGuestDetourDataHandler(
 
 
 static INTSTATUS
-IntLixGuestDetourCodeHandler(
-    _In_opt_ void **Context,
-    _In_ void *Hook,
-    _In_ QWORD Address,
-    _Out_ INTRO_ACTION *Action
-    )
-///
-/// @brief Dumps information about the read/write attempt.
-///
-/// @param[in]  Context         Unused.
-/// @param[in]  Hook            The #HOOK_GPA associated to this callback.
-/// @param[in]  Address         The guest physical address that was accessed.
-/// @param[in]  Action          Desired action (allow, block).
-///
-/// @retval     #INT_STATUS_SUCCESS     On success.
-///
-{
-    UNREFERENCED_PARAMETER(Context);
-    INTSTATUS status;
-    QWORD address = IntHookGetGlaFromGpaHook(Hook, Address);
-    CHAR ksymbol[126] = { 0 };
-    HOOK_GPA *pHook = Hook;
-
-    status = IntKsymFindByAddress(gVcpu->Regs.Rip, sizeof(ksymbol), ksymbol, NULL, NULL);
-
-    TRACE("[LIXGUEST] %s attempt on detour code from @0x%016llx (%s).\n",
-          pHook->Header.EptHookType == IG_EPT_HOOK_READ ? "Read" : "Write",
-          address, INT_SUCCESS(status) ? ksymbol : "none");
-
-    TRACE("[LIXGUEST] Instruction:");
-    IntDisasmGva(gVcpu->Regs.Rip, ND_MAX_INSTRUCTION_LENGTH);
-    IntDumpArchRegs(&gVcpu->Regs);
-
-    *Action = introGuestNotAllowed;
-
-    return INT_STATUS_SUCCESS;
-}
-
-
-static INTSTATUS
 IntLixGuestAgentContentHandler(
     _In_opt_ void **Context,
     _In_ void *Hook,
@@ -1958,15 +1919,6 @@ IntLixGuestAllocateDeploy(
         return INT_STATUS_INVALID_INTERNAL_STATE;
     }
 
-    status = IntKernVirtMemWrite(gLixGuest->MmAlloc.Detour.Data.Address, sizeof(gLixDetours), gLixDetours);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntKernVirtMemWrite failed: 0x%08x\n", status);
-        return status;
-    }
-
-    TRACE("[LIXGUEST] Deployed detours (code/data) @0x%016llx.", gLixGuest->MmAlloc.Detour.Data.Address);
-
     status = IntKernVirtMemWrite(gLixGuest->MmAlloc.Agent.Address, sizeof(gLixAgents), gLixAgents);
     if (!INT_SUCCESS(status))
     {
@@ -1975,6 +1927,32 @@ IntLixGuestAllocateDeploy(
     }
 
     TRACE("[LIXGUEST] Deployed agents @0x%016llx.", gLixGuest->MmAlloc.Agent.Address);
+
+    status = IntKernVirtMemWrite(gLixGuest->MmAlloc.Detour.Data.Address, gLixGuest->MmAlloc.Detour.Data.Length, gLixDetours);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntKernVirtMemWrite failed: 0x%08x\n", status);
+        return status;
+    }
+
+    TRACE("[LIXGUEST] Deployed detours data @0x%016llx.", gLixGuest->MmAlloc.Detour.Data.Address);
+
+    status = IntMemClkCloakRegion(gLixGuest->MmAlloc.Detour.Code.Address,
+                                  0,
+                                  gLixGuest->MmAlloc.Detour.Code.Length,
+                                  MEMCLOAK_OPT_APPLY_PATCH,
+                                  NULL,
+                                  gLixDetours + gLixGuest->MmAlloc.Detour.Data.Length,
+                                  NULL,
+                                  &gLixGuest->MmAlloc.Detour.Code.HookObject);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntMemClkCloakRegion failed for 0x%016llx (%d bytes) with status: 0x%08x\n",
+              gLixGuest->MmAlloc.Detour.Code.Address, gLixGuest->MmAlloc.Detour.Code.Length, status);
+        return status;
+    }
+
+    TRACE("[LIXGUEST] Deployed detours code @0x%016llx.", gLixGuest->MmAlloc.Detour.Code.Address);
 
     return INT_STATUS_SUCCESS;
 }
@@ -2094,7 +2072,7 @@ IntLixGuestUnhookGuestCode(
     void
     )
 ///
-/// @brief  Remove the EPT hooks from detours and agents.
+/// @brief  Remove the EPT hooks and memcloack from detours and agents.
 ///
 {
     INTSTATUS status;
@@ -2106,15 +2084,19 @@ IntLixGuestUnhookGuestCode(
         {
             ERROR("[ERROR] IntHookObjectDestroy failed with status: 0x%08x\n", status);
         }
+
+        gLixGuest->MmAlloc.Detour.Data.HookObject = NULL;
     }
 
     if (gLixGuest->MmAlloc.Detour.Code.HookObject)
     {
-        status = IntHookObjectDestroy((HOOK_OBJECT_DESCRIPTOR **)&gLixGuest->MmAlloc.Detour.Code.HookObject, 0);
+        status = IntMemClkUncloakRegion(gLixGuest->MmAlloc.Detour.Code.HookObject, MEMCLOAK_OPT_APPLY_PATCH);
         if (!INT_SUCCESS(status))
         {
-            ERROR("[ERROR] IntHookObjectDestroy failed with status: 0x%08x\n", status);
+            ERROR("[ERROR] IntMemClkUncloakRegion failed with status: 0x%08x\n", status);
         }
+
+        gLixGuest->MmAlloc.Detour.Code.HookObject = NULL;
     }
 
     if (gLixGuest->MmAlloc.Agent.HookObject)
@@ -2124,6 +2106,8 @@ IntLixGuestUnhookGuestCode(
         {
             ERROR("[ERROR] IntHookObjectDestroy failed with status: 0x%08x\n", status);
         }
+
+        gLixGuest->MmAlloc.Agent.HookObject = NULL;
     }
 }
 
@@ -2141,7 +2125,7 @@ IntLixGuestAllocateHook(
 /// @retval     #INT_STATUS_SUCCESS     On success.
 ///
 {
-    INTSTATUS status;
+    INTSTATUS status = INT_STATUS_SUCCESS;
 
     status = IntHookObjectCreate(introObjectTypeRaw, 0, &gLixGuest->MmAlloc.Detour.Data.HookObject);
     if (!INT_SUCCESS(status))
@@ -2171,45 +2155,6 @@ IntLixGuestAllocateHook(
                                      gLixGuest->MmAlloc.Detour.Data.Length,
                                      IG_EPT_HOOK_EXECUTE,
                                      IntLixGuestDetourDataHandler,
-                                     NULL,
-                                     0,
-                                     NULL);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntHookObjectHookRegion failed with status: 0x%x", status);
-        goto _exit;
-    }
-
-
-
-    status = IntHookObjectCreate(introObjectTypeRaw, 0, &gLixGuest->MmAlloc.Detour.Code.HookObject);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntHookObjectCreate failed: 0x%08x\n", status);
-        goto _exit;
-    }
-
-    status = IntHookObjectHookRegion(gLixGuest->MmAlloc.Detour.Code.HookObject,
-                                     gGuest.Mm.SystemCr3,
-                                     gLixGuest->MmAlloc.Detour.Code.Address,
-                                     gLixGuest->MmAlloc.Detour.Code.Length,
-                                     IG_EPT_HOOK_WRITE,
-                                     IntLixGuestDetourCodeHandler,
-                                     NULL,
-                                     0,
-                                     NULL);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntHookObjectHookRegion failed with status: 0x%x", status);
-        goto _exit;
-    }
-
-    status = IntHookObjectHookRegion(gLixGuest->MmAlloc.Detour.Code.HookObject,
-                                     gGuest.Mm.SystemCr3,
-                                     gLixGuest->MmAlloc.Detour.Code.Address,
-                                     gLixGuest->MmAlloc.Detour.Code.Length,
-                                     IG_EPT_HOOK_READ,
-                                     IntLixGuestDetourCodeHandler,
                                      NULL,
                                      0,
                                      NULL);
@@ -2597,12 +2542,6 @@ IntLixGuestUninitGuestCode(
         ERROR("[ERROR] IntLixGuestClearGuestMemory failed with status: 0x%08x. (detour data)", status);
     }
 
-    status = IntLixGuestClearGuestMemory(gLixGuest->MmAlloc.Detour.Code.Address, gLixGuest->MmAlloc.Detour.Code.Length);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntLixGuestClearGuestMemory failed with status: 0x%08x. (detour code)", status);
-    }
-
     status = IntLixGuestClearGuestMemory(gLixGuest->MmAlloc.Agent.Address, gLixGuest->MmAlloc.Agent.Length);
     if (!INT_SUCCESS(status))
     {
@@ -2721,7 +2660,7 @@ IntLixGuestNew(
         if (!INT_SUCCESS(status))
         {
             ERROR("[ERROR] Failed getting the init_mm: 0x%08x\n", status);
-            return status;
+            goto _exit;
         }
 
         status = IntKernVirtMemFetchQword(initMmGva + LIX_FIELD(MmStruct, Pgd), &initPgd);
@@ -2729,7 +2668,7 @@ IntLixGuestNew(
         {
             ERROR("[ERROR] IntKernVirtMemFetchQword failed for %llx: 0x%08x\n",
                   initMmGva + LIX_FIELD(MmStruct, Pgd), status);
-            return status;
+            goto _exit;
         }
     }
 
@@ -2737,7 +2676,7 @@ IntLixGuestNew(
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] Translating init PGD failed, status = 0x%08x\n", status);
-        return status;
+        goto _exit;
     }
 
     TRACE("[INTRO-INIT] Found SystemCr3 @ %llx\n", gGuest.Mm.SystemCr3);
@@ -2758,8 +2697,6 @@ IntLixGuestNew(
         gGuest.VcpuArray[i].IdtLimit = idtLimit;
     }
 
-    IntNotifyIntroDetectedOs(gGuest.OSType, gGuest.OSVersion, gGuest.Guest64);
-
     IntLixAgentInit();
 
     IntLixAgentEnableInjection();
@@ -2768,10 +2705,22 @@ IntLixGuestNew(
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntLixGuestAllocate failed with status: 0x%08x.", status);
-        return status;
+        goto _exit;
     }
 
-    return INT_STATUS_SUCCESS;
+    IntNotifyIntroDetectedOs(gGuest.OSType, gGuest.OSVersion, gGuest.Guest64);
+
+    status = INT_STATUS_SUCCESS;
+
+_exit:
+    if (!INT_SUCCESS(status))
+    {
+        IntLixAgentDisablePendingAgents();
+
+        gGuest.GuestInitialized = FALSE;
+    }
+
+    return status;
 }
 
 
@@ -2797,7 +2746,7 @@ IntGetVersionStringLinux(
 ///
 {
     DWORD startOfDistroName = 0;
-    DWORD count = 0;
+    int count = 0;
     DWORD endOfDistroName = 0;
     DWORD sizeOfString;
 
@@ -2850,7 +2799,12 @@ IntGetVersionStringLinux(
                      gLixGuest->Version.Patch,
                      gLixGuest->Version.Sublevel,
                      gLixGuest->Version.Backport);
-    if (count >= VersionStringSize)
+    if (count < 0)
+    {
+        return INT_STATUS_INVALID_DATA_VALUE;
+    }
+
+    if ((DWORD)count >= VersionStringSize)
     {
         return INT_STATUS_DATA_BUFFER_TOO_SMALL;
     }

@@ -139,8 +139,12 @@ typedef struct _UPDATE_UM_EXCEPTION_GLOB
 ///
 typedef struct _UPDATE_KUM_EXCEPTION
 {
-
-    DWORD       OriginatorNameHash;     ///< The name-hash of the originator
+    union
+    {
+        DWORD       NameHash;                   ///< Contains the originator name-hash.
+        DWORD       DriverHash;                 ///< Contains the originator driver name-hash.
+        DWORD       ProcessHash;                ///< Contains the originator process name-hash.
+    } Originator;
 
     struct
     {

@@ -188,6 +188,7 @@ fields: !opaque_structures
             NameOffset : 0x0020
             DinameOffset : 0x0038
             InodeOffset : 0x0030
+            HashListOffset : 0x008
 
         MmStruct: !opaque_fields
             PgdOffset : 0x0050

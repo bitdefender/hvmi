@@ -1,0 +1,22 @@
+{
+    "Type": "kernel",
+    "Signatures": [
+        // The hash value for the signatures can be found:
+        //      ACL edited for process (citrix.deliver [0x4683a5db] 6344) NewSdSize:108 New SD Hash:0x66352838
+        //
+        //      Within the alert strucutre as:
+        //          pIntViolation->WriteInfo.NewValue[2] for introObjectTypeAcl
+        {
+            "sig_type": "value",
+            "sig_id": "acl-edit-system",
+            "score": 1,
+            "hashes": [
+                {
+                    "offset": 0,
+                    "size": 108,
+                    "hash": "0x164bd348"
+                }
+            ]
+        }
+    ]
+}

@@ -66,6 +66,7 @@ set(introcore_sources
   src/guests/linux/lixagent_ondemand.c
   src/guests/linux/lixaghnd.c
   src/guests/linux/lixapi.c
+  src/guests/linux/lixcmdline.c
   src/guests/linux/lixcrash.c
   src/guests/linux/lixcred.c
   src/guests/linux/lixdeployer.c
@@ -98,13 +99,16 @@ set(introcore_sources
   src/guests/windows/kernel/winhal.c
   src/guests/windows/kernel/winidt.c
   src/guests/windows/kernel/wininfinityhook.c
+  src/guests/windows/kernel/winintobj.c
   src/guests/windows/kernel/winobj.c
   src/guests/windows/kernel/winpfn.c
   src/guests/windows/kernel/winpool.c
   src/guests/windows/kernel/winpower.c
   src/guests/windows/kernel/winselfmap.c
+  src/guests/windows/kernel/winsud.c
   src/guests/windows/kernel/winvad.c
   src/guests/windows/kernel/wintoken.c
+  src/guests/windows/kernel/winsecdesc.c
   src/guests/windows/user/wincmdline.c
   src/guests/windows/user/windpi.c
   src/guests/windows/user/winprocess.c

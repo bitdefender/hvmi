@@ -132,6 +132,7 @@ IntThrSafeIsStackPtrInIntro(
             {
                 WARNING("[SAFENESS] Stack value @ %016llx (= %016llx) points inside detour %d\n",
                         stackPtr + i, stackValue, detTag);
+                IntVirtMemUnmap(&pStack);
                 return TRUE;
             }
 
@@ -139,6 +140,7 @@ IntThrSafeIsStackPtrInIntro(
             {
                 WARNING("[SAFENESS] Stack value @ %016llx (= %016llx) points inside mem table for %016llx\n",
                         stackPtr + i, stackValue, tableGva);
+                IntVirtMemUnmap(&pStack);
                 return TRUE;
             }
 
@@ -146,6 +148,7 @@ IntThrSafeIsStackPtrInIntro(
             {
                 WARNING("[SAFENESS] Stack value @ %016llx (= %016llx) points inside agent trampoline\n",
                         stackPtr + i, stackValue);
+                IntVirtMemUnmap(&pStack);
                 return TRUE;
             }
 
@@ -153,6 +156,7 @@ IntThrSafeIsStackPtrInIntro(
             {
                 WARNING("[SAFENESS] Stack value @ %016llx (= %016llx) points inside PT Filter\n",
                         stackPtr + i, stackValue);
+                IntVirtMemUnmap(&pStack);
                 return TRUE;
             }
 
@@ -160,6 +164,7 @@ IntThrSafeIsStackPtrInIntro(
             {
                 WARNING("[SAFENESS] Stack value @ %016llx (= %016llx) points inside the #VE Agent\n",
                         stackPtr + i, stackValue);
+                IntVirtMemUnmap(&pStack);
                 return TRUE;
             }
 
@@ -167,6 +172,7 @@ IntThrSafeIsStackPtrInIntro(
             {
                 WARNING("[SAFENESS] Stack value @ %016llx (= %016llx) points inside a SWAPGS gadget at 0x%016llx\n",
                         stackPtr + i, stackValue, gadget);
+                IntVirtMemUnmap(&pStack);
                 return TRUE;
             }
         }

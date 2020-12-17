@@ -18,6 +18,79 @@ RBTREE gWinProcTreeUserCr3 = RB_TREE_INIT(gWinProcTreeUserCr3, IntWinProcRbTreeN
 RBTREE gWinProcTreeEprocess = RB_TREE_INIT(gWinProcTreeEprocess, IntWinProcRbTreeNodeFree,
                                            IntWinProcRbTreeNodeCompareEproc);
 
+void
+IntWinProcLstUnsafeReInit(void)
+///
+/// @brief  Reinitializes the Windows process lists and trees, without doing any cleanup.
+///
+/// This resets the #gWinProcesses lists, and the #gWinProcTreeCr3, #gWinProcTreeUserCr3, and #gWinProcTreeEprocess
+/// trees.
+/// This function does no cleanup, so if there are any processes inside the list or trees those will not be freed, the
+/// hooks placed in their context will not be removed, etc.
+///
+{
+    InitializeListHead(&gWinProcesses);
+
+    RbPreinit(&gWinProcTreeCr3);
+    RbInit(&gWinProcTreeCr3, IntWinProcRbTreeNodeFree, IntWinProcRbTreeNodeCompareCr3);
+
+    RbPreinit(&gWinProcTreeUserCr3);
+    RbInit(&gWinProcTreeUserCr3, IntWinProcRbTreeNodeFree, IntWinProcRbTreeNodeCompareUserCr3);
+
+    RbPreinit(&gWinProcTreeEprocess);
+    RbInit(&gWinProcTreeEprocess, IntWinProcRbTreeNodeFree, IntWinProcRbTreeNodeCompareEproc);
+}
+
+
+void
+IntWinProcLstInsertProcess(
+    _In_ WIN_PROCESS_OBJECT *Process
+    )
+///
+/// @brief  Inserts a #WIN_PROCESS_OBJECT structure into the process lists and trees.
+///
+/// This will add the process to the #gWinProcesses list, and #gWinProcTreeCr3, #gWinProcTreeUserCr3,
+/// and #gWinProcTreeEprocess trees.
+///
+/// @param[in]  Process The process to be inserted.
+///
+{
+    InsertTailList(&gWinProcesses, &Process->Link);
+
+    // Note: we cannot have errors here, because:
+    // 1. we supply valid arguments (so no STATUS_INVALID_PARAMETER can occur)
+    // 2. at the beginning of the function, we check for duplicates by searching for both the CR3 and EPROCESS (so
+    //    we cannot have STATUS_KEY_ALREADY_PRESENT either).
+    RbInsertNode(&gWinProcTreeCr3, &Process->NodeCr3);
+
+    RbInsertNode(&gWinProcTreeUserCr3, &Process->NodeUserCr3);
+
+    RbInsertNode(&gWinProcTreeEprocess, &Process->NodeEproc);
+}
+
+
+void
+IntWinProcLstRemoveProcess(
+    _In_ WIN_PROCESS_OBJECT *Process
+    )
+///
+/// @brief  Removes a #WIN_PROCESS_OBJECT structure from the process lists and trees.
+///
+/// This will remove the process from the #gWinProcesses list, and #gWinProcTreeCr3, #gWinProcTreeUserCr3,
+/// and #gWinProcTreeEprocess trees.
+///
+/// @param[in]  Process The process to be removed.
+///
+{
+    RemoveEntryList(&Process->Link);
+
+    RbDeleteNode(&gWinProcTreeCr3, &Process->NodeCr3);
+
+    RbDeleteNode(&gWinProcTreeUserCr3, &Process->NodeUserCr3);
+
+    RbDeleteNode(&gWinProcTreeEprocess, &Process->NodeEproc);
+}
+
 
 PWIN_PROCESS_OBJECT
 IntWinProcFindObjectByEprocess(
@@ -246,7 +319,7 @@ IntWinProcIsPsActiveProcessHead(
         return status;
     }
 
-    if (IS_INVALID_PTR(flink))
+    if (IS_INVALID_PTR(blink))
     {
         return INT_STATUS_INVALID_OBJECT_TYPE;
     }
@@ -769,13 +842,18 @@ IntWinProcGetAgentsAsCli(
         }
 
         len = snprintf(cmd, Length, "%s %u ", pProc->Name, pProc->Pid);
-        Length -= len;
-        cmd += len;
+        if (len < 0)
+        {
+            return INT_STATUS_INVALID_DATA_VALUE;
+        }
 
-        if ((int)Length < 0)
+        if ((DWORD)len >= Length)
         {
             return INT_STATUS_DATA_BUFFER_TOO_SMALL;
         }
+
+        Length -= len;
+        cmd += len;
     }
 
     return INT_STATUS_SUCCESS;

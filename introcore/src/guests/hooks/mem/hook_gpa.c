@@ -33,6 +33,8 @@ IntHookGpaGetEptEntry(
     HOOK_EPT_ENTRY *pEptEntry;
     const DWORD id = GPA_EPT_ID(GpaPage);
 
+    GpaPage &= PHYS_PAGE_MASK;
+
     pEptEntry = IntHookGpaGetExistingEptEntry(GpaPage);
     if (NULL != pEptEntry)
     {
@@ -169,6 +171,8 @@ IntHookGpaGetExistingEptEntry(
 {
     const DWORD id = GPA_EPT_ID(GpaPage);
     LIST_ENTRY *list = gHooks->GpaHooks.EptEntries[id].Flink;
+
+    GpaPage &= PHYS_PAGE_MASK;
 
     while (list != &gHooks->GpaHooks.EptEntries[id])
     {
@@ -316,7 +320,7 @@ IntHookGpaSetHook(
     pGpaHook->Offset = Gpa & PAGE_OFFSET;
 
     // Get the EPT entry, in order to update the restrictions.
-    eptEntry = IntHookGpaGetEptEntry(Gpa & PHYS_PAGE_MASK);
+    eptEntry = IntHookGpaGetEptEntry(Gpa);
     if (NULL == eptEntry)
     {
         status = INT_STATUS_INSUFFICIENT_RESOURCES;

@@ -95,14 +95,17 @@ IntWinDrvIsListHead(
         }
 
         // The driver pointed by the head must not spill in another page.
-        if ((KernelLdr & PAGE_OFFSET) + sizeof(LDR_DATA_TABLE_ENTRY64) >= PAGE_SIZE)
+        if ((KernelLdr & PAGE_OFFSET) + sizeof(LDR_DATA_TABLE_ENTRY64) > PAGE_SIZE)
         {
             return INT_STATUS_INVALID_OBJECT_TYPE;
         }
 
         pListHead = (LIST_ENTRY64 *)PsLoadedModuleList;
-        if (!IS_KERNEL_POINTER_WIN(TRUE, pListHead->Blink))
+        if (!IS_KERNEL_POINTER_WIN(TRUE, pListHead->Flink) ||
+            !IS_KERNEL_POINTER_WIN(TRUE, pListHead->Blink))
         {
+            TRACE("Failed kernel pointer checks on PsLoadedModuleList Flink/Blink = 0x%016llx/0x%016llx\n",
+                  pListHead->Flink, pListHead->Blink);
             return INT_STATUS_INVALID_OBJECT_TYPE;
         }
 
@@ -116,11 +119,20 @@ IntWinDrvIsListHead(
         matched = IS_KERNEL_POINTER_WIN(TRUE, mod64.InLoadOrderLinks.Flink);
         matched = matched && IS_KERNEL_POINTER_WIN(TRUE, mod64.InLoadOrderLinks.Blink);
         matched = matched && IS_KERNEL_POINTER_WIN(TRUE, mod64.DllBase);
+        matched = matched && IS_KERNEL_POINTER_WIN(TRUE, mod64.DriverName.Buffer);
         matched = matched && (mod64.DllBase % PAGE_SIZE == 0);
         matched = matched && (mod64.EntryPoint > mod64.DllBase && mod64.EntryPoint < mod64.DllBase + mod64.SizeOfImage);
 
         if (!matched)
         {
+            return INT_STATUS_INVALID_OBJECT_TYPE;
+        }
+
+        if (mod64.InLoadOrderLinks.Blink != PsLoadedModuleListGva)
+        {
+            TRACE("[INFO] Found & skipped shadow module list at 0x%016llx (head->flink->blink should be same as head)\n",
+                  PsLoadedModuleListGva);
+
             return INT_STATUS_INVALID_OBJECT_TYPE;
         }
 
@@ -144,20 +156,23 @@ IntWinDrvIsListHead(
         LIST_ENTRY32 *pListHead;
 
         // PsModuleList is LIST_HEAD, it must not spill into the next page
-        if (PAGE_REMAINING(PsLoadedModuleListGva) + sizeof(LIST_ENTRY32) > PAGE_SIZE)
+        if ((PsLoadedModuleListGva & PAGE_OFFSET) + sizeof(LIST_ENTRY32) > PAGE_SIZE)
         {
             return INT_STATUS_INVALID_OBJECT_TYPE;
         }
 
         // The driver pointed by the head must not spill in another page.
-        if ((KernelLdr & PAGE_OFFSET) + sizeof(LDR_DATA_TABLE_ENTRY32) >= PAGE_SIZE)
+        if ((KernelLdr & PAGE_OFFSET) + sizeof(LDR_DATA_TABLE_ENTRY32) > PAGE_SIZE)
         {
             return INT_STATUS_INVALID_OBJECT_TYPE;
         }
 
         pListHead = (LIST_ENTRY32 *)PsLoadedModuleList;
-        if (!IS_KERNEL_POINTER_WIN(FALSE, pListHead->Blink))
+        if (!IS_KERNEL_POINTER_WIN(FALSE, pListHead->Flink) ||
+            !IS_KERNEL_POINTER_WIN(FALSE, pListHead->Blink))
         {
+            TRACE("Failed kernel pointer checks on PsLoadedModuleList Flink/Blink = 0x%08x/0x%08x\n",
+                  pListHead->Flink, pListHead->Blink);
             return INT_STATUS_INVALID_OBJECT_TYPE;
         }
 
@@ -171,12 +186,21 @@ IntWinDrvIsListHead(
         matched = IS_KERNEL_POINTER_WIN(FALSE, mod32.InLoadOrderLinks.Flink);
         matched = matched && IS_KERNEL_POINTER_WIN(FALSE, mod32.InLoadOrderLinks.Blink);
         matched = matched && IS_KERNEL_POINTER_WIN(FALSE, mod32.DllBase);
+        matched = matched && IS_KERNEL_POINTER_WIN(FALSE, mod32.DriverName.Buffer);
         matched = matched && (mod32.DllBase % PAGE_SIZE == 0);
         matched = matched &&
                   (mod32.EntryPoint > mod32.DllBase && mod32.EntryPoint < (QWORD)mod32.DllBase + mod32.SizeOfImage);
 
         if (!matched)
         {
+            return INT_STATUS_INVALID_OBJECT_TYPE;
+        }
+
+        if (mod32.InLoadOrderLinks.Blink != PsLoadedModuleListGva)
+        {
+            TRACE("[INFO] Found & skipped shadow module list at 0x%08x (head->flink->blink should be same as head)\n",
+                  (DWORD)PsLoadedModuleListGva);
+
             return INT_STATUS_INVALID_OBJECT_TYPE;
         }
 
@@ -189,14 +213,6 @@ IntWinDrvIsListHead(
 
         if (name != 0x0073006f0074006e) // "ntos", UNICODE
         {
-            return INT_STATUS_INVALID_OBJECT_TYPE;
-        }
-
-        if (mod32.InLoadOrderLinks.Blink != PsLoadedModuleListGva)
-        {
-            TRACE("[INFO] Found & skipped shadow module list at 0x%08x (head->flink->blink should be same as head)\n",
-                  (DWORD)PsLoadedModuleListGva);
-
             return INT_STATUS_INVALID_OBJECT_TYPE;
         }
 

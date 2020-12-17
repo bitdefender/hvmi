@@ -144,7 +144,9 @@ class ProcessCreationFlagsEnum(Enum):
     processCreationDebug            = 0x00000001,
     processCreationPivotedStack     = 0x00000002,
     processCreationStolenToken      = 0x00000004,
-    processCreationHeapSpray        = 0x00000008
+    processCreationHeapSpray        = 0x00000008,
+    processCreationSecDesc          = 0x00000040,
+    processCreationAclEdit          = 0x00000080
 
 class IntroEventEnum(Enum):
     introEventEptViolation                  = 1
@@ -177,6 +179,8 @@ class KmObjectType(Enum):
     kmObjGdtr = auto()
     kmObjLoggerCtx = auto()
     kmObjDriverExports = auto()
+    kmObjSecDesc = auto()
+    kmObjAclEdit = auto()
 
 class UmObjectType(Enum):
     umObjNone  = 0
@@ -293,6 +297,8 @@ km_obj_type = {
         KmObjectType.kmObjGdtr               : "gdt-reg",
         KmObjectType.kmObjLoggerCtx          : "infinity-hook",
         KmObjectType.kmObjDriverExports      : "driver exports",
+        KmObjectType.kmObjSecDesc            : "security-descriptor",
+        KmObjectType.kmObjAclEdit            : "acl-edit"
 }
 
 um_exc_name = {
@@ -343,7 +349,9 @@ um_process_creation_flags = {
     ProcessCreationFlagsEnum.processCreationDebug            : "debug",
     ProcessCreationFlagsEnum.processCreationPivotedStack     : "pivoted-stack",
     ProcessCreationFlagsEnum.processCreationStolenToken      : "stolen-token",
-    ProcessCreationFlagsEnum.processCreationHeapSpray        : "heap-spray"
+    ProcessCreationFlagsEnum.processCreationHeapSpray        : "heap-spray",
+    ProcessCreationFlagsEnum.processCreationSecDesc          : "security-descriptor",
+    ProcessCreationFlagsEnum.processCreationAclEdit          : "acl-edit"
 }
 
 ZONE_LIB_IMPORTS        = 0x000000001

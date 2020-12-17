@@ -773,7 +773,7 @@ IntExceptGetVictimEpt(
 /// | #introObjectTypeSelfMapEntry      | #WIN_PROCESS_OBJECT                    |
 /// | #introObjectTypeKmLoggerContext   | not used                               |
 /// | #introObjectTypeTokenPrivs        | #WIN_PROCESS_OBJECT                    |
-/// | #introObjectTypeSharedUserData    | #WIN_PROCESS_OBJECT if user-mode exec. |
+/// | #introObjectTypeSudExec           | #WIN_PROCESS_OBJECT if user-mode exec. |
 /// ------------------------------------------------------------------------------
 ///
 /// @param[in]  Context     A pointer to a context that depends on the Type value (see the table from above).
@@ -953,7 +953,7 @@ IntExceptGetVictimEpt(
         break;
     }
 
-    case introObjectTypeSharedUserData:
+    case introObjectTypeSudExec:
     {
         Victim->Object.BaseAddress = Gva & PAGE_MASK;
 
@@ -1061,6 +1061,8 @@ IntExceptGetVictimEpt(
     }
 
     case introObjectTypeTokenPrivs:
+    case introObjectTypeSecDesc:
+    case introObjectTypeAcl:
     case introObjectTypeSelfMapEntry:
     {
         Victim->Object.Process = Context;
@@ -1083,7 +1085,7 @@ IntExceptGetVictimEpt(
 
     if (Victim->Object.Type != introObjectTypeUmGenericNxZone &&
         Victim->Object.Type != introObjectTypeHalHeap &&
-        Victim->Object.Type != introObjectTypeSharedUserData &&
+        Victim->Object.Type != introObjectTypeSudExec &&
         (Victim->Object.Type != introObjectTypeVeAgent || (Victim->ZoneFlags & ZONE_WRITE) != 0))
     {
         if (!(ZONE_READ & Victim->ZoneFlags))
@@ -1559,6 +1561,7 @@ IntExceptVerifyValueCodeSig(
     switch (ExceptionType)
     {
     case exceptionTypeKm:
+    case exceptionTypeKmUm:
     {
         EXCEPTION_KM_ORIGINATOR *pKmOrig = Originator;
 
@@ -1778,12 +1781,12 @@ IntExceptVerifyValueSig(
 /// @retval #INT_STATUS_SIGNATURE_NOT_FOUND  If no signature matched.
 ///
 {
-    INTSTATUS status;
-    DWORD lastChecked = 0;
-    DWORD size;
-    BYTE *buf;
+    INTSTATUS status = INT_STATUS_SUCCESS;
+    EXCEPTION_UM_ORIGINATOR *pOriginator = Originator;
+    BYTE *pBuffer = NULL;
     BOOLEAN requires64BitSig = gGuest.Guest64;
-    EXCEPTION_UM_ORIGINATOR *pUmOrig = Originator;
+    DWORD size = 0;
+    DWORD lastChecked = 0;
 
     UNREFERENCED_PARAMETER(Exception);
 
@@ -1796,13 +1799,14 @@ IntExceptVerifyValueSig(
             return INT_STATUS_NOT_SUPPORTED;
         }
 
-        buf = (BYTE *)&Victim->WriteInfo.NewValue;
+        pBuffer = (BYTE *)&Victim->WriteInfo.NewValue;
         size = Victim->WriteInfo.AccessSize;
     }
     else if (Victim->ZoneType == exceptionZoneProcess &&
              NULL == Victim->Injection.Buffer)
     {
-        QWORD cr3, gva = pUmOrig->SourceVA;
+        QWORD gva = pOriginator->SourceVA;
+        QWORD cr3 = 0;
 
         size = Victim->Injection.Length;
 
@@ -1826,23 +1830,26 @@ IntExceptVerifyValueSig(
             gValueBufferSize = size;
         }
 
-        buf = gValueBuffer;
+        pBuffer = gValueBuffer;
 
         if (gGuest.OSType == introGuestWindows)
         {
-            cr3 = pUmOrig->WinProc->Cr3;
+            cr3 = pOriginator->WinProc->Cr3;
+        }
+        else if (gGuest.OSType == introGuestLinux)
+        {
+            cr3 = pOriginator->LixProc->Cr3;
         }
         else
         {
-            cr3 = pUmOrig->LixProc->Cr3;
+            return INT_STATUS_NOT_SUPPORTED;
         }
 
         // Safe: buf is allocated dynamically to match the read size.
-        status = IntVirtMemRead(gva, size, cr3, buf, NULL);
+        status = IntVirtMemRead(gva, size, cr3, pBuffer, NULL);
         if (!INT_SUCCESS(status))
         {
-            ERROR("[ERROR] IntVirtMemRead failed for gva %llx, cr3 %llx with size %d: %08x\n",
-                  gva, cr3, size, status);
+            ERROR("[ERROR] IntVirtMemRead failed for gva %llx, cr3 %llx with size %d: %08x\n", gva, cr3, size, status);
             return status;
         }
 
@@ -1852,20 +1859,31 @@ IntExceptVerifyValueSig(
     else if (Victim->ZoneType == exceptionZoneProcess &&
              NULL != Victim->Injection.Buffer)
     {
-        buf = Victim->Injection.Buffer;
-        size = Victim->Injection.BufferSize;
+         pBuffer = Victim->Injection.Buffer;
+         size = Victim->Injection.BufferSize;
     }
     else if (Victim->ZoneType == exceptionZoneIntegrity)
     {
-        if (Victim->Object.Type == introObjectTypeIdt)
+        if (Victim->Object.Type == introObjectTypeIdt ||
+            Victim->Object.Type == introObjectTypeSudIntegrity)
         {
-            buf = (BYTE *)&Victim->WriteInfo.NewValue;
+            pBuffer = (BYTE *)&Victim->WriteInfo.NewValue;
             size = Victim->WriteInfo.AccessSize;
+        }
+        else if (Victim->Object.Type == introObjectTypeSecDesc ||
+                 Victim->Object.Type == introObjectTypeAcl)
+        {
+             pBuffer = Victim->Integrity.Buffer;
+             size = Victim->Integrity.BufferSize;
         }
         else
         {
             return INT_STATUS_NOT_SUPPORTED;
         }
+    }
+    else if (Victim->ZoneType == exceptionZonePc)
+    {
+        // Nothing to do here ...
     }
     else
     {
@@ -1875,13 +1893,14 @@ IntExceptVerifyValueSig(
     switch (ExceptionType)
     {
     case exceptionTypeKm:
+    case exceptionTypeKmUm:
         break;
 
     case exceptionTypeUmGlob:
     case exceptionTypeUm:
         if (gGuest.OSType == introGuestWindows && requires64BitSig)
         {
-            requires64BitSig = !pUmOrig->WinProc->Wow64Process;
+            requires64BitSig = !pOriginator->WinProc->Wow64Process;
         }
 
         break;
@@ -1902,8 +1921,8 @@ IntExceptVerifyValueSig(
         // Since everything is ordered, it's safely to do it like this
         for (DWORD i = lastChecked; i < SignaturesCount; i++)
         {
+            SIG_VALUE_HASH *pSigHash = NULL;
             DWORD matchedCount = 0;
-            SIG_VALUE_HASH *pSigHash;
 
             if (Signatures[i].Field.Type != signatureTypeValue)
             {
@@ -1925,46 +1944,56 @@ IntExceptVerifyValueSig(
             pSigHash = (SIG_VALUE_HASH *)pSig->Object;
             for (DWORD j = 0; j < pSig->ListsCount; j++)
             {
-                BOOLEAN match;
+                BOOLEAN match = FALSE;
 
                 if (pSig->Flags & SIGNATURE_FLG_VALUE_CLI)
                 {
-                    char *pCli = NULL;
+                    char *pCommandLine = NULL;
 
                     if (gGuest.OSType == introGuestWindows)
                     {
-                        pCli = pUmOrig->WinProc->CommandLine;
+                        pCommandLine = pOriginator->WinProc->CommandLine;
                     }
                     else if (gGuest.OSType == introGuestLinux)
                     {
-                        pCli = pUmOrig->LixProc->CmdLine;
+                        pCommandLine = pOriginator->LixProc->CmdLine;
+                    }
+                    else
+                    {
+                        break;
                     }
 
-                    if (pCli == NULL)
+                    if (pCommandLine == NULL)
                     {
                         return INT_STATUS_EXCEPTION_ALLOW;
                     }
 
-                    // This case will include Offset > wstrlen(pCli) and Size > wstrlen(pCli) because we cast
+                    // This case will include Offset > wstrlen(pCli) and Size > wstrlen(pCommandLine) because we cast
                     // Offset and Size (WORD -> DWORD) so we'll not have an overflow
-                    if (((QWORD)pSigHash[j].Offset + (DWORD)pSigHash[j].Size) > strlen(pCli))
+                    if (((QWORD)pSigHash[j].Offset + (DWORD)pSigHash[j].Size) > strlen(pCommandLine))
                     {
                         continue;
                     }
 
-                    match = (pSigHash[j].Hash == Crc32Compute(pCli + pSigHash[j].Offset,
+                    match = (pSigHash[j].Hash == Crc32Compute(pCommandLine + pSigHash[j].Offset,
                                                               pSigHash[j].Size,
                                                               INITIAL_CRC_VALUE));
                 }
                 else
                 {
+                    if (Victim->ZoneType == exceptionZonePc || pBuffer == NULL)
+                    {
+                        continue;
+                    }
+
                     // This case will include Offset >size and Size > size because we cast Offset and Size
                     // (WORD -> DWORD) so we'll not have an overflow
                     if (((DWORD)pSigHash[j].Offset + (DWORD)pSigHash[j].Size) > size)
                     {
                         continue;
                     }
-                    match = (pSigHash[j].Hash == Crc32Compute(buf + pSigHash[j].Offset,
+
+                    match = (pSigHash[j].Hash == Crc32Compute(pBuffer + pSigHash[j].Offset,
                                                               pSigHash[j].Size,
                                                               INITIAL_CRC_VALUE));
                 }
@@ -2220,16 +2249,27 @@ IntExceptVerifyIdtSignature(
     {
         return INT_STATUS_SIGNATURE_NOT_FOUND;
     }
+    switch (Victim->Object.Type)
+    {
+        case introObjectTypeIdt:
+            if (Victim->ZoneType == exceptionZoneIntegrity)
+            {
+                idtEntry = (BYTE)(Victim->Integrity.Offset /
+                    (gGuest.Guest64 ? DESCRIPTOR_SIZE_64 : DESCRIPTOR_SIZE_32));
+            }
+            else
+            {
+                idtEntry = (BYTE)((Victim->Ept.Gva - Victim->Object.BaseAddress) /
+                    (gGuest.Guest64 ? DESCRIPTOR_SIZE_64 : DESCRIPTOR_SIZE_32));
+            }
+            break;
 
-    if (Victim->ZoneType == exceptionZoneIntegrity)
-    {
-        idtEntry = (BYTE)(Victim->Integrity.Offset /
-                   (gGuest.Guest64 ? DESCRIPTOR_SIZE_64 : DESCRIPTOR_SIZE_32));
-    }
-    else
-    {
-        idtEntry = (BYTE)((Victim->Ept.Gva - Victim->Object.BaseAddress) /
-                   (gGuest.Guest64 ? DESCRIPTOR_SIZE_64 : DESCRIPTOR_SIZE_32));
+        case introObjectTypeInterruptObject:
+            idtEntry = (BYTE)Victim->Integrity.InterruptObjIndex;
+            break;
+
+        default:
+            return INT_STATUS_NOT_SUPPORTED;
     }
 
     lastChecked = 0;
@@ -3403,7 +3443,6 @@ IntExcept(
         case exceptionTypeUm:
             status = IntExceptUser(Victim, Originator, Action, Reason);
             break;
-
         case exceptionTypeKmUm:
             status = IntExceptKernelUser(Victim, Originator, Action, Reason);
             break;

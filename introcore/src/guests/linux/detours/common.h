@@ -150,4 +150,10 @@
     vmcall(id);                                 \
 })
 
+#define __read_reg(reg) ({                               \
+    unsigned long long val;                              \
+    asm volatile("mov %0, " reg "\n\t" : "=r" (val));    \
+    (unsigned long long)(val);                           \
+})
+
 #endif // _COMMON_H_

@@ -134,6 +134,7 @@ It can be generated in the following cases:
     - :code:`ReadProcessMemory` (only when a process tries to read the **lsass.exe** memory)
     - :code:`SetContextThread`
     - :code:`QueueApcThread`
+    - :code:`NtSetInformationProcess` (only when a process tries to set an instrumentation callback)
 
 - Linux
     - :code:`ptrace`
@@ -153,6 +154,10 @@ Situations which will lead to such an alert being generated are:
 - An infinity-hook has been detected inside the kernel on Windows
 - An IDT modification has been detected
 - A Hal Dispatch Table modification has been detected on Windows
+- The HalPerformanceCounter function pointer, which gets called on KeQueryPerformanceCounter, was modified and the modification has been detected on Windows
+- The security descriptor pointer or the Access Control Lists (SACL/DACL) have been modified on Windows
+- A modification on certain SharedUserData fields, as well as any modification after the SharedUserData structure.
+- A modification of an interrupt object from KPRCB's InterruptObject array.
 
 Integrity violations will be sent for structures which cannot be protected using regular EPT, because too many writes are being
 generated. Any structure could be protected using this mechanism. For some of these structures, Sub-Page Permissions can be used to reduce the granularity of the hook from 4K to 128B.
@@ -194,6 +199,7 @@ with the **PROC_OPT_PROT_PREVENT_CHILD_CREATION** flag set, such alerts can be 
     #. Debug flag checks
     #. Heap spray checks
     #. Thread shellcode checks
+    #. Security descriptor pointer and ACLs checks
 
 Module Load Violation (EVENT_MODULE_LOAD_VIOLATION)
 ---------------------------------------------------

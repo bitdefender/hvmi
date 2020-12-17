@@ -156,6 +156,7 @@ typedef enum
     detTagProbeKernelWrite,
     detTagSwapgs,
     detTagAccessRemoteVm,
+    detTagSetProcInformation,
 
     detTagRtlVirtualUnwind1,
     detTagRtlVirtualUnwind2,
@@ -170,6 +171,9 @@ typedef enum
     detTagCleanupMemDump,
     detTagVadCommit,
     detTagKernelRead,
+
+    detTagProcSwapIn,
+    detTagProcSwapOut,
 
     detTagMax   ///< Must always be the last one.
 } DETOUR_TAG;
@@ -217,7 +221,7 @@ typedef INTSTATUS (*PFUNC_DetourCallback)(
 ///
 /// @param[in]  FunctionAddress     The guest virtual address of the hooked function.
 /// @param[in]  Handler             Optional pointer to a #API_HOOK_HANDLER structure.
-/// @param[in]  HandlerAddress      The guest virtual address at which the detour handler will be written.
+/// @param[in]  Descriptor          Pointer to a structure that describes the hook and the detour handler.
 ///
 /// @retval     #INT_STATUS_SUCCESS in case of success
 /// @retval     #INT_STATUS_NOT_NEEDED_HINT if the detour should not be set anymore. This will make the detour
@@ -228,7 +232,7 @@ typedef INTSTATUS (*PFUNC_DetourCallback)(
 typedef INTSTATUS (*PFUNC_PreDetourCallback)(
     _In_ QWORD FunctionAddress,
     _In_ void *Handler,
-    _In_ QWORD HandlerAddress
+    _In_ void *Descriptor
     );
 
 ///
@@ -613,6 +617,12 @@ IntDetModifyPublicData(
     _In_ void const *Data,
     _In_ DWORD DataSize,
     _In_ char const *PublicDataName
+    );
+
+INTSTATUS
+IntDetGetFunctionAddressByTag(
+    _In_ DETOUR_TAG Tag,
+    _Out_ QWORD *FunctionAddress
     );
 
 #endif // _DETOURS_H_

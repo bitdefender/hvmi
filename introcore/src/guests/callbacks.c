@@ -20,8 +20,11 @@
 #include "wininfinityhook.h"
 #include "exceptions.h"
 #include "wincmdline.h"
+#include "lixcmdline.h"
 #include "scan_engines.h"
 #include "wintoken.h"
+#include "winsecdesc.h"
+#include "winsud.h"
 
 QWORD gEptEvents;
 BOOLEAN gInjectVeLoader, gInjectVeUnloader;
@@ -107,6 +110,120 @@ IntValidateTranslation(
 }
 
 
+static BOOLEAN
+IntValidatePageRightsEx(
+    _In_ QWORD LinearAddress,
+    _In_ QWORD PhysicalAddress,
+    _In_ DWORD Access
+    )
+///
+/// @brief Check if the access rights for the provided PhysicalAddress are up-to-date in the EPT. This function will
+/// get called oon each EPT violation.
+///
+/// Sometimes, setting the access rights may silently fail on some HVs. In order to address this, we implement
+/// the following workaround: on EPT violations that are generated on a GPA which doesn't have any callback set,
+/// we will re-set the access rights again, hopping that this time, no errors will take place in the HV.
+///
+/// @param[in]  LinearAddress       The accessed linear address.
+/// @param[in]  PhysicalAddress     The accessed physical address.
+/// @param[in]  Access              The access type.
+///
+/// @returns TRUE if the access rights are OK, FALSE if they were not OK, but they have been re-applied.
+///
+{
+    INTSTATUS status;
+    BYTE r, w, x;
+    CHAR text[ND_MIN_BUF_SIZE];
+    HOOK_EPT_ENTRY *eptEntry = IntHookGpaGetExistingEptEntry(PhysicalAddress);
+
+    if (NULL != eptEntry)
+    {
+        // Read access, the page has at least one read hook.
+        if (!!(Access & IG_EPT_HOOK_READ) && eptEntry->ReadCount != 0)
+        {
+            return TRUE;
+        }
+
+        // Write access, the page has at least one write hook.
+        if (!!(Access & IG_EPT_HOOK_WRITE) && eptEntry->WriteCount != 0)
+        {
+            return TRUE;
+        }
+
+        // Execute access, the page has at least one execute hook.
+        if (!!(Access & IG_EPT_HOOK_EXECUTE) && eptEntry->ExecuteCount != 0)
+        {
+            return TRUE;
+        }
+    }
+
+    // Either we don't have an EPT entry at all (meaning that there are absolutely no EPT hooks on it), or the access
+    // that generated the EPT violations does not coincide with a hook placed on the page.
+    r = w = x = 0;
+
+    status = IntGetEPTPageProtection(gVcpu->EptpIndex, PhysicalAddress, &r, &w, &x);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntGetEPTPageProtection failed for 0x%016llx: 0x%08x\n", PhysicalAddress, status);
+    }
+    else
+    {
+        // We need this for logging purposes.
+        NdToText(&gVcpu->Instruction, gVcpu->Regs.Rip, ND_MIN_BUF_SIZE, text);
+
+        WARNING("[WARNING] GPA 0x%016llx, GLA 0x%016llx, was accessed with type %c%c%c, but no hooks exist on it: %c%c%c! "
+                "CR3 0x%016llx RIP 0x%016llx %s\n",
+                PhysicalAddress, LinearAddress,
+                !!(Access & IG_EPT_HOOK_READ) ? 'R' : '-',
+                !!(Access & IG_EPT_HOOK_WRITE) ? 'W' : '-',
+                !!(Access & IG_EPT_HOOK_EXECUTE) ? 'X' : '-',
+                r ? 'R' : '-', w ? 'W' : '-', x ? 'X' : '-',
+                gVcpu->Regs.Cr3, gVcpu->Regs.Rip, text);
+
+        if (!!(Access & IG_EPT_HOOK_EXECUTE))
+        {
+            x = 1;
+        }
+
+        if (!!(Access & IG_EPT_HOOK_WRITE))
+        {
+            w = 1;
+        }
+
+        if (!!(Access & IG_EPT_HOOK_READ))
+        {
+            r = 1;
+        }
+
+        TRACE("[INFO] New access rights: %c%c%c\n", r ? 'R' : '-', w ? 'W' : '-', x ? 'X' : '-');
+
+        // This set has the role of fooling the integrator cache - if we set the exact same rights as last time,
+        // the integrator may optimize it, by silently discarding the request. Therefore, we will set some different
+        // rights before, in order to make sure we really end up calling the HV to modify the rights again.
+        // Note that the 0, 0, 0 rights are correct - since there's at least one access type for which we didn't
+        // find a hook, this means there is at least on access right present for the page, so at least one of the
+        // R, W or X is 1. Therefore, the RWX == 000 request will most certainly be different than the current
+        // actual rights.
+        status = IntSetEPTPageProtection(gVcpu->EptpIndex, PhysicalAddress, 0, 0, 0);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntSetEPTPageProtection failed for 0x%016llx: 0x%08x\n", PhysicalAddress, status);
+        }
+
+        // Now the actual RWX rights.
+        status = IntSetEPTPageProtection(gVcpu->EptpIndex, PhysicalAddress, r, w, x);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntSetEPTPageProtection failed for 0x%016llx: 0x%08x\n", PhysicalAddress, status);
+        }
+
+        IntFlushEPTPermissions();
+    }
+
+    return FALSE;
+}
+
+
 static void
 IntValidatePageRights(
     _In_ QWORD LinearAddress,
@@ -184,6 +301,8 @@ IntValidatePageRights(
         {
             ERROR("[ERROR] IntSetEPTPageProtection failed for 0x%016llx: 0x%08x\n", PhysicalAddress, status);
         }
+
+        IntFlushEPTPermissions();
     }
 }
 
@@ -463,7 +582,7 @@ _hook_continue:
         IntRtlpVirtualUnwindCheckAccess();
     }
 
-#ifdef CHECK_PAGE_RIGHTS
+///#ifdef CHECK_PAGE_RIGHTS
     // Handle special cases where permission set may have failed silently, leaving a page with no registered hooks,
     // but with altered EPT permissions. Note that we are interested only in the exit GPA; in reality, the
     // mem access handler may be called for more addresses - practically, for each individual address accessed
@@ -476,13 +595,14 @@ _hook_continue:
     // order to properly re-execute the instruction.
     if (!*PageHooked &&                             // The page must not be hooked.
         (PhysicalAddress == gVcpu->ExitGpa) &&      // The accessed GPA must be the one the exit was triggered on.
+        (LinearAddress == gVcpu->ExitGla) &&        // The accessed GLA must be the one the exit was triggered on.
         (access == gVcpu->ExitAccess) &&            // The access type must be the one generated at exit.
         ((gVcpu->Regs.Rip & PAGE_MASK) != (LinearAddress & PAGE_MASK)) && // Not the same page with the RIP
         !gVcpu->PtContext)                          // Not in PT context, as page tables are writable
     {
         IntValidatePageRights(LinearAddress, PhysicalAddress, access);
     }
-#endif
+///#endif
 
     *Action = MAX(*Action, finalAction);
 
@@ -877,6 +997,31 @@ IntHandleEptViolation(
     }
 
     STATS_EXIT(statsEptDecode);
+
+    // We get an exit from the RIP that was allowed to execute, bu this time it's not an exec violation - this means
+    // that instruction accessed another hooked page, so right now we're in single-step/re-execute context in the HV.
+    if (gVcpu->AllowOnExec && (gVcpu->AllowOnExecRip == gVcpu->Regs.Rip) &&
+        (gVcpu->AllowOnExecGpa != PhysicalAddress || (IG_EPT_HOOK_EXECUTE != AccessType)))
+    {
+        LOG("[WARNING] We are in reexecute context: RIP = 0x%016llx, GLA = 0x%016llx, GPA = 0x%016llx, ACC = %d\n",
+            gVcpu->Regs.Rip, LinearAddress, PhysicalAddress, AccessType);
+        gVcpu->SingleStep = TRUE;
+    }
+    else
+    {
+        gVcpu->SingleStep = FALSE;
+        gVcpu->AllowOnExec = FALSE;
+        gVcpu->AllowOnExecRip = 0;
+        gVcpu->AllowOnExecGpa = 0;
+    }
+
+#ifdef CHECK_PAGE_RIGHTS
+    if (!gVcpu->SingleStep && !IntValidatePageRightsEx(LinearAddress, PhysicalAddress, AccessType))
+    {
+        action = introGuestRetry;
+        goto _exit_pre_ret;
+    }
+#endif
 
     // If we use the instruction cache, and we could add the instruction on the cache but it wasn't previously cached
     // then retry the instruction, in order to mitigate ToCvsToS attacks.
@@ -1335,6 +1480,16 @@ _exit_pre_ret:
         // NOTE: This does not conflict with IntHandlePageBoundaryCow, as that one is triggered on write faults.
         IntHandleFetchRetryOnPageBoundary(CpuNumber);
     }
+
+    // Handle introGuestAllowed on execution violations. These will end up being re-executed by Xen, so we must be
+    // careful not to modify their access rights while they're re-executed.
+    if (action == introGuestAllowed && AccessType == IG_EPT_HOOK_EXECUTE)
+    {
+        gVcpu->AllowOnExec = TRUE;
+        gVcpu->AllowOnExecRip = gVcpu->Regs.Rip;
+        gVcpu->AllowOnExecGpa = gVcpu->ExitGpa;
+    }
+
 
     // Handle pre-return events. Don't inject #PF if we already injected one for the Xen workaround.
     status = IntGuestPreReturnCallback(POST_COMMIT_MEM | POST_INJECT_PF);
@@ -2084,8 +2239,18 @@ IntHandleIntroCall(
     {
         if (IntPtiIsPtrInAgent(gVcpu->Regs.Rip, ptrLiveRip))
         {
-            // We assume only the raise-EPT VMCALL can be issued.
-            bFound = bRaiseEptPt = TRUE;
+            if (gVcpu->Regs.R8 == 0)
+            {
+                // Request to remove the instruction, as it's faulty.
+                IntPtiRemoveInstruction(gVcpu->Regs.R9);
+            }
+            else
+            {
+                // We assume only the raise-EPT VMCALL can be issued.
+                bRaiseEptPt = TRUE;
+            }
+
+            bFound = TRUE;
         }
     }
 
@@ -2295,6 +2460,14 @@ IntHandleTimer(
                 ERROR("[ERROR] IntWinTokenCheckIntegrity failed: 0x%x\n", status);
             }
 
+            // Once every timer tick, make sure no process security descriptor pointers or ACLs (SACL/DACL) have
+            // been modified.
+            status = IntWinSDCheckIntegrity();
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntWinSDCheckIntegrity failed: 0x%x\n", status);
+            }
+
             // Once every timer tick, make sure that the System CR3 remained the same.
             status = IntWinProcValidateSystemCr3();
             if (!INT_SUCCESS(status))
@@ -2307,6 +2480,13 @@ IntHandleTimer(
             if (!INT_SUCCESS(status))
             {
                 ERROR("[ERROR] IntWinProcValidateSelfMapEntries failed: 0x%08x\n", status);
+            }
+
+            // Once every timer tick, verify SharedUserData integrity.
+            status = IntWinSudCheckIntegrity();
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntWinSudCheckIntegrity failed: 0x%08x\n", status);
             }
 
         }
@@ -3309,10 +3489,21 @@ IntEnginesResultCallback(
     {
         PENG_NOTIFICATION_CMD_LINE cmdLineEngineNotification = (PENG_NOTIFICATION_CMD_LINE)EngineNotification;
 
-        status = IntWinHandleCmdLineCallback(cmdLineEngineNotification);
-        if (!INT_SUCCESS(status))
+        if (gGuest.OSType == introGuestWindows)
         {
-            ERROR("[ERROR] IntWinPsHandleCmdLineCallback failed: 0x%08x\n", status);
+            status = IntWinHandleCmdLineCallback(cmdLineEngineNotification);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntWinHandleCmdLineCallback failed: 0x%08x\n", status);
+            }
+        }
+        else if (gGuest.OSType == introGuestLinux)
+        {
+            status = IntLixHandleCmdLineCallback(cmdLineEngineNotification);
+            if (!INT_SUCCESS(status))
+            {
+                ERROR("[ERROR] IntLixCmdLineHandleCallback failed: 0x%08x\n", status);
+            }
         }
     }
     else

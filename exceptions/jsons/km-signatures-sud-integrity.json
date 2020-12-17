@@ -1,0 +1,32 @@
+{
+    "Type": "kernel",
+    "Signatures": [
+        {
+            "sig_type": "value",
+            "sig_id": "sig-producttypeisvalid",
+            "score": 1,
+            "hashes": [
+                // Set to 1 on >= RS4
+                {
+                    "offset": 0,
+                    "size": 1,
+                    "hash": "0x88f8cf69"
+                }
+            ]
+        },
+        
+        {
+            "sig_type": "value",
+            "sig_id": "sig-mitigationpolicies",
+            "score": 1,
+            "hashes": [
+                // Set to 0xa on >= RS4
+                {
+                    "offset": 0,
+                    "size": 1,
+                    "hash": "0x1f2a16e1"
+                }
+            ]
+        }
+    ]
+}

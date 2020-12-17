@@ -9,10 +9,13 @@
 ///
 
 #include "update_guests.h"
+#include "introdefs.h"
+#include "introstatus.h"
 #include "winapi.h"
 #include "guests.h"
 #include "winprocess.h"
 #include "lixprocess.h"
+#include "introcrt.h"
 
 /// @brief The version of the loaded update file.
 static CAMI_VERSION gCamiVersion = { 0 };
@@ -516,7 +519,7 @@ IntCamiUpdateProtOptions(
 ///
 /// @param[in]      Src The new protection options.
 /// @param[in, out] Dst The current protection option to be updated.
-/// 
+///
 {
     if (Dst->ForceOff != Src->ForceOff)
     {
@@ -844,34 +847,40 @@ IntCamiLoadOsOptions(
 {
     INTSTATUS status;
     const CAMI_CUSTOM_OS_PROTECTION *pOsProt;
+    const CAMI_PROT_OPTIONS *pCoreProtOpt, *pShemuProtOpt;
 
     if (0 == OptionsFileOffset)
     {
+        IntCamiProtectedProcessFree();
+
         IntCamiResetCoreOptions();
         IntCamiResetShemuOptions();
 
         return INT_STATUS_SUCCESS;
     }
 
-    if (!IS_CAMI_FILEOFFSET_OK(OptionsFileOffset))
+    pOsProt = GET_CAMI_STRUCT(const CAMI_CUSTOM_OS_PROTECTION *, OptionsFileOffset);
+    if (!IS_CAMI_STRUCTURE_OK(pOsProt))
     {
         ERROR("[ERROR] Invalid file offset: %d / %d\n", OptionsFileOffset, gUpdateBufferSize);
         return INT_STATUS_INVALID_DATA_TYPE;
     }
 
-    pOsProt = GET_CAMI_STRUCT(const CAMI_CUSTOM_OS_PROTECTION *, OptionsFileOffset);
-
-    if (!IS_CAMI_FILEOFFSET_OK(pOsProt->CoreOptionsOffset))
+    pCoreProtOpt = GET_CAMI_STRUCT(const CAMI_PROT_OPTIONS *, pOsProt->CoreOptionsOffset);
+    if (!IS_CAMI_STRUCTURE_OK(pCoreProtOpt))
     {
-        ERROR("[ERROR] Invalid CoreOptionsOffset: 0x%x / %08x\n", pOsProt->CoreOptionsOffset, gUpdateBufferSize);
+        ERROR("[ERROR] Invalid file offset: %d / %d\n", pOsProt->CoreOptionsOffset, gUpdateBufferSize);
         return INT_STATUS_INVALID_DATA_TYPE;
     }
 
-    if (!IS_CAMI_FILEOFFSET_OK(pOsProt->ShemuOptionsOffset))
+    pShemuProtOpt = GET_CAMI_STRUCT(const CAMI_PROT_OPTIONS *, pOsProt->ShemuOptionsOffset);
+    if (!IS_CAMI_STRUCTURE_OK(pShemuProtOpt))
     {
-        ERROR("[ERROR] Invalid ShemuOptionsOffset: 0x%x / %08x\n", pOsProt->ShemuOptionsOffset, gUpdateBufferSize);
+        ERROR("[ERROR] Invalid file offset: %d / %d\n", pOsProt->ShemuOptionsOffset, gUpdateBufferSize);
         return INT_STATUS_INVALID_DATA_TYPE;
     }
+
+    IntCamiProtectedProcessFree();
 
     if (pOsProt->ProcOptionsCount > 0)
     {
@@ -882,8 +891,6 @@ IntCamiLoadOsOptions(
             ERROR("[ERROR] Invalid ProcOptionsTable : 0x%0x / %08x.\n", pOsProt->ProcOptionsTable, gUpdateBufferSize);
             return INT_STATUS_INVALID_DATA_TYPE;
         }
-
-        IntCamiProtectedProcessFree();
 
         status = IntCamiProtectedProcessAllocate(pOsProt->ProcOptionsCount);
         if (!INT_SUCCESS(status))
@@ -900,14 +907,14 @@ IntCamiLoadOsOptions(
         }
     }
 
-    status = IntCamiSetCoreOptions(GET_CAMI_STRUCT(const CAMI_PROT_OPTIONS *, pOsProt->CoreOptionsOffset));
+    status = IntCamiSetCoreOptions(pCoreProtOpt);
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntCamiSetCoreOptions failed with status: 0x%08x.\n", status);
         return status;
     }
 
-    status = IntCamiSetShemuOptions(GET_CAMI_STRUCT(const CAMI_PROT_OPTIONS *, pOsProt->ShemuOptionsOffset));
+    status = IntCamiSetShemuOptions(pShemuProtOpt);
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntCamiSetShemuOptions failed with status: 0x%08x.\n", status);
@@ -961,6 +968,12 @@ IntCamiLoadLinux(
         const CAMI_OPAQUE_STRUCTURE *pStructures;
 
         pLix = pLixOsList + i;
+
+        if (strnlen(pLix->VersionString, MAX_VERSION_STRING_SIZE) == MAX_VERSION_STRING_SIZE)
+        {
+            ERROR("[ERROR] Version string is not null terminated.");
+            return INT_STATUS_CORRUPTED_DATA;
+        }
 
         if (!glob_match_numeric_utf8(pLix->VersionString, gLixGuest->VersionString))
         {
@@ -1232,16 +1245,71 @@ IntCamiLoadWindows(
                 pPatHash = GET_CAMI_STRUCT(const WORD *, pPatterns[k].HashOffset);
                 if (!IS_CAMI_ARRAY_OK(pPatHash, pPatterns[k].HashLength))
                 {
-                    ERROR("[ERROR] Hash for pattern %d of function %d spills outside the update buffer. Will skip!",
-                          k, j);
-                    HpFreeAndNullWithTag(&pWf, IC_TAG_CAMI);
-                    return INT_STATUS_INVALID_DATA_STATE;
+                    ERROR("[ERROR] Hash for pattern %d of function 0x%x spills outside the update buffer. Will skip!",
+                          k, pFunTable[j].NameHash);
+
+                    status = INT_STATUS_INVALID_DATA_STATE;
+                    goto _free_on_err;
+                }
+
+                if (pPatterns[k].Extended != 0)
+                {
+                    const CAMI_WIN_FUNCTION_PATTERN_EXTENSION *pPatEx;
+                    const DWORD *pArgs2;
+
+                    pPatEx = GET_CAMI_STRUCT(const CAMI_WIN_FUNCTION_PATTERN_EXTENSION*, pPatterns[k].Extended);
+                    if (!IS_CAMI_STRUCTURE_OK(pPatEx))
+                    {
+                        ERROR("[ERROR] Extension for pattern %d (function 0x%x) spills outside the update buffer.\n",
+                              k, pFunTable[j].NameHash);
+
+                        status = INT_STATUS_INVALID_DATA_STATE;
+                        goto _free_on_err;
+                    }
+
+                    pArgs2 = GET_CAMI_STRUCT(const DWORD *, pPatEx->ArgumentsTable);
+                    if (!IS_CAMI_ARRAY_OK(pArgs2, pPatEx->ArgumentsCount))
+                    {
+                        ERROR("[ERROR] Arguments array for pattern %d (function 0x%x) are outside the update buffer\n",
+                              k, pFunTable[j].NameHash);
+
+                        status = INT_STATUS_INVALID_DATA_STATE;
+                        goto _free_on_err;
+                    }
+
+                    if (pPatEx->ArgumentsCount > ARRAYSIZE(pWf->Patterns[k].Arguments.Argv))
+                    {
+                        ERROR("[ERROR] Too many arguments for pattern %d (function 0x%x)\n",
+                              k, pFunTable[j].NameHash);
+
+                        status = INT_STATUS_INVALID_DATA_STATE;
+                        goto _free_on_err;
+                    }
+
+                    pWf->Patterns[k].Arguments.Argc = pPatEx->ArgumentsCount;
+                    memcpy(pWf->Patterns[k].Arguments.Argv,
+                           pArgs2,
+                           sizeof(pWf->Patterns[k].Arguments.Argv[0]) * pPatEx->ArgumentsCount);
                 }
 
                 memcpy(pWf->Patterns[k].SectionHint, pPatterns[k].SectionHint, 8);
 
                 pWf->Patterns[k].Signature.Length = MIN(SIG_MAX_PATTERN, pPatterns[k].HashLength);
                 memcpy(pWf->Patterns[k].Signature.Pattern, pPatHash, 2ull * pWf->Patterns[k].Signature.Length);
+            }
+
+            status = INT_STATUS_SUCCESS;
+
+_free_on_err:
+
+            if (!INT_SUCCESS(status))
+            {
+                if (pWf != NULL)
+                {
+                    HpFreeAndNullWithTag(&pWf, IC_TAG_CAMI);
+                }
+
+                return status;
             }
 
             pWf->NameHash = pFunTable[j].NameHash;
@@ -1298,6 +1366,12 @@ IntCamiLoadProtOptionsLinux(
     for (DWORD i = 0; i < pSec->EntryCount; i++)
     {
         const CAMI_LIX_DESCRIPTOR *pLix = pLixOsList + i;
+
+        if (strnlen(pLix->VersionString, MAX_VERSION_STRING_SIZE) == MAX_VERSION_STRING_SIZE)
+        {
+            ERROR("[ERROR] Version string is not null terminated.");
+            return INT_STATUS_CORRUPTED_DATA;
+        }
 
         if (!glob_match_numeric_utf8(pLix->VersionString, gLixGuest->VersionString))
         {

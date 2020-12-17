@@ -5,6 +5,8 @@
 #include "lixnet.h"
 #include "alerts.h"
 #include "guests.h"
+#include "intronet.h"
+#include "introstatus.h"
 
 #define LIX_FDTABLE_MAX_FDS_CAP     2048u        ///< The maximum number of file descriptors to be iterated.
 
@@ -268,16 +270,18 @@ IntLixNetFileIsSocket(
 
 
 INTSTATUS
-IntLixNetSendTaskConnections(
-    _In_ LIX_TASK_OBJECT *Task
+IntLixNetIterateTaskConnections(
+    _In_ LIX_TASK_OBJECT *Task,
+    _In_ PFUNC_IterateConnectionsCallback Callback
     )
 ///
-/// @brief Sends all active TCP/IP connections from a task to the integrator.
+/// @brief Iterates all TCP/IP connections of a process and supplies them to callback.
 ///
 /// This function will iterate all file descriptors for the given process and for those that refer to a
 /// socket will attempt to extract the connection details if the protocol used is TCP IPv4 or IPv6.
 ///
 /// @param[in] Task The Linux process.
+/// @param[in] Callback The callback that will be called for each connection.
 ///
 /// @return INT_STATUS_SUCCESS On success.
 /// @return INT_STATUS_NOT_NEEDED_HINT If the connection events are not enabled.
@@ -288,7 +292,6 @@ IntLixNetSendTaskConnections(
     INTSTATUS status;
 
     INTRONET_ENDPOINT conn;
-    CHAR ipString[INTRONET_MIN_BUFFER_SIZE];
 
     QWORD files, fdt, fd;
     DWORD maxFds;
@@ -308,6 +311,11 @@ IntLixNetSendTaskConnections(
     if (NULL == Task)
     {
         return INT_STATUS_INVALID_PARAMETER_1;
+    }
+
+    if (NULL == Callback)
+    {
+        return INT_STATUS_INVALID_PARAMETER_2;
     }
 
     status = IntKernVirtMemFetchQword(Task->Gva + LIX_FIELD(TaskStruct, Files), &files);
@@ -371,16 +379,55 @@ IntLixNetSendTaskConnections(
             continue;
         }
 
-        IntLixNetSendConnectionEvent(&conn);
-
-        IntNetAddrToStr(conn.AddressFamily, &conn.RemoteAddress, ipString);
-        TRACE("[CONNECTION] Owner %s | Family: %u | State %s | LocalPort: %hu | RemoteAddress: %s | Endpoint %016llx\n",
-              conn.OwnerTask->Comm, conn.AddressFamily, IntNetStateToString(conn.State),
-              conn.LocalPort, ipString, conn.Endpoint);
-
+        Callback(&conn);
     }
 
     return INT_STATUS_SUCCESS;
+}
+
+
+static void
+IntLixNetProcessConnection(
+    INTRONET_ENDPOINT *Endpoint
+    )
+///
+/// @brief Callback for IntLixNetIterateTaskConnections that processes each TCP/IP connection.
+///
+/// This function will log the connection details and send to the integrator an event.
+///
+/// @param[in] Endpoint The TCP/IP connection.
+///
+{
+    CHAR ipString[INTRONET_MIN_BUFFER_SIZE];
+
+    IntLixNetSendConnectionEvent(Endpoint);
+
+    IntNetAddrToStr(Endpoint->AddressFamily, &Endpoint->RemoteAddress, ipString);
+    TRACE("[CONNECTION] Owner %s | Family: %u | State %s | LocalPort: %hu | RemoteAddress: %s | Endpoint %016llx\n",
+          Endpoint->OwnerTask->Comm, Endpoint->AddressFamily, IntNetStateToString(Endpoint->State),
+          Endpoint->LocalPort, ipString, Endpoint->Endpoint);
+}
+
+
+INTSTATUS
+IntLixNetSendTaskConnections(
+    _In_ LIX_TASK_OBJECT *Task
+    )
+///
+/// @brief Logs and sends to the integrator all connections opened by a Linux proces..
+///
+/// @param[in] Task The Linux process.
+///
+/// @returns INT_STATUS_SUCCESS On success.
+/// @returns INT_STATUS_INVALID_PARAMETER_1 If an invalid process is supplied
+///
+{
+    if (NULL == Task)
+    {
+        return INT_STATUS_INVALID_PARAMETER_1;
+    }
+
+    return IntLixNetIterateTaskConnections(Task, IntLixNetProcessConnection);
 }
 
 

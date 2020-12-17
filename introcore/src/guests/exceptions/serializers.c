@@ -489,6 +489,39 @@ typedef struct _SERIALIZER_DPI_PIVOTED_STACK
 
 
 ///
+/// @brief Describes a serialized intObjDpiWinSecDesc
+///
+typedef struct _SERIALIZER_DPI_WIN_SEC_DESC
+{
+    /// @brief If the parent security descriptor has been stolen, this variable may indicate (in case we find it)
+    /// the victim process (where security descriptor has been stolen from) - it can be NULL.
+    QWORD SecDescStolenFromEproc;
+                                 
+    QWORD OldPtrValue;              ///< Old value.
+    QWORD NewPtrValue;              ///< New value.
+
+    ACL OldSacl;                    ///< The old SACL header.
+    ACL OldDacl;                    ///< The old DACL header.
+
+    ACL NewSacl;                    ///< The new SACL header.
+    ACL NewDacl;                    ///< The new DACL header.
+} SERIALIZER_DPI_WIN_SEC_DESC, *PSERIALIZER_DPI_WIN_SEC_DESC;
+
+
+///
+/// @brief Describes a serialized intObjDpiWinAclEdit
+///
+typedef struct _SERIALIZER_DPI_WIN_ACL_EDIT
+{
+    ACL OldSacl;                    ///< The old SACL header.
+    ACL OldDacl;                    ///< The old DACL header.
+
+    ACL NewSacl;                    ///< The new SACL header.
+    ACL NewDacl;                    ///< The new DACL header.
+} SERIALIZER_DPI_WIN_ACL_EDIT, *PSERIALIZER_DPI_WIN_ACL_EDIT;
+
+
+///
 /// @brief Describes a serialized intObjDpi object.
 ///
 typedef struct _SERIALIZER_DPI
@@ -564,6 +597,8 @@ enum
     intObjDpiWinTokenPrivs,                 ///< Used for the DPI token privs object.
     intObjDpiWinThreadStart,                ///< Used for the DPI thread start object.
     intObjDpiWinHeapSpray,                  ///< Used for the DPI heap spray object.
+    intObjDpiWinSecDesc,                    ///< Used for the DPI security descriptor objects.
+    intObjDpiWinAclEdit,                    ///< Used for the DPI ACL objects.
 };
 
 
@@ -856,7 +891,7 @@ IntSerializeString(
     SERIALIZER_STRING *pObject = NULL;
     DWORD size = 0;
 
-    if (Size != 0)
+    if (String != NULL && Size != 0)
     {
         switch (Encode)
         {
@@ -1142,19 +1177,24 @@ IntSerializeInjection(
     pObject->Length = Injection->Length;
     pObject->Type = 0;
 
-    if (Victim->ZoneFlags & ZONE_PROC_THREAD_CTX)
-    {
-        pObject->Type = memCopyViolationSetContextThread;
-    }
-
-    if (Victim->ZoneFlags & ZONE_PROC_THREAD_APC)
-    {
-        pObject->Type = memCopyViolationQueueApcThread;
-    }
-
     if (Victim->ZoneFlags & ZONE_WRITE)
     {
-        pObject->Type = memCopyViolationWrite;
+        if (Victim->ZoneFlags & ZONE_PROC_THREAD_CTX)
+        {
+            pObject->Type = memCopyViolationSetContextThread;
+        }
+        else if (Victim->ZoneFlags & ZONE_PROC_THREAD_APC)
+        {
+            pObject->Type = memCopyViolationQueueApcThread;
+        }
+        else if (Victim->ZoneFlags & ZONE_PROC_INSTRUMENT)
+        {
+            pObject->Type = memCopyViolationInstrument;
+        }
+        else
+        {
+            pObject->Type = memCopyViolationWrite;
+        }
     }
 
     if (Victim->ZoneFlags & ZONE_READ)
@@ -1273,7 +1313,7 @@ IntSerializeLixProcess(
                        Process->Path != NULL ? (DWORD)Process->Path->PathLength : 0,
                        stringEncodeUtf8,
                        pHeader);
-    IntSerializeString(Process->CmdLine, Process->CmdLineLength, stringEncodeUtf8, pHeader);
+    IntSerializeString(Process->CmdLine, Process->CmdLineLength + 1, stringEncodeUtf8, pHeader);
 }
 
 
@@ -2678,6 +2718,102 @@ IntSerializeDpiWinThreadStart(
 
 
 static void
+IntSerializeDpiWinSecDesc(
+    _In_ const EXCEPTION_UM_ORIGINATOR *Originator,
+    _In_ const EXCEPTION_VICTIM_ZONE *Victim
+    )
+///
+/// @brief  Serialize the DPI altered Security Descriptor info (Windows).
+///
+/// @param[in]  Originator  The originator object.
+/// @param[in]  Victim      The victim object.
+///
+{
+#define DPI_WIN_SEC_DESC_SERIALIZER_VERSION 1
+
+    WIN_PROCESS_OBJECT *pProcess = Originator->WinProc;
+    if (!pProcess)
+    {
+        return;
+    }
+
+    SERIALIZER_OBJECT_HEADER *pHeader = IntSerializeObjectHeader(DPI_WIN_SEC_DESC_SERIALIZER_VERSION,
+                                                                 intObjDpiWinSecDesc);
+    if (!pHeader)
+    {
+        return;
+    }
+
+    SERIALIZER_DPI_WIN_SEC_DESC *pObject = IntSerializeCurrentPtr(sizeof(*pObject));
+    if (!pObject)
+    {
+        return;
+    }
+
+    pObject->SecDescStolenFromEproc =
+        pProcess->DpiExtraInfo.DpiSecDescAclExtraInfo.SecDescStolenFromEproc;
+
+
+    pObject->OldPtrValue = Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.OldPtrValue;
+    pObject->NewPtrValue = Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.NewPtrValue;
+
+    memcpy(&pObject->OldSacl, &Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.OldSacl, sizeof(ACL));
+    memcpy(&pObject->OldDacl, &Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.OldDacl, sizeof(ACL));
+    memcpy(&pObject->NewSacl, &Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.NewSacl, sizeof(ACL));
+    memcpy(&pObject->NewDacl, &Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.NewDacl, sizeof(ACL));
+
+    IntSerializeWinProcess(IntWinProcFindObjectByEprocess(pObject->SecDescStolenFromEproc),
+                           intObjDpiWinSecDesc);
+
+    pHeader->Size += sizeof(*pObject);
+    IntSerializeIncrementCurrentPtr(sizeof(*pObject));
+}
+
+
+static void
+IntSerializeDpiWinAclEdit(
+    _In_ const EXCEPTION_UM_ORIGINATOR *Originator,
+    _In_ const EXCEPTION_VICTIM_ZONE *Victim
+    )
+///
+/// @brief  Serialize the DPI ACL edit info (Windows).
+///
+/// @param[in]  Originator  The originator object.
+/// @param[in]  Victim      The victim object.
+///
+{
+#define DPI_WIN_ACL_SERIALIZER_VERSION 1
+
+    WIN_PROCESS_OBJECT *pProcess = Originator->WinProc;
+    if (!pProcess)
+    {
+        return;
+    }
+
+    SERIALIZER_OBJECT_HEADER *pHeader = IntSerializeObjectHeader(DPI_WIN_ACL_SERIALIZER_VERSION,
+                                                                 intObjDpiWinAclEdit);
+    if (!pHeader)
+    {
+        return;
+    }
+
+    SERIALIZER_DPI_WIN_ACL_EDIT *pObject = IntSerializeCurrentPtr(sizeof(*pObject));
+    if (!pObject)
+    {
+        return;
+    }
+
+    memcpy(&pObject->OldSacl, &Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.OldSacl, sizeof(ACL));
+    memcpy(&pObject->OldDacl, &Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.OldDacl, sizeof(ACL));
+    memcpy(&pObject->NewSacl, &Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.NewSacl, sizeof(ACL));
+    memcpy(&pObject->NewDacl, &Victim->Object.WinProc->DpiExtraInfo.DpiSecDescAclExtraInfo.NewDacl, sizeof(ACL));
+
+    pHeader->Size += sizeof(*pObject);
+    IntSerializeIncrementCurrentPtr(sizeof(*pObject));
+}
+
+
+static void
 IntSerializeWinDpiInfo(
     const _In_ EXCEPTION_UM_ORIGINATOR *Originator,
     const _In_ EXCEPTION_VICTIM_ZONE *Victim
@@ -2713,6 +2849,14 @@ IntSerializeWinDpiInfo(
 
         case INT_PC_VIOLATION_DPI_THREAD_START:
             IntSerializeDpiWinThreadStart(Originator, Victim);
+            break;
+
+        case INT_PC_VIOLATION_DPI_SEC_DESC:
+            IntSerializeDpiWinSecDesc(Originator, Victim);
+            break;
+
+        case INT_PC_VIOLATION_DPI_ACL_EDIT:
+            IntSerializeDpiWinAclEdit(Originator, Victim);
             break;
 
         default:
@@ -2962,7 +3106,7 @@ IntSerializeWinUmVictim(
 
     if ((Victim->ZoneType == exceptionZoneProcess) ||
         (Victim->Object.Type == introObjectTypeUmGenericNxZone) ||
-        (Victim->Object.Type == introObjectTypeSharedUserData))
+        (Victim->Object.Type == introObjectTypeSudExec))
     {
         IntSerializeProcess(Victim->Object.Process, intObjWinProcess);
         IntSerializeProcess(IntWinProcFindObjectByEprocess(Victim->Object.WinProc->ParentEprocess),
@@ -2995,7 +3139,7 @@ IntSerializeWinUmMisc(
 
     if ((Victim->ZoneType == exceptionZoneProcess) ||
         (Victim->Object.Type == introObjectTypeUmGenericNxZone) ||
-        (Victim->Object.Type == introObjectTypeSharedUserData))
+        (Victim->Object.Type == introObjectTypeSudExec))
     {
         if (Victim->ZoneType == exceptionZoneProcess)
         {

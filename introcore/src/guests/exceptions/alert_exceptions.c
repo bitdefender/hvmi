@@ -478,17 +478,46 @@ IntAlertCreateEptException(
 
         if (linuxAlert)
         {
-            pException->Flags |= SIGNATURE_FLG_LINUX;
+            pException->Flags |= EXCEPTION_FLG_LINUX;
         }
 
         pException->Flags |= IntAlertGetEptExceptionFlags(Event);
-        pException->Originator = IntAlertGetHashForName(originator,
-                                                        linuxAlert,
-                                                        TRUE,
-                                                        sizeof(Event->Originator.Module.Name));
-        if (pException->Originator == kmExcNameInvalid)
+
+        if (Event->Originator.Injection.User)
         {
-            return INT_STATUS_INVALID_DATA_SIZE;
+            pException->Flags |= EXCEPTION_KUM_FLG_USER;
+            pException->Originator = Crc32StringLen(Event->Originator.Process.ImageName,
+                                                    INITIAL_CRC_VALUE,
+                                                    sizeof(Event->Originator.Process.ImageName),
+                                                    &valid);
+            if (!valid)
+            {
+                return INT_STATUS_INVALID_DATA_SIZE;
+            }
+
+        }
+        else if (Event->Originator.Injection.Kernel)
+        {
+            pException->Flags |= EXCEPTION_KUM_FLG_KERNEL;
+            pException->Originator = IntAlertGetHashForName(Event->Originator.ReturnModule.Name,
+                                                            linuxAlert,
+                                                            TRUE,
+                                                            sizeof(Event->Originator.ReturnModule.Name));
+            if (pException->Originator == kmExcNameInvalid)
+            {
+                return INT_STATUS_INVALID_DATA_SIZE;
+            }
+        }
+        else
+        {
+            pException->Originator = IntAlertGetHashForName(originator,
+                                                            linuxAlert,
+                                                            TRUE,
+                                                            sizeof(Event->Originator.Module.Name));
+            if (pException->Originator == kmExcNameInvalid)
+            {
+                return INT_STATUS_INVALID_DATA_SIZE;
+            }
         }
 
         if (Event->Victim.Type == introObjectTypeUmModule)
@@ -694,7 +723,7 @@ IntAlertCreateEptException(
 
         if ((Event->Victim.Type != introObjectTypeUmModule &&
              Event->Victim.Type != introObjectTypeUmGenericNxZone &&
-             Event->Victim.Type != introObjectTypeSharedUserData) ||
+             Event->Victim.Type != introObjectTypeSudExec) ||
             (!Event->Header.CurrentProcess.Valid))
         {
             return INT_STATUS_NOT_SUPPORTED;
@@ -721,7 +750,7 @@ IntAlertCreateEptException(
         {
             pUmException->Type = umObjNxZone;
         }
-        else if (Event->Victim.Type == introObjectTypeSharedUserData)
+        else if (Event->Victim.Type == introObjectTypeSudExec)
         {
             pUmException->Type = umObjSharedUserData;
         }
@@ -957,6 +986,10 @@ IntAlertCreateInjectionException(
     else if (Event->ViolationType == memCopyViolationQueueApcThread)
     {
         pException->Type = umObjProcessApcThread;
+    }
+    else if (Event->ViolationType == memCopyViolationInstrument)
+    {
+        pException->Type = umObjProcessInstrumentation;
     }
     else
     {
@@ -1199,6 +1232,26 @@ IntAlertCreateIntegrityException(
     {
         pKmException->Type = kmObjTokenPrivs;
     }
+    else if (Event->Victim.Type == introObjectTypeSecDesc)
+    {
+        pKmException->Type = kmObjSecDesc;
+    }
+    else if (Event->Victim.Type == introObjectTypeAcl)
+    {
+        pKmException->Type = kmObjAcl;
+    }
+    else if (Event->Victim.Type == introObjectTypeHalPerfCounter)
+    {
+        pKmException->Type = kmObjHalPerfCnt;
+    }
+    else if (Event->Victim.Type == introObjectTypeSudIntegrity)
+    {
+        pKmException->Type = kmObjSudModification;
+    }
+    else if (Event->Victim.Type == introObjectTypeInterruptObject)
+    {
+        pKmException->Type = kmObjInterruptObject;
+    }
     else
     {
         if (LogErrors)
@@ -1216,7 +1269,10 @@ IntAlertCreateIntegrityException(
 
     pKmException->Flags = EXCEPTION_FLG_32 | EXCEPTION_FLG_64 | EXCEPTION_KM_FLG_INTEGRITY | EXCEPTION_FLG_WRITE;
 
-    if (Event->Victim.Type == introObjectTypeTokenPrivs)
+    if (Event->Victim.Type == introObjectTypeTokenPrivs ||
+        Event->Victim.Type == introObjectTypeSecDesc ||
+        Event->Victim.Type == introObjectTypeAcl ||
+        Event->Victim.Type == introObjectTypeSudIntegrity)
     {
         pKmException->Originator = kmExcNameNone;
     }
@@ -1248,11 +1304,26 @@ IntAlertCreateIntegrityException(
             break;
 
         case introObjectTypeTokenPrivs:
+        case introObjectTypeSecDesc:
+        case introObjectTypeAcl:
             pKmException->Victim = Crc32StringLen(Event->Victim.Process.ImageName,
                                                   INITIAL_CRC_VALUE,
                                                   sizeof(Event->Victim.Process.ImageName),
                                                   &valid);
             break;
+
+        case introObjectTypeSudIntegrity:
+        {
+            char buffer[sizeof(Event->Victim.Name) / 2];
+
+            utf16toutf8(buffer, Event->Victim.Name, sizeof(buffer));
+
+            pKmException->Victim = Crc32StringLen(buffer,
+                                                  INITIAL_CRC_VALUE,
+                                                  sizeof(buffer),
+                                                  &valid);
+            break;
+        }
 
         default:
             pKmException->Victim = kmExcNameAny;
@@ -1265,7 +1336,8 @@ IntAlertCreateIntegrityException(
     }
 
 
-    if (Event->Victim.Type == introObjectTypeIdt)
+    if (Event->Victim.Type == introObjectTypeIdt ||
+        Event->Victim.Type == introObjectTypeInterruptObject)
     {
         IntAlertCreateIdtSignature(Event->Victim.IdtEntry, FALSE, &pKmException->Idt);
     }

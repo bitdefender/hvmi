@@ -430,7 +430,7 @@ IntLixCrashDumpDmesg(
     while (--maxIterations)
     {
         size_t toPrint;
-        int ret;
+        const char *line = NULL;
 
         if ((char *)pHeader + sizeof(*pHeader) >= pLogBufferEnd)
         {
@@ -461,15 +461,18 @@ IntLixCrashDumpDmesg(
             toPrint = sizeof(dmesgLine);
         }
 
-        ret = snprintf(dmesgLine, toPrint, "%s", (BYTE *)pHeader + sizeof(*pHeader));
-        if (ret < 0)
+        line = (const char *)pHeader + sizeof(*pHeader);
+
+        if (line + toPrint >= pLogBufferEnd)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] Last dmesg line is outside the mapped buffer. Will stop.");
             break;
         }
 
+        memcpy(dmesgLine, line, toPrint);
+
         // Make sure the NULL terminator is there
-        dmesgLine[ret] = 0;
+        dmesgLine[toPrint - 1] = 0;
 
         LOG("[DMESG] [%llu.%llu] %s\n", NSEC_TO_SEC(pHeader->TimeStamp), NSEC_TO_USEC(pHeader->TimeStamp), dmesgLine);
 
@@ -506,9 +509,7 @@ IntLixCrashPanicHandler(
 
     IntLixCrashSendPanicEvent();
 
-    gGuest.BugCheckInProgress = TRUE;
-
     gGuest.DisableOnReturn = TRUE;
 
-    return INT_STATUS_DISABLE_DETOUR_ON_RET;
+    return IntGuestUninitOnBugcheck(Detour);
 }

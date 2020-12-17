@@ -602,6 +602,151 @@ typedef struct _SID_AND_ATTRIBUTES32
     DWORD   Attributes; ///< A combination of SE_GROUP_* values
 } SID_AND_ATTRIBUTES32, *PSID_AND_ATTRIBUTES32;
 
+typedef WORD SECURITY_DESCRIPTOR_CONTROL;
+
+typedef struct _SID_IDENTIFIER_AUTHORITY
+{
+    UCHAR Value[6];
+} SID_IDENTIFIER_AUTHORITY, *PSID_IDENTIFIER_AUTHORITY;
+
+typedef struct _SID
+{
+    UCHAR                       Revision;
+    UCHAR                       SubAuthorityCount;
+    SID_IDENTIFIER_AUTHORITY    IdentifierAuthority;
+    QWORD                       *SubAuthority;
+} SID, *PSID;
+
+#pragma pack(push)
+#pragma pack(1)
+typedef struct _SECURITY_DESCRIPTOR
+{
+    BYTE                        Revision;
+    BYTE                        Sbz1;
+    SECURITY_DESCRIPTOR_CONTROL Control;
+    QWORD                       Owner;
+    QWORD                       Group;
+} SECURITY_DESCRIPTOR, *PSECURITY_DESCRIPTOR;
+#pragma pack(pop)
+
+///
+/// @brief  An access control list.
+///
+/// See https://docs.microsoft.com/en-us/windows/win32/secauthz/access-control-lists
+///
+typedef struct _ACL
+{
+    BYTE AclRevision;
+    BYTE Sbz1;
+    WORD AclSize;
+    WORD AceCount;
+    WORD Sbz2;
+} ACL, *PACL;
+
+///
+/// @brief An access control entry header.
+///
+/// See https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-ace_header
+/// 
+typedef struct _ACE_HEADER
+{
+    BYTE AceType;
+    BYTE AceFlags;
+    WORD AceSize;
+} ACE_HEADER;
+
+///
+/// @brief  Access Control Entry type - ntifs.h
+///
+typedef enum _ACE_TYPE
+{
+    ACCESS_ALLOWED_ACE_TYPE = 0,
+    ACCESS_DENIED_ACE_TYPE,
+    SYSTEM_AUDIT_ACE_TYPE,
+    SYSTEM_ALARM_ACE_TYPE,
+    ACCESS_ALLOWED_COMPOUND_ACE_TYPE,
+    ACCESS_ALLOWED_OBJECT_ACE_TYPE,
+    ACCESS_DENIED_OBJECT_ACE_TYPE,
+    SYSTEM_AUDIT_OBJECT_ACE_TYPE,
+    SYSTEM_ALARM_OBJECT_ACE_TYPE,
+    ACCESS_ALLOWED_CALLBACK_ACE_TYPE,
+    ACCESS_DENIED_CALLBACK_ACE_TYPE,
+    ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE,
+    ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE,
+    SYSTEM_AUDIT_CALLBACK_ACE_TYPE,
+    SYSTEM_ALARM_CALLBACK_ACE_TYPE,
+    SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE,
+    SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE,
+    SYSTEM_MANDATORY_LABEL_ACE_TYPE,
+    SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE,
+    SYSTEM_SCOPED_POLICY_ID_ACE_TYPE,
+    SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE,
+    SYSTEM_ACCESS_FILTER_ACE_TYPE
+} ACE_TYPE;
+
+/// @brief  Printable version of #ACCESS_ALLOWED_ACE_TYPE.
+#define ACCESS_ALLOWED_ACE_TYPE_STRING                     "ACCESS_ALLOWED_ACE_TYPE"
+/// @brief  Printable version of #ACCESS_DENIED_ACE_TYPE.
+#define ACCESS_DENIED_ACE_TYPE_STRING                      "ACCESS_DENIED_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_AUDIT_ACE_TYPE.
+#define SYSTEM_AUDIT_ACE_TYPE_STRING                       "SYSTEM_AUDIT_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_ALARM_ACE_TYPE.
+#define SYSTEM_ALARM_ACE_TYPES_STRING                      "SYSTEM_ALARM_ACE_TYPE"
+/// @brief  Printable version of #ACCESS_ALLOWED_COMPOUND_ACE_TYPE.
+#define ACCESS_ALLOWED_COMPOUND_ACE_TYPE_STRING            "ACCESS_ALLOWED_COMPOUND_ACE_TYPE"
+/// @brief  Printable version of #ACCESS_ALLOWED_OBJECT_ACE_TYPE.
+#define ACCESS_ALLOWED_OBJECT_ACE_TYPE_STRING              "ACCESS_ALLOWED_OBJECT_ACE_TYPE"
+/// @brief  Printable version of #ACCESS_DENIED_OBJECT_ACE_TYPE.
+#define ACCESS_DENIED_OBJECT_ACE_TYPE_STRING               "ACCESS_DENIED_OBJECT_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_AUDIT_OBJECT_ACE_TYPE.
+#define SYSTEM_AUDIT_OBJECT_ACE_TYPE_STRING                "SYSTEM_AUDIT_OBJECT_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_ALARM_OBJECT_ACE_TYPE.
+#define SYSTEM_ALARM_OBJECT_ACE_TYPE_STRING                "SYSTEM_ALARM_OBJECT_ACE_TYPE"
+/// @brief  Printable version of #ACCESS_ALLOWED_CALLBACK_ACE_TYPE.
+#define ACCESS_ALLOWED_CALLBACK_ACE_TYPE_STRING            "ACCESS_ALLOWED_CALLBACK_ACE_TYPE"
+/// @brief  Printable version of #ACCESS_DENIED_CALLBACK_ACE_TYPE.
+#define ACCESS_DENIED_CALLBACK_ACE_TYPE_STRING             "ACCESS_DENIED_CALLBACK_ACE_TYPE"
+/// @brief  Printable version of #ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE.
+#define ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE_STRING     "ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE"
+/// @brief  Printable version of #ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE.
+#define ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE_STRING      "ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_AUDIT_CALLBACK_ACE_TYPE.
+#define SYSTEM_AUDIT_CALLBACK_ACE_TYPE_STRING              "SYSTEM_AUDIT_CALLBACK_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_ALARM_CALLBACK_ACE_TYPE.
+#define SYSTEM_ALARM_CALLBACK_ACE_TYPE_STRING              "SYSTEM_ALARM_CALLBACK_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE.
+#define SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE_STRING       "SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE.
+#define SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE_STRING       "SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_MANDATORY_LABEL_ACE_TYPE.
+#define SYSTEM_MANDATORY_LABEL_ACE_TYPE_STRING             "SYSTEM_MANDATORY_LABEL_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE.
+#define SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE_STRING          "SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_SCOPED_POLICY_ID_ACE_TYPE.
+#define SYSTEM_SCOPED_POLICY_ID_ACE_TYPE_STRING            "SYSTEM_SCOPED_POLICY_ID_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE.
+#define SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE_STRING         "SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE"
+/// @brief  Printable version of #SYSTEM_ACCESS_FILTER_ACE_TYPE.
+#define SYSTEM_ACCESS_FILTER_ACE_TYPE_STRING               "SYSTEM_ACCESS_FILTER_ACE_TYPE"
+
+
+//
+// ACL revision versions - wdm.h
+//
+
+// This is the *current* ACL revision
+#define ACL_REVISION     (2)
+#define ACL_REVISION_DS  (4)
+
+// This is the history of ACL revisions.  Add a new one whenever
+// ACL_REVISION is updated
+#define ACL_REVISION1   (1)
+#define MIN_ACL_REVISION ACL_REVISION2
+#define ACL_REVISION2   (2)
+#define ACL_REVISION3   (3)
+#define ACL_REVISION4   (4)
+#define MAX_ACL_REVISION ACL_REVISION4
+
 ///
 /// @brief  This is the structure as documented in winternl.h
 ///
@@ -1032,7 +1177,7 @@ STATIC_ASSERT(OFFSET_OF(KTRAP_FRAME64, Rsp) == 0x180, "Wrong offset for Rsp in K
 
 
 #ifndef EXCEPTION_MAXIMUM_PARAMETERS
-#define EXCEPTION_MAXIMUM_PARAMETERS        15
+#define EXCEPTION_MAXIMUM_PARAMETERS        15ul
 #endif // !EXCEPTION_MAXIMUM_PARAMETERS
 
 ///
@@ -1809,5 +1954,52 @@ typedef union _LOCAL_ADDRESS
         QWORD InAddr;
     } Addr64;
 } LOCAL_ADDRESS, *PLOCAL_ADDRESS;
+
+///
+/// @brief The common part of nt!_KINTERRUPT on all x86 Windows versions.
+///
+typedef struct _KINTERRUPT_COMMON32
+{
+    WORD Type;
+    WORD Size;
+    DWORD InterruptListEntryFlink;
+    DWORD InterruptListEntryBlink;
+    DWORD ServiceRoutine;
+    DWORD MessageServiceRoutine;
+    DWORD MessageIndex;
+    DWORD ServiceContext;
+    DWORD SpinLock;
+    DWORD TickCount;
+    DWORD ActualLock;
+    DWORD DispatchAddress;
+    // We don't care about the others, even if they are fixed.
+} KINTERRUPT_COMMON32, *PKINTERRUPT_COMMON32;
+
+STATIC_ASSERT(OFFSET_OF(KINTERRUPT_COMMON32, ServiceRoutine) == 0xc, "Wrong ServiceRoutine offset in KINTERRUPT32!");
+STATIC_ASSERT(OFFSET_OF(KINTERRUPT_COMMON32, DispatchAddress) == 0x28, "Wrong DispatchAddress offset in KINTERRUPT32!");
+
+///
+/// @brief The common part of nt!_KINTERRUPT on all x64 Windows versions.
+///
+typedef struct _KINTERRUPT_COMMON64
+{
+    WORD Type;
+    WORD Size;
+    QWORD InterruptListEntryFlink;
+    QWORD InterruptListEntryBlink;
+    QWORD ServiceRoutine;
+    QWORD MessageServiceRoutine;
+    DWORD MessageIndex;
+    QWORD ServiceContext;
+    QWORD SpinLock;
+    DWORD TickCount;
+    QWORD ActualLock;
+    QWORD DispatchAddress;
+    // We don't care about the others, even if they are fixed.
+} KINTERRUPT_COMMON64, *PKINTERRUPT_COMMON64;
+
+STATIC_ASSERT(OFFSET_OF(KINTERRUPT_COMMON64, ServiceRoutine) == 0x18, "Wrong ServiceRoutine offset in KINTERRUPT64!");
+STATIC_ASSERT(OFFSET_OF(KINTERRUPT_COMMON64, DispatchAddress) == 0x50, "Wrong DispatchAddress offset in KINTERRUPT64!");
+
 
 #endif // _WDDEFS_H_

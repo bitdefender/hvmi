@@ -261,18 +261,29 @@ DbgDumpKmException(
         int ret, rem = sizeof(siglist);
 
         ret = snprintf(l, rem, "--> Signatures:");
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            return;
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         for (DWORD i = 0; i < Exception->SigCount; i++)
         {
             ret = snprintf(l, rem, " 0x%04x", Exception->Signatures[i].Value);
-            rem -= ret;
-            l += ret;
-
-            if (rem <= 0)
+            if (ret < 0 || ret >= rem)
             {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 break;
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
             }
         }
 
@@ -297,18 +308,29 @@ DbgDumpUmException(
         int ret, rem = sizeof(siglist);
 
         ret = snprintf(l, rem, "--> Signatures:");
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            return;
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         for (DWORD i = 0; i < Exception->SigCount; i++)
         {
             ret = snprintf(l, rem, " 0x%04x", Exception->Signatures[i].Value);
-            rem -= ret;
-            l += ret;
-
-            if (rem <= 0)
+            if (ret < 0 || ret >= rem)
             {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 break;
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
             }
         }
 
@@ -334,18 +356,29 @@ DbgDumpUmExceptionGlobMatch(
         int ret, rem = sizeof(siglist);
 
         ret = snprintf(l, rem, "--> Signatures:");
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            return;
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         for (DWORD i = 0; i < Exception->SigCount; i++)
         {
             ret = snprintf(l, rem, " 0x%4x", Exception->Signatures[i].Value);
-            rem -= ret;
-            l += ret;
-
-            if (rem <= 0)
+            if (ret < 0 || ret >= rem)
             {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 break;
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
             }
         }
 
@@ -839,6 +872,8 @@ DbgDumpPfn(
     }
 
     LOG("RefCount: %x\t\tFlags: %x\n", refCount, flags);
+
+    IntVirtMemUnmap(&pfnBuffer);
 }
 
 
@@ -927,7 +962,7 @@ DbgDumpCodeblocks(
 
     status = IntFragDumpBlocks(code,
                                addressStart,
-                               0x400,
+                               length,
                                gGuest.Guest64 ? IG_CS_TYPE_64B : IG_CS_TYPE_32B,
                                (BYTE)level,
                                rip,
@@ -1075,18 +1110,29 @@ DbgDumpExceptions(
             int ret, rem = sizeof(hashes);
 
             ret = snprintf(l, rem, "--> List(%u):", pSigHash->Count);
-            l += ret;
-            rem -= ret;
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+                return;
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
 
             for (DWORD j = 0; j < pSigHash->Count; j++)
             {
                 ret = snprintf(l, rem, " %08x", pSigHash->Hashes[j]);
-                l += ret;
-                rem -= ret;
-
-                if (rem <= 0)
+                if (ret < 0 || ret >= rem)
                 {
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                     break;
+                }
+                else
+                {
+                    rem -= ret;
+                    l += ret;
                 }
             }
 

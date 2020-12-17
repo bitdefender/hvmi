@@ -28,7 +28,7 @@ Windows OS
 ----------
 
 Generating a support file for a Windows OS requires `radare2 <https://github.com/radareorg/radare2>`__, and
-the `r2pipe <https://pypi.org/project/r2pipe/>`__ python library, as well as the pydis python wrapper over the 
+the `r2pipe <https://pypi.org/project/r2pipe/>`__ python library, as well as the pydis python wrapper over the
 `Bitdefender Disassembler <https://github.com/bitdefender/bddisasm>`__.
 
 To generate the support file, supply the **ntoskrnl.exe** and the **ntdll.dll** available on that system to the **r2cami.py** script. This script will automatically download the debugging symbols and generate the support file. The script is found in the *cami/tools/r2cami* directory. The following is an example of how to create a support file:
@@ -66,7 +66,7 @@ The file will conventionally be named *windows_<nt_build_number>_x<arch>_kpti_<O
 
     The following examples do not necessarily contain valid offsets.
 
-All yaml files must start with a :code:`---`. 
+All yaml files must start with a :code:`---`.
 The following line must contain a :code:`yaml_tag` describing the *python class* that will be responsible for parsing the current yaml structure. In this case, it is :code:`!intro_update_win_supported_os`.
 The following 4 lines must contain the :code:`build_number`, :code:`kpti_installed`, :code:`version_string`, and :code:`is_64` fields (on separate lines), populated with required information, as follows:
 
@@ -196,6 +196,9 @@ Used to describe a :code:`ETHREAD` Windows kernel structure.
 +-------------------+-----------------------------------------------------------------+
 | Win32StartAddress | The offset of the :code:`Win32StartAddress**` field.            |
 +-------------------+-----------------------------------------------------------------+
+| PreviousMode      | The offset of the :code:`Tcb.PreviousMode**` field.             |
++-------------------+-----------------------------------------------------------------+
+
 
 DrvObj
 ''''''
@@ -245,7 +248,7 @@ Used to describe a :code:`POOL_DESCRIPTOR` Windows kernel structure.
 Mmpfn
 '''''
 
-Used to describe a :code:`MMPFN` Windows kernel structure. 
+Used to describe a :code:`MMPFN` Windows kernel structure.
 Note that most fields have two versions; one for PAE, and another for non-PAE systems. For 64-bit Windows versions the PAE version is ignored. For 32-bit Windows versions Introcore selects the correct field based on how the OS is configured. The non-PAE version is invalid for 32-bit Windows versions newer than Windows 7 because, starting with Windows 8, systems without PAE are no longer supported by the Windows kernel.
 
 +-------------------+---------------------------------------------------------------------------------------------------------------------------------+
@@ -293,23 +296,34 @@ Ungrouped
 
 Used to describe certain fields that are not organized in a dedicated CAMI structure.
 
-+------------------------+------------------------------------------------------------------------------------------------------------------+
-| CAMI field name        | Description                                                                                                      |
-+========================+==================================================================================================================+
-| CtlAreaFile            | The offset of the :code:`FilePointer` field inside the :code:`CONTROL_AREA` Windows kernel structure.            |
-+------------------------+------------------------------------------------------------------------------------------------------------------+
-| HandleTableTableCode   | The offset of the :code:`TableCode` field inside the :code:`HANDLE_TABLE` Windows kernel structure.              |
-+------------------------+------------------------------------------------------------------------------------------------------------------+
-| reserved               | No longer used. The file format still has this field to be backwards compatible with older Introcore versions.   |
-+------------------------+------------------------------------------------------------------------------------------------------------------+
-| WmiGetClockOffset      | The offset of the :code:`GetCpuClock` field inside the :code:`WMI_LOGGER_CONTEXT` structure.                     |
-+------------------------+------------------------------------------------------------------------------------------------------------------+
-| EtwDbgDataSiloOffset   | Offset of :code:`EtwDbgDataSilo` in :code:`EtwpDbgData`.                                                         |
-+------------------------+------------------------------------------------------------------------------------------------------------------+
-| EtwSignatureOffset     | The offset relative to the :code:`EtwDebuggerData` structure at which the ETW signature is found                 |
-+------------------------+------------------------------------------------------------------------------------------------------------------+
-| SubsectionCtlArea      | The offset of the :code:`ControlArea` field inside the :code:`SUBSECTION` Windows kernel structure.              |
-+------------------------+------------------------------------------------------------------------------------------------------------------+
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| CAMI field name          | Description                                                                                                      |
++==========================+==================================================================================================================+
+| CtlAreaFile              | The offset of the :code:`FilePointer` field inside the :code:`CONTROL_AREA` Windows kernel structure.            |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| HandleTableTableCode     | The offset of the :code:`TableCode` field inside the :code:`HANDLE_TABLE` Windows kernel structure.              |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| reserved                 | No longer used. The file format still has this field to be backwards compatible with older Introcore versions.   |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| WmiGetClockOffset        | The offset of the :code:`GetCpuClock` field inside the :code:`WMI_LOGGER_CONTEXT` structure.                     |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| EtwDbgDataSiloOffset     | Offset of :code:`EtwDbgDataSilo` in :code:`EtwpDbgData`.                                                         |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| EtwSignatureOffset       | The offset relative to the :code:`EtwDebuggerData` structure at which the ETW signature is found                 |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| SubsectionCtlArea        | The offset of the :code:`ControlArea` field inside the :code:`SUBSECTION` Windows kernel structure.              |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| HalPerfCntFunctionOffset | The offset of the protected functions inside HalPerformanceCounter structure from Hal Heap.                      |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| RspOffsetOnZwCall        | The offset of RSP inside the fake trapframe constructed on a Zw* function call on x64 systems.                   |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| HalIntCtrlTypeMaxOffset  | The maximum offset of Type inside HalInterruptController.                                                        |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| HalIntCtrlTypeMinOffset  | The minimum offset of Type inside HalInterruptController.                                                        |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+| SharedUserDataSize       | The size of the _KUSER_SHARED_DATA structure.                                                                    |
++--------------------------+------------------------------------------------------------------------------------------------------------------+
+
 
 EprocessFlags
 '''''''''''''
@@ -331,6 +345,9 @@ Used to describe bits inside the :code:`Flags` field of the :ref:`EPROCESS <ch
 +-------------------+------------------------------------------------+
 | HasAddrSpace      | The index of the :code:`HasAddressSpace` flag. |
 +-------------------+------------------------------------------------+
+| OutSwapped        | The index of the :code:`OutSwapped` flag.      |
++-------------------+------------------------------------------------+
+
 
 
 VadShort
@@ -451,11 +468,11 @@ After you're done, *windows_7600_x64_kpti_OFF.yml* should look like this:
         server_version_string: "Windows Server 2008 R2 x64"
     kpti_installed: False
     is_64: True
-    
+
     km_fields: !opaque_structures
         type: win_km_fields
         os_structs:
-    
+
             Process: !opaque_fields
                 Cr3: 0x28
                 UserCr3: 0x28
@@ -479,7 +496,7 @@ After you're done, *windows_7600_x64_kpti_OFF.yml* should look like this:
                 MitigationFlags2: 0x0
                 DebugPort: 0x1f0
                 Spare: 0x2a0
-    
+
             Thread: !opaque_fields
                 Process: 0x210
                 ThreadListEntry: 0x2f8
@@ -493,22 +510,22 @@ After you're done, *windows_7600_x64_kpti_OFF.yml* should look like this:
                 Id: 0x3c0
                 ClientSecurity: 0x3e8
                 TrapFrame: 0x1d8
-    
+
             DrvObj: !opaque_fields
                 Size: 0x150
                 FiodispSize: 0xe0
                 AllocationGap: 0x50
                 Fiodisp: 0x50
                 Start: 0x18
-    
+
             Pcr: !opaque_fields
                 CurrentThread: 0x188
                 UserTime: 0x4888
-    
+
             PoolDescriptor: !opaque_fields
                 TotalBytes: 0x50
                 NppSize: 0x80000000
-    
+
             Mmpfn: !opaque_fields
                 Size: 0x30
                 Pte: 0x10
@@ -518,14 +535,14 @@ After you're done, *windows_7600_x64_kpti_OFF.yml* should look like this:
                 PaePte: 0x0
                 PaeRefCount: 0x0
                 PaeFlags: 0x0
-    
+
             Token: !opaque_fields
                 Privs: 0x40
                 UserCount: 0x78
                 RestrictedCount: 0x7c
                 Users: 0x90
                 RestrictedSids: 0x98
-    
+
             Ungrouped: !opaque_fields
                 CtlAreaFile: 0x40
                 HandleTableTableCode: 0x0
@@ -535,7 +552,7 @@ After you're done, *windows_7600_x64_kpti_OFF.yml* should look like this:
                 # We want to treat it as "-2" so we send the unsigned int value which will be correctly treated by introcore
                 EtwSignatureOffset: 0xFFFFFFFE
                 SubsectionCtlArea: 0
-    
+
             EprocessFlags: !opaque_fields
                 NoDebugInherit: 0x2
                 Exiting: 0x4
@@ -543,7 +560,7 @@ After you're done, *windows_7600_x64_kpti_OFF.yml* should look like this:
                 3Crashed: 0x10
                 VmDeleted: 0x20
                 HasAddrSpace: 0x40000
-    
+
             VadShort: !opaque_fields
                 Parent: 0x0
                 Left: 0x8
@@ -556,10 +573,10 @@ After you're done, *windows_7600_x64_kpti_OFF.yml* should look like this:
                 FlagsSize: 0x8
                 VpnSize: 0x8
                 Size: 0x30
-    
+
             VadLong: !opaque_fields
                 Subsection: 0x48
-    
+
             VadFlags: !opaque_fields
                 TypeShift: 0x34
                 TypeMask: 0x7
@@ -568,12 +585,12 @@ After you're done, *windows_7600_x64_kpti_OFF.yml* should look like this:
                 NoChangeBit: 51
                 PrivateFixup: 0x0
                 DeleteInProgress: 0x0
-    
+
             SyscallNumbers: !opaque_fields
                 NtWriteVirtualMemory: 0x37
                 NtProtectVirtualMemory: 0x4d
                 NtCreateThreadEx: 0xa5
-    
+
             FileObject: !opaque_fields
                 NameBuffer: 0x60
                 NameLength: 0x58
@@ -587,7 +604,7 @@ The file will conventionally be named *windows_um_<version>_x<arch>.yml*. For ex
 
     The following examples do not necessarily contain valid offsets.
 
-All yaml files must start with a :code:`---`. 
+All yaml files must start with a :code:`---`.
 The following line must contain a :code:`yaml_tag` describing the *python class* that will be responsible for parsing the current yaml structure. In this case, it is :code:`!intro_update_win_um_fields`.
 The following 3 lines must contain the :code:`is64`, :code:`min_ver`, and :code:`max_ver` fields (on separate lines). :code:`is_64` is **True** if the file contains information for a 64-bit system. :code:`min_ver` and :code:`max_ver` represent the minimum and the maximum operating system versions for which the information is valid. This interval is inclusive.
 
@@ -722,7 +739,7 @@ Function patterns are found in the *windows/functions* directory. Each function 
 
     All of the following examples are based on the *KiDispatchException32.yml* file.
 
-All yaml files must start with a :code:`---`. 
+All yaml files must start with a :code:`---`.
 The following line must contain a :code:`yaml_tag` describing the *python class* that will be responsible for parsing the current yaml structure. In this case, it is :code:`!intro_update_win_function`.
 The following 2 lines contain the :code:`name` and :code:`guest64` fields. :code:`name` is used to identify the function, while :code:`guest64` is used to identify the guest architecture.
 
@@ -747,7 +764,7 @@ The next field, :code:`args`, is a list that describes the arguments used by In
             !intro_update_win_args
             min_ver: WIN_PATTERN_MIN_VERSION_ANY
             max_ver: WIN_PATTERN_MAX_VERSION_ANY
-    
+
             args:
                 - DET_ARG_STACK1       # Exception record GVA
                 - DET_ARG_STACK2       # Exception frame GVA, or i think at least, not used in introcore
@@ -757,7 +774,7 @@ The next field, :code:`args`, is a list that describes the arguments used by In
 In this example, there are 4 arguments valid for all windows versions. All of them are from the stack. 
 
 Next, there is a list of patterns, with each element in the list having the :code:`!intro_update_win_pattern` tag.
-Exactly as with the case of the arguments, these have a :code:`min_ver` and :code:`max_ver` pair of fields that are used to select the Windows version for which a pattern is available. 
+Exactly as with the case of the arguments, these have a :code:`min_ver` and :code:`max_ver` pair of fields that are used to select the Windows version for which a pattern is available.
 The :code:`section_hint` field is used as a hint by Introcore to first search the function in the given section.
 
 Followed by those fields there's the actual pattern field with the yaml tag :code:`!code_pattern`. This field has a code field that contains a list of python-like lists describing instructions.
@@ -800,7 +817,7 @@ Linux Guest
 
 The file format for a Linux guest configuration file is similar to the :ref:`Windows <chapters/5-os-support-mechanism:Windows Guest>` one.
 The file starts with the :code:`!intro_update_lix_supported_os` tag, followed by :code:`version`, which is a glob pattern, as in the following example. 
-The glob format is slightly different from the standard: the :code:`[]` pattern is treated as a closed numeric interval (e.g. :code:`[12-14]` will match :code:`12`, :code:`13`, and :code:`14`). 
+The glob format is slightly different from the standard: the :code:`[]` pattern is treated as a closed numeric interval (e.g. :code:`[12-14]` will match :code:`12`, :code:`13`, and :code:`14`).
 If the left value is missing (e.g. :code:`[-15]`) it is assumed to be 0, and a missing right value (e.g. :code:`[15-]`) is assumed to be :code:`MAX_QWORD`.
 
 .. code-block:: yaml
@@ -808,9 +825,9 @@ If the left value is missing (e.g. :code:`[-15]`) it is assumed to be 0, and a m
     !intro_update_lix_supported_os
     version: 4.9.0-[0-5]-amd64 *Debian*
 
-The following lines contain the functions that will be hooked by Introcore. 
-Each element of the :code:`hooks` list must have the :code:`!intro_update_lix_hook` tag. 
-The :code:`handler` attribute tells Introcore which hook :ref:`handler <chapters/9-development-guideline:linux hook handlers>` should be used for this function. 
+The following lines contain the functions that will be hooked by Introcore.
+Each element of the :code:`hooks` list must have the :code:`!intro_update_lix_hook` tag.
+The :code:`handler` attribute tells Introcore which hook :ref:`handler <chapters/9-development-guideline:linux hook handlers>` should be used for this function.
 The :code:`skip_on_boot` attribute is used on older Introcore versions to discern if a function can be hooked after the OS finishes the boot process.
 
 .. code-block:: yaml
@@ -820,26 +837,26 @@ The :code:`skip_on_boot` attribute is used on older Introcore versions to discer
             run_init_process:
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             module_param_sysfs_setup:
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             module_param_sysfs_remove:
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             flush_old_exec:
             handler: 0
             skip_on_boot: 0
-    
+
     # -- more functions --
 
 The next part of the file contains kernel structure descriptions. The YAML member is called :code:`fields` and has the :code:`!opaque_structures` tag.
-Opaque fields are grouped in structures. (see *tags.yaml* for a complete list of structures along with their fields). 
+Opaque fields are grouped in structures. (see *tags.yaml* for a complete list of structures along with their fields).
 If the value of a field is not specified then it will be automatically considered 0.
 
 .. code-block:: yaml
@@ -847,18 +864,18 @@ If the value of a field is not specified then it will be automatically considere
     fields: !opaque_structures
         type: lix_fields
         os_structs:
-    
+
             Info: !opaque_fields
                 ThreadSize : 0x4000
                 HasModuleLayout : 0x0001
                 HasVdsoImageStruct : 0x0001
-    
+
             Module: !opaque_fields
                 ListOffset : 0x0008
                 NameOffset : 0x0018
                 SymbolsOffset : 0x00d0
                 NumberOfSymbolsOffset : 0x00e0
-    
+
     # -- more info --
 
 In the end, your configuration file should look like this:
@@ -867,132 +884,132 @@ In the end, your configuration file should look like this:
 
     !intro_update_lix_supported_os
     version: 4.15.0-[24-]*Ubuntu*
-    
+
     hooks:
         - !intro_update_lix_hook
             name: run_init_process
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: sched_init
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: module_param_sysfs_setup
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: module_param_sysfs_remove
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: flush_old_exec
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: do_exit
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: cgroup_post_fork
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: wake_up_new_task
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: arch_ptrace
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: compat_arch_ptrace
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: process_vm_rw_core*
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: __vma_link_rb
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: change_protection
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: __vma_adjust
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: __vma_rb_erase
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: expand_downwards
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: complete_signal
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: text_poke
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: commit_creds
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: ftrace_write
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: crash_kexec
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: panic
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: arch_jump_label_transform
             handler: 0
             skip_on_boot: 0
-    
+
         - !intro_update_lix_hook
             name: __access_remote_vm
             handler: 0
             skip_on_boot: 0
-    
+
     fields: !opaque_structures
         type: lix_fields
         os_structs:
-    
+
             Info: !opaque_fields
                 ThreadSize : 0x4000
                 HasModuleLayout : 0x0001
@@ -1004,7 +1021,7 @@ In the end, your configuration file should look like this:
                 HasAlternateSyscall : 0x0001
                 HasVdsoFixed : 0x0001
                 HasVmaAdjustExpand : 0x0001
-    
+
             Module: !opaque_fields
                 ListOffset : 0x0008
                 NameOffset : 0x0018
@@ -1025,7 +1042,7 @@ In the end, your configuration file should look like this:
                 InitLayoutOffset : 0x01d0
                 StateOffset : 0x0000
                 Sizeof : 0x0340
-    
+
             Binprm: !opaque_fields
                 MmOffset : 0x0090
                 FileOffset : 0x00a8
@@ -1035,7 +1052,7 @@ In the end, your configuration file should look like this:
                 Vma : 0x0080
                 Argc : 0x00c0
                 Sizeof : 0x00f0
-    
+
             Vma: !opaque_fields
                 VmaStartOffset : 0x0000
                 VmaEndOffset : 0x0008
@@ -1045,13 +1062,13 @@ In the end, your configuration file should look like this:
                 MmOffset : 0x0040
                 FlagsOffset : 0x0050
                 FileOffset : 0x00a0
-    
+
             Dentry: !opaque_fields
                 ParentOffset : 0x0018
                 NameOffset : 0x0020
                 DinameOffset : 0x0038
                 InodeOffset : 0x0030
-    
+
             MmStruct: !opaque_fields
                 PgdOffset : 0x0050
                 MmUsersOffset : 0x0058
@@ -1065,7 +1082,7 @@ In the end, your configuration file should look like this:
                 VmaOffset : 0x0000
                 StartStack: 0x0120
                 RbNodeOffset : 0x0008
-    
+
             TaskStruct: !opaque_fields
                 StackOffset : 0x0018
                 UsageOffset : 0x0020
@@ -1091,32 +1108,32 @@ In the end, your configuration file should look like this:
                 ExitSignal: 0x084c
                 ThreadStructSp : 0x0018
                 AltStackSp: 0x0ae0
-    
+
             Fs: !opaque_fields
                 RootOffset : 0x0018
                 PwdOffset : 0x0028
                 Sizeof : 0x0038
-    
+
             FdTable: !opaque_fields
                 MaxFdsOffset : 0x0000
                 FdOffset : 0x0008
-    
+
             Files: !opaque_fields
                 FdtOffset : 0x0020
                 Sizeof : 0x02c0
-    
+
             Inode: !opaque_fields
                 ImodeOffset : 0x0000
                 UidOffset   : 0x0004
                 GidOffset   : 0x0008
                 Sizeof : 0x0258
-    
+
             Socket: !opaque_fields
                 StateOffset : 0x0000
                 TypeOffset : 0x0004
                 FlagsOffset : 0x0008
                 SkOffset : 0x0020
-    
+
             Sock: !opaque_fields
                 NumOffset : 0x000e
                 DportOffset : 0x000c
@@ -1128,12 +1145,12 @@ In the end, your configuration file should look like this:
                 V6DaddrOffset : 0x0038
                 V6RcvSaddrOffset : 0x0048
                 Sizeof : 0x02c8
-    
+
             Cred: !opaque_fields
                 UsageOffset : 0x0000
                 RcuOffset : 0x0098
                 Sizeof : 0x00a8
-    
+
             Ungrouped: !opaque_fields
                 FileDentryOffset : 0x0018
                 ProtoNameOffset : 0x0158

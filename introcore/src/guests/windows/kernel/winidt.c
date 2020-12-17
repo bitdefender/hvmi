@@ -31,12 +31,11 @@ IntWinIdtSendIntegrityAlert(
     pEvent = &gAlert.Integrity;
     memzero(pEvent, sizeof(*pEvent));
 
-    pEvent->BaseAddress= Victim->Integrity.StartVirtualAddress;
+    pEvent->BaseAddress = Victim->Integrity.StartVirtualAddress;
     pEvent->VirtualAddress = Victim->Integrity.StartVirtualAddress + Victim->Integrity.Offset;
     pEvent->Size = gGuest.Guest64 ? IDT_DESC_SIZE64 : IDT_DESC_SIZE32;
     pEvent->Victim.IdtEntry = (BYTE)(Victim->Integrity.Offset / pEvent->Size);
     pEvent->Victim.Type = introObjectTypeIdt;
-
 
     // No valid CPU context and no valid current process can be obtained for this, as it is
     // an integrity alert.

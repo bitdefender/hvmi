@@ -59,6 +59,15 @@ IntWinTokenPrivsHandleWrite(
     _Out_ INTRO_ACTION *Action
     );
 
+static INTSTATUS
+IntWinTokenPrivsHandleSwap(
+    _In_opt_ void *Context,
+    _In_ QWORD VirtualAddress,
+    _In_ QWORD OldEntry,
+    _In_ QWORD NewEntry,
+    _In_ QWORD OldPageSize,
+    _In_ QWORD NewPageSize
+    );
 
 static void
 IntWinTokenPrivsSendEptAlert(
@@ -291,6 +300,16 @@ IntWinTokenProtectPrivsInternal(
         }
     }
 
+    if (NULL != Process->TokenSwapHook)
+    {
+        status = IntHookGvaRemoveHook((HOOK_GVA **)&Process->TokenSwapHook, 0);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntHookGvaRemoveHook failed: 0x%08x\n", status);
+            return status;
+        }
+    }
+
     if (IntWinTokenPrivsShouldHook(Process, NewTokenPtr))
     {
         status = IntHookGvaSetHook(gGuest.Mm.SystemCr3,
@@ -307,12 +326,100 @@ IntWinTokenProtectPrivsInternal(
             ERROR("[ERROR] IntHookGvaSetHook failed: 0x%08x\n", status);
             return status;
         }
+
+        status = IntHookGvaSetHook(gGuest.Mm.SystemCr3,
+                                   NewTokenPtr & PAGE_MASK,
+                                   PAGE_SIZE,
+                                   IG_EPT_HOOK_NONE,
+                                   IntWinTokenPrivsHandleSwap,
+                                   Process,
+                                   NULL,
+                                   HOOK_FLG_HIGH_PRIORITY,
+                                   (HOOK_GVA **)&Process->TokenSwapHook);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntHookGvaSetHook failed: 0x%08x\n", status);
+            return status;
+        }
     }
     else
     {
         TRACE("[INFO] Token at 0x%016llx is not allocated through our hook - we'll protect it only with integrity!\n",
               NewTokenPtr);
     }
+
+    return INT_STATUS_SUCCESS;
+}
+
+
+static INTSTATUS
+IntWinTokenPrivsHandleSwap(
+    _In_opt_ void *Context,
+    _In_ QWORD VirtualAddress,
+    _In_ QWORD OldEntry,
+    _In_ QWORD NewEntry,
+    _In_ QWORD OldPageSize,
+    _In_ QWORD NewPageSize
+    )
+///
+/// @brief Handles a token swap-in or swap-out, re-applying protection if the token is not assigned anymore to
+///         a process.
+/// When a token is de-allocated and the whole page becomes free, as we increased on ExAllocatePoolWithTag the
+/// size of token allocations to always be one page, for performance purposes, the kernel may use the already
+/// freed page for different purposes, sometimes even mapping new physical memory into it. Since we have already
+/// hooked the page against writes, we will have, in such cases, translation violations, as the new mapping will
+/// not have the same contents as the TOKEN allocation which was freed before. Therefore we have to verify during
+/// the translation modifications of tokens if the current token is still assigned to the process and it was just
+/// swapped out, or if it has been freed, in which case we should re-establish the hook on the newly assigned
+/// token, while removing the old hook, which will solve the possibility of translation violations appearing
+/// in this case.
+///
+/// @param[in]  Context         The page for which this handler is invoked.
+/// @param[in]  VirtualAddress  The guest virtual address for which this handler is invoked.
+/// @param[in]  OldEntry        The old page table entry used to translate VirtualAddress.
+/// @param[in]  NewEntry        The new page table entry used to translate VirtualAddress.
+/// @param[in]  OldPageSize     The old page size.
+/// @param[in]  NewPageSize     The new page size.
+///
+/// @returns    #INT_STATUS_SUCCESS if successful, or an appropriate #INTSTATUS error value.
+///
+{
+    INTSTATUS status;
+    WIN_PROCESS_OBJECT *pProc = Context;
+    QWORD newTokenPtr = 0;
+
+    if (NULL == pProc)
+    {
+        return INT_STATUS_NOT_FOUND;
+    }
+
+    STATS_ENTER(statsTokenSwapCheck);
+
+    status = IntKernVirtMemFetchWordSize(pProc->EprocessAddress + WIN_KM_FIELD(Process, Token), &newTokenPtr);
+    if (!INT_SUCCESS(status))
+    {
+        ERROR("[ERROR] IntKernVirtMemFetchWordSize failed: 0x%08x\n", status);
+
+        STATS_EXIT(statsTokenSwapCheck);
+
+        return status;
+    }
+
+    newTokenPtr = EX_FAST_REF_TO_PTR(gGuest.Guest64, newTokenPtr);
+
+    if (newTokenPtr != pProc->OriginalTokenPtr)
+    {
+        LOG("[INFO] Token has been changed during translation modification of 0x%016llx [0x%016llx -> 0x%016llx], "
+            "[0x%016llx -> 0x%016llx]: old = 0x%016llx, new = 0x%016llx\n",
+            VirtualAddress, OldEntry, NewEntry, OldPageSize, NewPageSize, pProc->OriginalTokenPtr, newTokenPtr);
+
+        IntWinTokenProtectPrivsInternal(pProc, newTokenPtr);
+
+        // Check integrity if token changed.
+        IntWinTokenPtrCheckIntegrityOnProcess(pProc);
+    }
+
+    STATS_EXIT(statsTokenSwapCheck);
 
     return INT_STATUS_SUCCESS;
 }
@@ -356,10 +463,15 @@ IntWinTokenPrivsHandleWrite(
         return INT_STATUS_NOT_FOUND;
     }
 
+    STATS_ENTER(statsTokenChangeCheck);
+
     status = IntKernVirtMemFetchWordSize(pProc->EprocessAddress + WIN_KM_FIELD(Process, Token), &newTokenPtr);
     if (!INT_SUCCESS(status))
     {
         ERROR("[ERROR] IntKernVirtMemFetchWordSize failed: 0x%08x\n", status);
+
+        STATS_EXIT(statsTokenChangeCheck);
+
         return status;
     }
 
@@ -373,8 +485,11 @@ IntWinTokenPrivsHandleWrite(
         IntWinTokenPtrCheckIntegrityOnProcess(pProc);
 
         *Action = introGuestAllowed;
+        STATS_EXIT(statsTokenChangeCheck);
         return INT_STATUS_SUCCESS;
     }
+
+    STATS_EXIT(statsTokenChangeCheck);
 
     privsOffsetInPage = (pProc->OriginalTokenPtr & PAGE_OFFSET) + WIN_KM_FIELD(Token, Privs);
     writeOffset = Address & PAGE_OFFSET;
@@ -696,6 +811,7 @@ INTSTATUS
 IntWinTokenCheckCurrentPrivileges(
     _In_ WIN_PROCESS_OBJECT *Process,
     _In_ QWORD TokenPtr,
+    _In_ BOOLEAN IntegrityCheck,
     _Out_ BOOLEAN *PresentIncreased,
     _Out_ BOOLEAN *EnabledIncreased,
     _Out_opt_ QWORD *Present,
@@ -716,8 +832,13 @@ IntWinTokenCheckCurrentPrivileges(
 /// assigned to the given process has changed, but we have not yet updated Process->OriginalTokenPtr internally), when
 /// it is not this case, one might simply call this function with Process->OriginalTokenPtr as the second argument.
 ///
-/// @param[in] Process  The process for which the checks are done.
-/// @param[in] TokenPtr The GVA which points to the assigned token, may be different from Process->OriginalTokenPtr.
+/// @param[in]  Process             The process for which the checks are done.
+/// @param[in]  TokenPtr            The GVA which points to the assigned token, may be different from
+///                                 Process->OriginalTokenPtr.
+/// @param[in]  IntegrityCheck      This should be set by the caller if this function is called during an integrity check
+///                                 on timer. If this parameter is set, the function will take into account the corner case
+///                                 in which there is a one bit difference between Enabled and Present privileges, due to
+///                                 a race condition between our checks and the privilege removal from the guest.
 /// @param[out] PresentIncreased    It will store a boolean representing whether the current privileges violate the
 ///                                 first check.
 /// @param[out] EnabledIncreased    It will store a boolean representing whether the current privileges violate the
@@ -777,26 +898,45 @@ IntWinTokenCheckCurrentPrivileges(
     }
 
     // All bits in enabled must also be set in present, if any bit is not set in present => it shouldn't
-    // have that privilege
-    if (enabled != Process->OriginalEnabledPrivs && (enabled & present) != enabled)
+    // have that privilege. Note that if we previously didn't give a detection due to the fact that only one bit was
+    // changed, we will give a detection now if there is any bit which is set in enabled but not set in present.
+    if ((enabled != Process->OriginalEnabledPrivs || (Process->PrivsChangeOneBit && IntegrityCheck)) &&
+        (enabled & present) != enabled)
     {
-        // Windows 7 is a hidden gem and, when a privilege is disabled, it disables it from present and
+        // Some versions of Windows are special and, when a privilege is disabled, it disables it from present and
         // just after that from enabled. This may lead to a race condition, where we find a bit in Enabled
-        // which is not set in Present. We will check, only for windows 7 if there is (only) a bit which
-        // can give a detection in this case, and skip the detection if this happens.
-        if (gGuest.OSVersion >= 7600 && gGuest.OSVersion <= 7602)
+        // which is not set in Present. We will check a bit which can give a detection in this case, and skip the
+        // detection if this happens. Note that we will do it only once and only on integrity. We expect that, at
+        // next check the 1-bit difference to not be present anymore, as it would indicate malicious behavior, and
+        // not the presented race condition.
+        if (!Process->PrivsChangeOneBit && IntegrityCheck)
         {
             QWORD diffbits = enabled & (~(enabled & present));
 
             if (diffbits != 0 && (diffbits & (diffbits - 1)) == 0)
             {
-                WARNING("[WARNING] Special case on Windows 7, difference 1 bit! 0x%016llx 0x%016llx\n",
-                        enabled, present);
+                WARNING("[WARNING] Special case on OS version: %d, difference 1 bit! 0x%016llx 0x%016llx\n",
+                        gGuest.OSVersion, enabled, present);
+
+                Process->PrivsChangeOneBit = TRUE;
+
                 goto _skip_checks;
             }
         }
 
+        // Since we're giving a detection, we'll reset the flag, but only if we are doing an integrity check.
+        if (IntegrityCheck)
+        {
+            Process->PrivsChangeOneBit = FALSE;
+        }
+
         *EnabledIncreased = TRUE;
+    }
+    else if (IntegrityCheck)
+    {
+        // Since there seems nothing have changed in a malicious way, we'll reset the flag, but only if we
+        // are doing an integrity check.
+        Process->PrivsChangeOneBit = FALSE;
     }
 
 _skip_checks:
@@ -855,6 +995,7 @@ IntWinTokenPrivsCheckIntegrityOnProcess(
 
     status = IntWinTokenCheckCurrentPrivileges(Process,
                                                newValue,
+                                               TRUE,
                                                &presentIncreased,
                                                &enabledIncreased,
                                                &present,
@@ -871,6 +1012,8 @@ IntWinTokenPrivsCheckIntegrityOnProcess(
 
     if (presentIncreased || enabledIncreased)
     {
+        STATS_ENTER(statsExceptionsKern);
+
         // The originator is only dummy. Complete just the elements so that we can go through exceptions.
         originator.Original.NameHash = INITIAL_CRC_VALUE;
         originator.Return.NameHash = INITIAL_CRC_VALUE;
@@ -891,6 +1034,8 @@ IntWinTokenPrivsCheckIntegrityOnProcess(
         victim.WriteInfo.AccessSize = 2 * sizeof(QWORD);
 
         IntExcept(&victim, &originator, exceptionTypeKm, &action, &reason, introEventIntegrityViolation);
+
+        STATS_EXIT(statsExceptionsKern);
 
         if (IntPolicyCoreTakeAction(INTRO_OPT_PROT_KM_TOKEN_PRIVS, &action, &reason))
         {
@@ -923,7 +1068,17 @@ IntWinTokenPrivsCheckIntegrityOnProcess(
 
         // Note that we should also consider on DPI from now on as a detection every process creation, since
         // on DPI we will see only the changed values, as we update them below.
-        Process->PrivsChangeDetected = TRUE;
+        // NOTE: we set the DPI flag only if Present privileges were increased. If Enabled were increased in
+        // comparison with Present, then the DPI mechanism will issue an alert as is, as the heuristic will
+        // detect the Enabled extra bits at that point. However, if Present privileges were increased, we won't 
+        // be able to detect it otherwise. Also, after Present privileges increase has taken place, we can't
+        // consider any process creation as legitimate in DPI from now on, as we can't know in a reliable way
+        // when Present privileges will be ok in the future, so we won't mark PrivsChangeDetected as FALSE at
+        // any point from now on.
+        if (presentIncreased)
+        {
+            Process->PrivsChangeDetected = TRUE;
+        }
     }
 
 _skip_checks:
@@ -1086,6 +1241,15 @@ IntWinTokenPrivsUnprotectOnProcess(
         }
     }
 
+    if (NULL != Process->TokenSwapHook)
+    {
+        status = IntHookGvaRemoveHook((HOOK_GVA **)&Process->TokenSwapHook, 0);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntHookGvaRemoveHook failed: 0x%08x\n", status);
+        }
+    }
+
     return status;
 }
 
@@ -1161,6 +1325,11 @@ IntWinTokenUnprotectPrivs(
         if (NULL != pProc->TokenHook)
         {
             IntHookGvaRemoveHook((HOOK_GVA **)&pProc->TokenHook, 0);
+        }
+
+        if (NULL != pProc->TokenSwapHook)
+        {
+            IntHookGvaRemoveHook((HOOK_GVA **)&pProc->TokenSwapHook, 0);
         }
     }
 

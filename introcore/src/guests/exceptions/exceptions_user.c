@@ -20,6 +20,53 @@
 extern char gExcLogLine[2 * ONE_KILOBYTE];
 
 
+static char *
+IntExceptUserGetPcTypeString(
+    _In_ INTRO_PC_VIOLATION_TYPE Type
+    )
+///
+/// @brief Returns a string that contains the descriptions of the porovided process creation violation type.
+///
+/// @param[in]  Type        The type of the violation.
+///
+/// @retval     The description of the violation type.
+///
+{
+    switch(Type)
+    {
+        case INT_PC_VIOLATION_NORMAL_PROCESS_CREATION:
+            return "Normal";
+
+        case INT_PC_VIOLATION_DPI_DEBUG_FLAG:
+            return "Debug";
+
+        case INT_PC_VIOLATION_DPI_PIVOTED_STACK:
+            return "Pivoted Stack";
+
+        case INT_PC_VIOLATION_DPI_STOLEN_TOKEN:
+            return "Stolen token";
+
+        case INT_PC_VIOLATION_DPI_HEAP_SPRAY:
+            return "Heap spray";
+
+        case INT_PC_VIOLATION_DPI_TOKEN_PRIVS:
+            return "Token Privs";
+
+        case INT_PC_VIOLATION_DPI_THREAD_START:
+            return "Thread Start";
+
+        case INT_PC_VIOLATION_DPI_SEC_DESC:
+            return "Security Descriptor";
+
+        case INT_PC_VIOLATION_DPI_ACL_EDIT:
+            return "ACL Edit";
+
+        default:
+            return "<Unknown>";
+    }
+}
+
+
 int
 IntExceptPrintLixTaskInfo(
     _In_opt_ const LIX_TASK_OBJECT *Task,
@@ -56,9 +103,9 @@ IntExceptPrintLixTaskInfo(
         ret = snprintf(Line, MaxLength, "%s(%s", Header, Task->ProcName);
     }
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -70,9 +117,9 @@ IntExceptPrintLixTaskInfo(
     ret = snprintf(Line, MaxLength, " '%s' [0x%08x], %016llx, %016llx, %016llx, %d/%d",
                    Task->Comm, Task->CommHash, Task->Gva, Task->Cr3, Task->MmGva, Task->Pid, Task->Tgid);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -85,9 +132,9 @@ IntExceptPrintLixTaskInfo(
     {
         ret = snprintf(Line, MaxLength, ", CLI:`%s`", Task->CmdLine);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -98,7 +145,17 @@ IntExceptPrintLixTaskInfo(
     }
 
     ret = snprintf(Line, MaxLength, ")");
-    total += ret;
+
+    if (ret < 0 || ret >= MaxLength)
+    {
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
+    }
+    else
+    {
+        Line += ret;
+        total += ret;
+        MaxLength -= ret;
+    }
 
     return total;
 }
@@ -158,9 +215,9 @@ IntExceptUserLogLinuxInformation(
             ret = snprintf(l, rem, ", RIP: %016llx", Originator->Rip);
         }
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -168,8 +225,32 @@ IntExceptUserLogLinuxInformation(
             l += ret;
         }
 
-        ret = IntExceptPrintLixTaskInfo(IntLixTaskFindByGva(Originator->LixProc->Parent),
-                                        ", Parent: ", l, rem, 0);
+        ret = IntExceptPrintLixTaskInfo(IntLixTaskFindByGva(Originator->LixProc->Parent), ", Parent: ", l, rem, 0);
+        rem -= ret;
+        l += ret;
+
+        LOG("%s\n", gExcLogLine);
+    }
+    else if (Victim->ZoneType == exceptionZonePc)
+    {
+        ret = IntExceptPrintLixTaskInfo(Originator->LixProc, "Originator-> Process: ", l, rem, procNameAlignment);
+        rem -= ret;
+        l += ret;
+
+        ret = snprintf(l, rem, ", Type: %s (0x%08x)", IntExceptUserGetPcTypeString(Originator->PcType),
+                       Originator->PcType);
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
+
+        ret = IntExceptPrintLixTaskInfo(IntLixTaskFindByGva(Originator->LixProc->Parent), ", Parent: ", l, rem, 0);
         rem -= ret;
         l += ret;
 
@@ -184,9 +265,9 @@ IntExceptUserLogLinuxInformation(
 
         ret = snprintf(l, rem, ", RIP: %016llx", Originator->Rip);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -224,9 +305,9 @@ IntExceptUserLogLinuxInformation(
                            Victim->ExecInfo.Rsp);
         }
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -236,6 +317,18 @@ IntExceptUserLogLinuxInformation(
 
         ret = IntExceptPrintLixTaskInfo(IntLixTaskFindByGva(Victim->Object.LixProc->Parent),
                                         ", Parent: ", l, rem, 0);
+        rem -= ret;
+        l += ret;
+
+        LOG("%s\n", gExcLogLine);
+    }
+    if (Victim->ZoneType == exceptionZonePc)
+    {
+        ret = IntExceptPrintLixTaskInfo(Victim->Object.LixProc, "Victim    -> Process: ", l, rem, procNameAlignment);
+        rem -= ret;
+        l += ret;
+
+        ret = IntExceptPrintLixTaskInfo(IntLixTaskFindByGva(Victim->Object.LixProc->Parent), ", Parent: ", l, rem, 0);
         rem -= ret;
         l += ret;
 
@@ -255,9 +348,10 @@ IntExceptUserLogLinuxInformation(
                        libName, Victim->WriteInfo.AccessSize,
                        Victim->WriteInfo.OldValue[0],
                        Victim->WriteInfo.NewValue[0]);
-        if (ret < 0)
+
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -276,9 +370,10 @@ IntExceptUserLogLinuxInformation(
         ret = snprintf(l, rem, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^%sMALWARE (user-mode) ",
                        (Victim->Object.LixProc && Victim->Object.LixProc->Protection.Mask & PROC_OPT_BETA) ?
                        " (B) " : " ");
-        if (ret < 0)
+
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -329,9 +424,9 @@ IntExceptUserLogLinuxInformation(
             break;
         }
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -339,7 +434,17 @@ IntExceptUserLogLinuxInformation(
             l += ret;
         }
 
-        snprintf(l, rem, " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+        ret = snprintf(l, rem, " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n\n", gExcLogLine);
     }
@@ -382,9 +487,9 @@ IntExceptPrintWinProcInfo(
         ret = snprintf(Line, MaxLength, "%s(%s", Header, Process->Name);
     }
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -397,9 +502,9 @@ IntExceptPrintWinProcInfo(
                    Process->NameHash, gGuest.WordSize * 2, Process->EprocessAddress,
                    gGuest.WordSize * 2, Process->Cr3, Process->Pid, Process->Flags);
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -412,9 +517,9 @@ IntExceptPrintWinProcInfo(
     {
         ret = snprintf(Line, MaxLength, ", WOW64");
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -428,9 +533,9 @@ IntExceptPrintWinProcInfo(
     {
         ret = snprintf(Line, MaxLength, ", SYS");
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -444,9 +549,9 @@ IntExceptPrintWinProcInfo(
     {
         ret = snprintf(Line, MaxLength, ", PEB64: %0*llx", gGuest.WordSize * 2, Process->Peb64Address);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -460,9 +565,9 @@ IntExceptPrintWinProcInfo(
     {
         ret = snprintf(Line, MaxLength, ", PEB32: %0*llx", gGuest.WordSize * 2, Process->Peb32Address);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -476,9 +581,9 @@ IntExceptPrintWinProcInfo(
     {
         ret = snprintf(Line, MaxLength, ", CLI:`%s`", Process->CommandLine);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -489,8 +594,17 @@ IntExceptPrintWinProcInfo(
     }
 
     ret = snprintf(Line, MaxLength, ")");
-    total += ret;
 
+    if (ret < 0 || ret >= MaxLength)
+    {
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
+    }
+    else
+    {
+        Line += ret;
+        total += ret;
+        MaxLength -= ret;
+    }
     return total;
 }
 
@@ -554,9 +668,9 @@ IntExceptPrintWinModInfo(
         ret = snprintf(Line, MaxLength, "%s(%s", Header, name);
     }
 
-    if (ret < 0)
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -567,9 +681,10 @@ IntExceptPrintWinModInfo(
 
     ret = snprintf(Line, MaxLength, " [0x%08x], %0*llx, F%x",
                    nameHash, gGuest.WordSize * 2, Module->VirtualBase, Module->Flags);
-    if (ret < 0)
+
+    if (ret < 0 || ret >= MaxLength)
     {
-        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
     }
     else
     {
@@ -583,9 +698,9 @@ IntExceptPrintWinModInfo(
         ret = snprintf(Line, MaxLength, ", VerInfo: %x:%x",
                        Module->Cache->Info.TimeDateStamp, Module->Cache->Info.SizeOfImage);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -599,10 +714,9 @@ IntExceptPrintWinModInfo(
     {
         ret = snprintf(Line, MaxLength, ", IAT: %x:%x",
                        Module->Cache->Info.IatRva, Module->Cache->Info.IatSize);
-
-        if (ret < 0)
+        if (ret < 0 || ret >= MaxLength)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
         }
         else
         {
@@ -613,7 +727,16 @@ IntExceptPrintWinModInfo(
     }
 
     ret = snprintf(Line, MaxLength, ")");
-    total += ret;
+    if (ret < 0 || ret >= MaxLength)
+    {
+        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, MaxLength);
+    }
+    else
+    {
+        Line += ret;
+        total += ret;
+        MaxLength -= ret;
+    }
 
     return total;
 }
@@ -669,7 +792,7 @@ IntExceptUserLogWindowsInformation(
 
     if ((Victim->ZoneType == exceptionZoneProcess) ||
         (Victim->Object.Type == introObjectTypeUmGenericNxZone) ||
-        (Victim->Object.Type == introObjectTypeSharedUserData))
+        (Victim->Object.Type == introObjectTypeSudExec))
     {
         WIN_PROCESS_OBJECT *pParent = IntWinProcFindObjectByEprocess(Originator->WinProc->ParentEprocess);
 
@@ -686,9 +809,9 @@ IntExceptUserLogWindowsInformation(
             ret = snprintf(l, rem, ", RIP: %0*llx", gGuest.WordSize * 2, Originator->Rip);
         }
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -703,7 +826,7 @@ IntExceptUserLogWindowsInformation(
         LOG("%s\n", gExcLogLine);
 
         if ((Victim->Object.Type == introObjectTypeUmGenericNxZone ||
-            Victim->Object.Type == introObjectTypeSharedUserData) &&
+            Victim->Object.Type == introObjectTypeSudExec) &&
             Originator->Return.Library &&
             Originator->Return.Rip != Originator->Rip)
         {
@@ -715,14 +838,21 @@ IntExceptUserLogWindowsInformation(
                                            l,
                                            rem,
                                            modNameAlignment);
-            rem -= ret;
-            l += ret;
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
 
             ret = snprintf(l, rem, ", RIP %0*llx", gGuest.WordSize * 2, Originator->Return.Rip);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -732,6 +862,33 @@ IntExceptUserLogWindowsInformation(
 
             LOG("%s\n", gExcLogLine);
         }
+    }
+    else if (Victim->ZoneType == exceptionZonePc)
+    {
+        WIN_PROCESS_OBJECT *pParent = IntWinProcFindObjectByEprocess(Originator->WinProc->ParentEprocess);
+
+        ret = IntExceptPrintWinProcInfo(Originator->WinProc, "Originator-> Process: ", l, rem, 14);
+        rem -= ret;
+        l += ret;
+
+        ret = snprintf(l, rem, ", Type: %s (0x%08x)", IntExceptUserGetPcTypeString(Originator->PcType),
+                       Originator->PcType);
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
+
+        ret = IntExceptPrintWinProcInfo(pParent, ", Parent: ", l, rem, 0);
+        rem -= ret;
+        l += ret;
+
+        LOG("%s\n", gExcLogLine);
     }
     else if (Victim->Object.Type == introObjectTypeUmModule)
     {
@@ -745,14 +902,21 @@ IntExceptUserLogWindowsInformation(
         }
 
         ret = IntExceptPrintWinModInfo(Originator->WinLib, "Originator-> Module: ", l, rem, modNameAlignment);
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         ret = snprintf(l, rem, ", RIP %0*llx", gGuest.WordSize * 2, Originator->Rip);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -766,9 +930,9 @@ IntExceptUserLogWindowsInformation(
 
         ret = snprintf(l, rem, ", Instr: %s", instr);
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -788,14 +952,21 @@ IntExceptUserLogWindowsInformation(
                                            l,
                                            rem,
                                            modNameAlignment);
-            rem -= ret;
-            l += ret;
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
 
             ret = snprintf(l, rem, ", RIP %0*llx", gGuest.WordSize * 2, Originator->Return.Rip);
 
-            if (ret < 0)
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -812,7 +983,7 @@ IntExceptUserLogWindowsInformation(
 
     if ((Victim->ZoneType == exceptionZoneProcess) ||
         (Victim->Object.Type == introObjectTypeUmGenericNxZone) ||
-        (Victim->Object.Type == introObjectTypeSharedUserData))
+        (Victim->Object.Type == introObjectTypeSudExec))
     {
         WIN_PROCESS_OBJECT *pParent = IntWinProcFindObjectByEprocess(Victim->Object.WinProc->ParentEprocess);
 
@@ -836,9 +1007,9 @@ IntExceptUserLogWindowsInformation(
                            Victim->ExecInfo.StackLimit, gGuest.WordSize * 2, Victim->ExecInfo.Rsp);
         }
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -879,8 +1050,15 @@ IntExceptUserLogWindowsInformation(
             rem = sizeof(gExcLogLine);
 
             ret = IntExceptPrintWinModInfo(Victim->Object.Library.WinMod, "Victim    -> Module: ", l, rem, 0);
-            l += ret;
-            rem -= ret;
+            if (ret < 0 || ret >= rem)
+            {
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+            }
+            else
+            {
+                rem -= ret;
+                l += ret;
+            }
 
             if (Victim->ZoneType == exceptionZoneProcess)
             {
@@ -890,7 +1068,6 @@ IntExceptUserLogWindowsInformation(
             {
                 startGva = exportGva = Victim->Ept.Gva;
             }
-
 
             if (Victim->Object.Library.Export == NULL)
             {
@@ -904,9 +1081,10 @@ IntExceptUserLogWindowsInformation(
             if (pExport != NULL)
             {
                 ret = snprintf(l, rem, ", Exports (%u) : [", pExport->NumberOfOffsets);
-                if (ret < 0)
+
+                if (ret < 0 || ret >= rem)
                 {
-                    ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 }
                 else
                 {
@@ -925,23 +1103,23 @@ IntExceptUserLogWindowsInformation(
                         ret = snprintf(l, rem, "'%s',", pExport->Names[export]);
                     }
 
-                    if (ret < 0)
+                    if (ret < 0 || ret >= rem)
                     {
-                        ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                        ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                     }
                     else
                     {
                         rem -= ret;
                         l += ret;
                     }
-
                 }
 
                 ret = snprintf(l, rem, "], Delta: +%02x, ",
                                (DWORD)(Victim->Ept.Gva - Victim->Object.Library.WinMod->VirtualBase - pExport->Rva));
-                if (ret < 0)
+
+                if (ret < 0 || ret >= rem)
                 {
-                    ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 }
                 else
                 {
@@ -953,6 +1131,20 @@ IntExceptUserLogWindowsInformation(
             LOG("%s\n", gExcLogLine);
         }
     }
+    else if (Victim->ZoneType == exceptionZonePc)
+    {
+        WIN_PROCESS_OBJECT *pParent = IntWinProcFindObjectByEprocess(Victim->Object.WinProc->ParentEprocess);
+
+        ret = IntExceptPrintWinProcInfo(Victim->Object.WinProc, "Victim    -> Process: ", l, rem, 14);
+        rem -= ret;
+        l += ret;
+
+        ret = IntExceptPrintWinProcInfo(pParent, ", Parent: ", l, rem, 0);
+        rem -= ret;
+        l += ret;
+
+        LOG("%s\n", gExcLogLine);
+    }
     else if (Victim->Object.Type == introObjectTypeUmModule)
     {
         WINUM_CACHE_EXPORT *pExport = NULL;
@@ -962,8 +1154,15 @@ IntExceptUserLogWindowsInformation(
                                        l,
                                        rem,
                                        modNameAlignment);
-        rem -= ret;
-        l += ret;
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
 
         if (Victim->Object.Library.Export == NULL)
@@ -978,9 +1177,10 @@ IntExceptUserLogWindowsInformation(
         if (pExport != NULL)
         {
             ret = snprintf(l, rem, ", Exports (%u) : [", pExport->NumberOfOffsets);
-            if (ret < 0)
+
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -999,9 +1199,9 @@ IntExceptUserLogWindowsInformation(
                     ret = snprintf(l, rem, "'%s',", pExport->Names[export]);
                 }
 
-                if (ret < 0)
+                if (ret < 0 || ret >= rem)
                 {
-                    ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                    ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
                 }
                 else
                 {
@@ -1013,9 +1213,10 @@ IntExceptUserLogWindowsInformation(
 
             ret = snprintf(l, rem, "], Delta: +%02x, ",
                            (DWORD)(Victim->Ept.Gva - Victim->Object.Library.WinMod->VirtualBase - pExport->Rva));
-            if (ret < 0)
+
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -1027,9 +1228,10 @@ IntExceptUserLogWindowsInformation(
         ret = snprintf(l, rem, ", Address: (%0*llx, %0*llx)",
                        gGuest.WordSize * 2, Victim->Ept.Gva,
                        gGuest.WordSize * 2, Victim->Ept.Gpa);
-        if (ret < 0)
+
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1041,9 +1243,10 @@ IntExceptUserLogWindowsInformation(
                        Victim->WriteInfo.AccessSize,
                        Victim->WriteInfo.OldValue[0],
                        Victim->WriteInfo.NewValue[0]);
-        if (ret < 0)
+
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1060,9 +1263,10 @@ IntExceptUserLogWindowsInformation(
                            (Victim->ZoneFlags & ZONE_LIB_DATA) ? " DATA" : "",
                            (Victim->ZoneFlags & ZONE_LIB_RESOURCES) ? " RSRC" : "",
                            (unsigned long long)Victim->ZoneFlags);
-            if (ret < 0)
+
+            if (ret < 0 || ret >= rem)
             {
-                ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+                ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
             }
             else
             {
@@ -1081,9 +1285,10 @@ IntExceptUserLogWindowsInformation(
 
         ret = snprintf(l, rem, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^%sMALWARE (user-mode) ",
                        (Victim->Object.WinProc->BetaDetections) ? " (B) " : " ");
-        if (ret < 0)
+
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1134,9 +1339,9 @@ IntExceptUserLogWindowsInformation(
             break;
         }
 
-        if (ret < 0)
+        if (ret < 0 || ret >= rem)
         {
-            ERROR("[ERROR] Encoding error with snprintf: %d\n", ret);
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
         }
         else
         {
@@ -1144,7 +1349,17 @@ IntExceptUserLogWindowsInformation(
             l += ret;
         }
 
-        snprintf(l, rem, " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+        ret = snprintf(l, rem, " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+
+        if (ret < 0 || ret >= rem)
+        {
+            ERROR("[ERROR] snprintf error: %d, size %d\n", ret, rem);
+        }
+        else
+        {
+            rem -= ret;
+            l += ret;
+        }
 
         LOG("%s\n\n", gExcLogLine);
     }
@@ -1364,6 +1579,55 @@ _skip_trap_frame:
                        PAGE_SIZE,
                        pVictim->Cr3);
         }
+        else if (Originator->PcType == INT_PC_VIOLATION_DPI_SEC_DESC ||
+                 Originator->PcType == INT_PC_VIOLATION_DPI_ACL_EDIT)
+        {
+             WIN_PROCESS_OBJECT *pVictim = Victim->Object.Process;
+             WIN_PROCESS_OBJECT *pOriginator = Originator->Process;
+             WIN_PROCESS_OBJECT *pStolenFrom = IntWinProcFindObjectByEprocess(
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.SecDescStolenFromEproc);
+
+             if (Originator->PcType == INT_PC_VIOLATION_DPI_SEC_DESC)
+             {
+                 LOG("[DPI] Process %s [0x%08x] (%d, 0x%016llx) was created by %s [0x%08x] (%d, 0x%016llx) "
+                     "using an altered SD (stolen from process %s [0x%08x] (%d, 0x%016llx))\n",
+                     pOriginator->Name,
+                     pOriginator->NameHash,
+                     pOriginator->Pid,
+                     pOriginator->EprocessAddress,
+                     pVictim->Name,
+                     pVictim->NameHash,
+                     pVictim->Pid,
+                     pVictim->EprocessAddress,
+                     pStolenFrom ? pStolenFrom->Name : "NULL",
+                     pStolenFrom ? pStolenFrom->NameHash : 0,
+                     pStolenFrom ? pStolenFrom->Pid : 0,
+                     pStolenFrom ? pStolenFrom->EprocessAddress : 0);
+             }
+             else
+             {
+                 LOG("[DPI] SACL/DACL for process 0x%llx (%d / %s) have been modified\n",
+                     pVictim->EprocessAddress, pVictim->Pid, pVictim->Name);
+             }
+
+             // By having a different security descriptor pointer, the contents will almost certainly be different.
+             LOG("[DPI] Old SACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x "
+                 "New SACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x "
+                 "Old DACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x "
+                 "New DACL AclSize:0x%x, AceCount:0x%x, AclRevision:0x%x\n",
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.OldSacl.AclSize,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.OldSacl.AceCount,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.OldSacl.AclRevision,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.NewSacl.AclSize,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.NewSacl.AceCount,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.NewSacl.AclRevision,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.OldDacl.AclSize,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.OldDacl.AceCount,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.OldDacl.AclRevision,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.NewDacl.AclSize,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.NewDacl.AceCount,
+                 pVictim->DpiExtraInfo.DpiSecDescAclExtraInfo.NewDacl.AclRevision);
+        }
         else
         {
             ERROR("[ERROR] Victim has type introObjectTypeProcessCreationDpi but no known flag was given, "
@@ -1434,10 +1698,10 @@ IntExceptUserMatchZoneType(
         match = TRUE;
         break;
 
-    // We want to match only object_type process, not thread-context or thread-apc
+    // We want to match only object_type process, not thread-context, thread-apc or instrument.
     case umObjProcess:
         if (Victim->ZoneType == exceptionZoneProcess &&
-            (Victim->ZoneFlags & (ZONE_PROC_THREAD_CTX | ZONE_PROC_THREAD_APC)) == 0)
+            (Victim->ZoneFlags & (ZONE_PROC_THREAD_CTX | ZONE_PROC_THREAD_APC | ZONE_PROC_INSTRUMENT)) == 0)
         {
             match = TRUE;
         }
@@ -1466,7 +1730,7 @@ IntExceptUserMatchZoneType(
         break;
 
     case umObjSharedUserData:
-        if (Victim->Object.Type == introObjectTypeSharedUserData)
+        if (Victim->Object.Type == introObjectTypeSudExec)
         {
             match = TRUE;
         }
@@ -1496,6 +1760,14 @@ IntExceptUserMatchZoneType(
         }
         break;
 
+    case umObjProcessInstrumentation:
+        if ((Victim->ZoneType == exceptionZoneProcess) &&
+            (Victim->ZoneFlags & ZONE_PROC_INSTRUMENT))
+        {
+            match = TRUE;
+        }
+        break;
+
     case umObjProcessPeb32:
         if (Victim->Injection.Gva >= Victim->Object.WinProc->Peb32Address &&
             Victim->Injection.Gva < Victim->Object.WinProc->Peb32Address + WIN_UM_FIELD(Peb, 32Size))
@@ -1513,14 +1785,16 @@ IntExceptUserMatchZoneType(
         break;
 
     case umObjProcessCreation:
-        if (Victim->Object.Type == introObjectTypeProcessCreation)
+        if (Victim->Object.Type == introObjectTypeProcessCreation &&
+            Victim->ZoneType == exceptionZonePc)
         {
             match = TRUE;
         }
         break;
 
     case umObjProcessCreationDpi:
-        if (Victim->Object.Type == introObjectTypeProcessCreationDpi)
+        if (Victim->Object.Type == introObjectTypeProcessCreationDpi &&
+            Victim->ZoneType == exceptionZonePc)
         {
             match = TRUE;
         }
@@ -1616,7 +1890,7 @@ IntExceptUserMatchChild(
 {
     BOOLEAN match = TRUE;
 
-    if ((Victim->ZoneType == exceptionZoneProcess) &&
+    if ((Victim->ZoneType == exceptionZoneProcess || Victim->ZoneType == exceptionZonePc) &&
         (ExceptionFlags & EXCEPTION_UM_FLG_CHILD_PROC))
     {
         if (gGuest.OSType == introGuestWindows)
@@ -1890,7 +2164,7 @@ IntExceptUserLogInformation(
 
     if ((Victim->Object.Type == introObjectTypeUmModule) ||
         (Victim->Object.Type == introObjectTypeUmGenericNxZone) ||
-        (Victim->Object.Type == introObjectTypeSharedUserData))
+        (Victim->Object.Type == introObjectTypeSudExec))
     {
         IntExceptDumpSignatures(Originator, Victim, FALSE, FALSE);
     }
@@ -1931,7 +2205,8 @@ IntExceptUserLogInformation(
                           TRUE,
                           TRUE);
         }
-        else if ((Victim->ZoneFlags & (ZONE_PROC_THREAD_CTX | ZONE_PROC_THREAD_APC | ZONE_MODULE_LOAD)) == 0)
+        else if ((Victim->ZoneFlags &
+            (ZONE_PROC_THREAD_CTX | ZONE_PROC_THREAD_APC | ZONE_PROC_INSTRUMENT | ZONE_MODULE_LOAD | ZONE_READ)) == 0)
         {
             IntDumpGva(Originator->SourceVA,
                        Victim->Injection.Length,
@@ -2076,7 +2351,12 @@ _get_stack:
     if (!INT_SUCCESS(status) &&
         stack.NumberOfTraces == 0)
     {
-        if (Module != NULL)
+        // Don't log an error if we are checking an invalid originator or if the stack is swapped out.
+        // For the first case it is very possible we wouldn't find anything anyway, and for the second case,
+        // we'll handle this case by injecting a #PF and retrying if needed, on returning from this function.
+        // Note that, in case we found at least a trace, we would not bother with the stack swapped out
+        // case, as the information gathered should be enough for the exception mechanism to work properly.
+        if (Module != NULL && status != INT_STATUS_STACK_SWAPPED_OUT)
         {
             ERROR("[ERROR] IntWinStackTraceGetUser failed: %08x\n", status);
         }
@@ -2211,6 +2491,13 @@ IntExceptUserGetOriginator(
         if (!INT_SUCCESS(status))
         {
             WARNING("[WARNING] IntExceptUserHandleMemoryFunctions failed: %08x\n", status);
+
+            // Propagate the INT_STATUS_STACK_SWAPPED_OUT status so that the caller would handle it
+            // properly by injecting #PF on the stack and retrying the instruction if needed.
+            if (status == INT_STATUS_STACK_SWAPPED_OUT)
+            {
+                return status;
+            }
         }
     }
     else if (ModuleWrite && gGuest.OSType == introGuestLinux)
@@ -2280,7 +2567,7 @@ IntExceptGetVictimProcessCreation(
     Victim->Object.Process = Process;
 
     Victim->ZoneFlags = ZONE_EXECUTE;
-    Victim->ZoneType = exceptionZoneProcess;
+    Victim->ZoneType = exceptionZonePc;
 
     if (gGuest.OSType == introGuestWindows)
     {
@@ -2695,6 +2982,17 @@ IntExceptUser(
     *Reason = introReasonNoException;
 
     status = INT_STATUS_EXCEPTION_NOT_MATCHED;
+
+    // In some cases the Old/New values are the same - allow them by default.
+    if (__unlikely(Victim->ZoneType == exceptionZoneEpt && !!(Victim->ZoneFlags & ZONE_WRITE) &&
+        !memcmp(Victim->WriteInfo.OldValue, Victim->WriteInfo.NewValue,
+                MIN(Victim->WriteInfo.AccessSize, sizeof(Victim->WriteInfo.NewValue)))))
+    {
+        *Action = introGuestAllowed;
+        *Reason = introReasonSameValue;
+
+        return INT_STATUS_EXCEPTION_ALLOW;
+    }
 
     for_each_um_exception(gGuest.Exceptions->UserAlertExceptions, pEx)
     {

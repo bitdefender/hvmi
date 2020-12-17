@@ -5,6 +5,7 @@
 #include "slack.h"
 #include "guests.h"
 #include "winpe.h"
+#include "alerts.h"
 
 
 ///
@@ -54,6 +55,69 @@ static LIST_HEAD gSlackAllocations = LIST_HEAD_INIT(gSlackAllocations);
 
 #define for_each_slack(_var_name)                    list_for_each(gSlackAllocations, SLACK_SPACE, _var_name)
 
+
+static INTSTATUS
+IntSlackSendIntegrityAlert(
+    _In_ QWORD VirtualAddress,
+    _In_ DWORD Size,
+    _In_ BYTE Value
+    )
+///
+/// @brief Sends an integrity alert if the slack buffer not 0-filled/NOP-filled.
+///
+/// @param[in]  VirtualAddress  The beginning guest virtual address of the slack memory region.
+/// @param[in]  Size            The size of the slack memory region.
+/// @param[in]  Value           The first value that is not equal to zero.
+///
+/// @retval     INT_STATUS_SUCCESS                  On success.
+///
+{
+    INTSTATUS status = INT_STATUS_SUCCESS;
+    EVENT_INTEGRITY_VIOLATION *pEvent = &gAlert.Integrity;
+    KERNEL_DRIVER *pDriver = NULL;
+
+    memzero(pEvent, sizeof(*pEvent));
+
+    pEvent->Header.Action = introGuestAllowed;
+    pEvent->Header.Reason = introReasonAllowed;
+    pEvent->Header.MitreID = idHooking;
+
+    pEvent->Header.Flags &= ~ALERT_FLAG_NOT_RING0;
+
+    IntAlertFillVersionInfo(&pEvent->Header);
+    IntAlertFillCpuContext(FALSE, &pEvent->Header.CpuContext);
+
+    pDriver = IntDriverFindByAddress(VirtualAddress);
+    if (pDriver)
+    {
+        if (gGuest.OSType == introGuestWindows)
+        {
+            IntAlertFillWinKmModule(pDriver, &pEvent->Originator.Module);
+        }
+        else if (gGuest.OSType == introGuestLinux)
+        {
+            IntAlertFillLixKmModule(pDriver, &pEvent->Originator.Module);
+        }
+    }
+
+    pEvent->Header.CpuContext.Valid = FALSE;
+    pEvent->Victim.Type = introObjectTypeSlackSpace;
+
+    pEvent->BaseAddress = VirtualAddress;
+    pEvent->VirtualAddress = VirtualAddress;
+    pEvent->Size = Size;
+
+    pEvent->WriteInfo.Size = Size;
+    memcpy(pEvent->WriteInfo.NewValue, &Value, sizeof(BYTE));
+
+    status = IntNotifyIntroEvent(introEventIntegrityViolation, pEvent, sizeof(*pEvent));
+    if (!INT_SUCCESS(status))
+    {
+        WARNING("[WARNING] IntNotifyIntroEvent failed: 0x%08x\n", status);
+    }
+
+    return INT_STATUS_SUCCESS;
+}
 
 
 static INTSTATUS
@@ -218,6 +282,8 @@ IntSlackAllocWindows(
                 {
                     if (0 != buf[j])
                     {
+                        IntSlackSendIntegrityAlert(gva, Size, buf[j]);
+
                         ERROR("[ERROR] Slack buffer not 0-filled! 0x%016llx\n", gva + j);
                         IntDumpBuffer(buf, gva, Size, 8, 1, TRUE, TRUE);
                         HpFreeAndNullWithTag(&buf, IC_TAG_ALLOC);
@@ -358,6 +424,8 @@ IntSlackAllocLinux(
 
         IntVirtMemUnmap(&p);
     }
+
+    IntSlackSendIntegrityAlert(gva, Size, 0);
 
     return INT_STATUS_INSUFFICIENT_RESOURCES;
 }

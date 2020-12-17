@@ -49,6 +49,13 @@
                 "patchguard-idt-codeblocks",
                 "patchguard-idt"
             ]
+        },
+        
+        {
+            "flags": "init integrity",
+            "originator": "[kernel]",
+            "victim": "\\filesystem\\refs",
+            "object_type": "fastio"
         }
     ]
 }

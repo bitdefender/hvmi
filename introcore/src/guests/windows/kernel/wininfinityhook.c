@@ -881,9 +881,6 @@ IntWinInfHookIntegrityHandleWrite(
     BOOLEAN exitAfterInformation = FALSE;
     INTRO_ACTION_REASON reason;
 
-    UNREFERENCED_PARAMETER(OldValue);
-    UNREFERENCED_PARAMETER(NewValue);
-
     *Action = introGuestNotAllowed;
     reason = introReasonUnknown;
 
@@ -1056,7 +1053,7 @@ IntWinInfHookSiloWmiPtrIntegrityCallback(
 ///
 {
     INTSTATUS status;
-    QWORD wmiLoggerCtx;
+    QWORD wmiLoggerCtx = 0;
     BOOLEAN shouldSkipHook = FALSE;
 
     if (NULL != gLoggerCtxState.WmiLoggerIntegrityObject)

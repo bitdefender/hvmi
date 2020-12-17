@@ -558,7 +558,7 @@ IntAlertFillReadInfo(
         return;
     }
 
-    ReadInfo->Size = Victim->WriteInfo.AccessSize;
+    ReadInfo->Size = Victim->ReadInfo.AccessSize;
 
     memcpy(ReadInfo->Value, Victim->ReadInfo.Value, MIN(sizeof(ReadInfo->Value), ReadInfo->Size));
 }
@@ -1027,7 +1027,10 @@ IntAlertEptFillFromVictimZone(
     case introObjectTypeSelfMapEntry:
     case introObjectTypeKmLoggerContext:
     case introObjectTypeTokenPrivs:
-    case introObjectTypeSharedUserData:
+    case introObjectTypeSudExec:
+    case introObjectTypeHalHeap:
+    case introObjectTypeSecDesc:
+    case introObjectTypeAcl:
         break;
 
     case introObjectTypeIdt:
@@ -1486,6 +1489,31 @@ IntAlertFillDpiExtraInfo(
                        VictimProcess->Cr3,
                        ExtraInfo->DpiThreadStart.StartPage,
                        NULL);
+    }
+    else if (PcType == INT_PC_VIOLATION_DPI_SEC_DESC ||
+             PcType == INT_PC_VIOLATION_DPI_ACL_EDIT)
+    {
+         if (PcType == INT_PC_VIOLATION_DPI_SEC_DESC)
+         {
+             IntAlertFillWinProcess(IntWinProcFindObjectByEprocess(
+                 CollectedExtraInfo->DpiSecDescAclExtraInfo.SecDescStolenFromEproc),
+                 &ExtraInfo->DpiSecDescAcl.SecDescStolenFrom);
+         
+             ExtraInfo->DpiSecDescAcl.NewPointerValue = CollectedExtraInfo->DpiSecDescAclExtraInfo.NewPtrValue;
+             ExtraInfo->DpiSecDescAcl.OldPointerValue = CollectedExtraInfo->DpiSecDescAclExtraInfo.OldPtrValue;
+         }
+         
+         COPY_ACL_TO_INTRO_ACL(CollectedExtraInfo->DpiSecDescAclExtraInfo.NewSacl,
+             ExtraInfo->DpiSecDescAcl.NewSacl);
+         
+         COPY_ACL_TO_INTRO_ACL(CollectedExtraInfo->DpiSecDescAclExtraInfo.NewDacl,
+             ExtraInfo->DpiSecDescAcl.NewDacl);
+         
+         COPY_ACL_TO_INTRO_ACL(CollectedExtraInfo->DpiSecDescAclExtraInfo.OldSacl,
+             ExtraInfo->DpiSecDescAcl.OldSacl);
+         
+         COPY_ACL_TO_INTRO_ACL(CollectedExtraInfo->DpiSecDescAclExtraInfo.OldDacl,
+             ExtraInfo->DpiSecDescAcl.OldDacl);
     }
     else
     {

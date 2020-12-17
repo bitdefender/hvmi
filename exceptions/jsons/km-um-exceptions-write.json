@@ -27,6 +27,34 @@
                 "km-um-browsers-common-export-sig",
                 "km-um-firefox-exports"
             ]
+        },
+        
+        {
+            "flags" : "32 64 user",
+            "process":  "chrome.exe",
+            "originator": "chrome.exe",
+            "victim" : "ntdll.dll",
+            "object_type": "module",
+            "signatures": [
+                "km-um-codeblocks-sig-64",
+                "km-um-codeblocks-sig-32",
+                "km-um-browsers-common-export-sig",
+                "km-um-chromium-exports"
+            ]
+        },
+        
+        {
+            "flags" : "32 64 user",
+            "process":  "firefox.exe",
+            "originator": "firefox.exe",
+            "victim" : "ntdll.dll",
+            "object_type": "module",
+            "signatures": [
+                "km-um-codeblocks-sig-64",
+                "km-um-codeblocks-sig-32",
+                "km-um-browsers-common-export-sig",
+                "km-um-firefox-exports"
+            ]
         }
     ]
 }
