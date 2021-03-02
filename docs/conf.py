@@ -16,9 +16,20 @@ import sys
 import sphinx_bootstrap_theme
 import subprocess
 import pathlib
+from pathlib import Path
 
 def generate_doxygen():
-    subprocess.call('cd .. && doxygen Doxygen/Doxyfile', shell=True)
+    # The Doxygen directory is one level up, so go there.
+    parent_dir = Path(__file__).absolute().parent.parent
+
+    # We don't catch any of the exceptions that could be thrown here because we want the build to fail if something
+    # exceptional happens.
+    p = subprocess.Popen(['doxygen', 'Doxygen/Doxyfile'], cwd=parent_dir)
+    # A generous timeout.
+    p.wait(timeout=120)
+    if p.returncode != 0:
+        print("Doxygen generation failed!")
+        sys.exit(1)
 
 generate_doxygen()
 
