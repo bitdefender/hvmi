@@ -81,6 +81,7 @@ Injection protection
     - **no**
     - Injection_
     - Enable injection protection inside the target process, using the instrumentation callback **NtSetInformationProcess** technique (Windows).
+
 Exploit protection
 ------------------
 
