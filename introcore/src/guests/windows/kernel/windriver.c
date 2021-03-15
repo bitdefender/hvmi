@@ -757,7 +757,6 @@ IntWinDrvHeadersInMemory(
     UNREFERENCED_PARAMETER(Cr3);
     UNREFERENCED_PARAMETER(VirtualAddress);
     UNREFERENCED_PARAMETER(PhysicalAddress);
-    UNREFERENCED_PARAMETER(Data);
     UNREFERENCED_PARAMETER(Flags);
     UNREFERENCED_PARAMETER(DataSize);
 
@@ -771,19 +770,18 @@ IntWinDrvHeadersInMemory(
     TRACE("[DRIVER] Adding protection on driver '%s' at %llx...\n",
           utf16_for_log(pDriver->Name), pDriver->BaseVa);
 
-    pDriver->Win.MzPeHeaders = HpAllocWithTag(PAGE_SIZE, IC_TAG_HDRS);
+    // Just in case someone allocated these headers already.
     if (NULL == pDriver->Win.MzPeHeaders)
     {
-        return INT_STATUS_INSUFFICIENT_RESOURCES;
+        pDriver->Win.MzPeHeaders = HpAllocWithTag(PAGE_SIZE, IC_TAG_HDRS);
+        if (NULL == pDriver->Win.MzPeHeaders)
+        {
+            return INT_STATUS_INSUFFICIENT_RESOURCES;
+        }
     }
 
-    // Read the kernel headers and cache them internally for every protected driver.
-    status = IntKernVirtMemRead(pDriver->BaseVa, PAGE_SIZE, pDriver->Win.MzPeHeaders, NULL);
-    if (!INT_SUCCESS(status))
-    {
-        ERROR("[ERROR] IntKernVirtMemRead failed: 0x%08x\n", status);
-        return status;
-    }
+    // Copy the kernel headers and cache them internally for every protected driver.
+    memcpy(pDriver->Win.MzPeHeaders, Data, PAGE_SIZE);
 
     status = IntPeValidateHeader(pDriver->BaseVa, pDriver->Win.MzPeHeaders, PAGE_SIZE, &peInfo, 0);
     if (!INT_SUCCESS(status))

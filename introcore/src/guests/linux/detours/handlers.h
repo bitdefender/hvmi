@@ -14,6 +14,7 @@ typedef enum {
     det_module_param_sysfs_remove,
     det_wake_up_new_task,
     det_flush_old_exec,
+    det_begin_new_exec,
     det_do_exit,
     det_arch_ptrace,
     det_compat_arch_ptrace,
@@ -42,6 +43,10 @@ typedef enum {
 typedef char * (d_path_fn)(void *path, char *buf, int buflen);
 
 typedef struct _LIX_GUEST_OS_SPECIFIC {
+    struct {
+        unsigned int CredAltered;
+    } Info;
+
     struct {
         unsigned int MmOffset;
         unsigned int FlagsOffset;

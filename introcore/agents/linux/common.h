@@ -40,6 +40,23 @@
 #define UMH_KILLABLE         4
 #define LIX_NAME_MAX         128
 
+#define __VMALLOC_BASE_L4   0xffffc90000000000UL
+#define __VMALLOC_BASE_L5   0xffa0000000000000UL
+
+#define VMALLOC_SIZE_TB_L4  32UL
+#define VMALLOC_SIZE_TB_L5  12800UL
+
+#define __VMEMMAP_BASE_L4   0xffffea0000000000UL
+#define __VMEMMAP_BASE_L5   0xffd4000000000000UL
+
+# define VMALLOC_START      __VMALLOC_BASE_L4
+# define VMALLOC_SIZE_TB    VMALLOC_SIZE_TB_L4
+# define VMEMMAP_START      __VMEMMAP_BASE_L4
+
+#define VMALLOC_END         (VMALLOC_START + (VMALLOC_SIZE_TB << 40) - 1)
+
+#define PAGE_KERNEL_EXEC 0x163
+
 #define KERNEL_VERSION(K, Patch, Sublevel)    ((Sublevel) | ((Patch) << 16) | ((K) << 24))
 
 # define __unreachable  __builtin_unreachable()

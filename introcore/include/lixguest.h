@@ -102,6 +102,8 @@ typedef enum _LIX_FIELD_INFO
     lixFieldInfoHasVmaAdjustExpand,     ///< Unused.
     lixFieldInfoHasVdsoFixed,           ///< The guest has is build with VSYSCALL support.
     lixFieldInfoHasKsymReducedSize,     ///< The size of a 'kallsym_markers' entry is 4.
+    lixFieldInfoHasSlackInt3,           ///< The slack region contains INT3s.
+    lixFieldInfoCredAltered,            ///< The binprm->cred is altered by LSM.
     lixFieldInfoEnd                     ///< The end of tags.
 } LIX_FIELD_INFO;
 

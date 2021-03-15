@@ -106,7 +106,7 @@ LIX_AGENT_FUNCTIONS gLixAgentFunctionsCreateTread[] =
         {
             { .Required = 1, .Count = 1, .Name = { "kthread_create_on_node"} },
             { .Required = 1, .Count = 1, .Name = { "wake_up_process"} },
-            { .Required = 1, .Count = 1, .Name = { "vmalloc_exec" } },
+            { .Required = 1, .Count = 2, .Name = { "vmalloc_exec", "__vmalloc_node_range" } },
         }
     }
 };

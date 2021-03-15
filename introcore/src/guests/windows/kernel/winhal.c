@@ -1465,6 +1465,17 @@ IntWinHalCancelRead(
     INTSTATUS status;
     LIST_ENTRY *initEntry;
 
+    if (NULL != gHalData.HalHdrSwapHandle)
+    {
+        status = IntSwapMemRemoveTransaction(gHalData.HalHdrSwapHandle);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntSwapMemRemoveTransaction failed for HAL headers: 0x%08x\n", status);
+        }
+
+        gHalData.HalHdrSwapHandle = NULL;
+    }
+
     if (NULL == gHalData.HalBuffer)
     {
         return;
@@ -1605,6 +1616,9 @@ IntWinHalReadHal(
     INTRO_PE_INFO peInfo = { 0 };
     DWORD secCount, secStartOffset;
     IMAGE_DOS_HEADER *pDosHeader = (IMAGE_DOS_HEADER *)gHalData.OwnerHalModule->Win.MzPeHeaders;
+
+    // NOTE: The headers will always be valid here; they are either read in IntWinDrvProtect, if HAL protection is
+    // enabled, or by IntWinHalFindPerformanceCounter, if HAL protection is off.
 
     InitializeListHead(&gHalData.InitSwapHandles);
 
@@ -1856,7 +1870,60 @@ IntWinHalReadHal(
     }
 
     return status;
+}
 
+
+static INTSTATUS
+IntWinHalHeadersInMemory(
+    _In_ void *Context,
+    _In_ QWORD Cr3,
+    _In_ QWORD VirtualAddress,
+    _In_ QWORD PhysicalAddress,
+    _In_reads_bytes_(DataSize) void *Data,
+    _In_ DWORD DataSize,
+    _In_ DWORD Flags
+)
+///
+/// @brief This callback is called as soon as all the HAL headers have been read using #IntSwapMemReadData.
+///
+/// @param[in]  Context             The #KERNEL_DRIVER structure.
+/// @param[in]  Cr3                 The virtual address space.
+/// @param[in]  VirtualAddress      The base virtual address read.
+/// @param[in]  PhysicalAddress     The physical address of the first page (VirtualAddress) read.
+/// @param[in]  Data                Buffer containing the read data. This will be freed once the callback returns!
+/// @param[in]  DataSize            Size of the Data buffer. Will normally be equal to the Length
+///                                 passed to read function.
+/// @param[in]  Flags               Swap flags. Check out SWAPMEM_FLG* for more info.
+///
+/// @retval #INT_STATUS_SUCCESS  On success.
+///
+{
+    KERNEL_DRIVER *pDriver;
+
+    UNREFERENCED_PARAMETER(Cr3);
+    UNREFERENCED_PARAMETER(VirtualAddress);
+    UNREFERENCED_PARAMETER(PhysicalAddress);
+    UNREFERENCED_PARAMETER(Flags);
+    UNREFERENCED_PARAMETER(DataSize);
+
+    pDriver = Context;
+
+    gHalData.HalHdrSwapHandle = NULL;
+
+    // Just in case someone already allocated the headers.
+    if (NULL == pDriver->Win.MzPeHeaders)
+    {
+        pDriver->Win.MzPeHeaders = HpAllocWithTag(PAGE_SIZE, IC_TAG_HDRS);
+        if (NULL == pDriver->Win.MzPeHeaders)
+        {
+            return INT_STATUS_INSUFFICIENT_RESOURCES;
+        }
+    }
+
+    // Copy the headers internally.
+    memcpy(pDriver->Win.MzPeHeaders, Data, PAGE_SIZE);
+
+    return IntWinHalReadHal();
 }
 
 
@@ -1884,7 +1951,21 @@ IntWinHalFindPerformanceCounter(
     }
     else
     {
-        return IntWinHalReadHal();
+        // If the headers have already been read, proceed with reading the rest of the HAL. Otherwise, read the headers
+        // first, using IntSwapMemReadData (they may be, theoretically, swapped out).
+        if (gHalData.OwnerHalModule->Win.MzPeHeaders != NULL)
+        {
+            return IntWinHalReadHal();
+        }
+        else
+        {
+            // NOTE: Since a read may already be pending (or HAL protection may be activated in between), we cannot
+            // use the same swap object (the one located in the module object) for both this read and the protection
+            // read, since we will end up with a use-after-free.
+            return IntSwapMemReadData(0, gHalData.OwnerHalModule->BaseVa, PAGE_SIZE, SWAPMEM_OPT_BP_FAULT,
+                                      gHalData.OwnerHalModule, 0, IntWinHalHeadersInMemory, NULL,
+                                      &gHalData.HalHdrSwapHandle);
+        }
     }
 }
 

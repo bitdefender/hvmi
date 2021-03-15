@@ -346,6 +346,7 @@ IntSlackAllocLinux(
     INTSTATUS status;
     QWORD gva = gGuest.KernelVa;
     QWORD maxGva = gGuest.KernelVa + (2 * PAGE_SIZE);
+    BYTE opcode = LIX_FIELD(Info, HasSlackInt3) ? 0xCC : 0x90;
 
     //
     // If we have other allocations, don't bother to parse pages inside the kernel, just skip right after the
@@ -382,8 +383,8 @@ IntSlackAllocLinux(
         {
             DWORD foundSize = 0;
 
-            // Skip until the first NOP
-            while (offset < maxOffset && (p[offset] != 0x90))
+            // Skip until the first NOP/INT3
+            while (offset < maxOffset && (p[offset] != opcode))
             {
                 offset++;
             }
@@ -392,7 +393,8 @@ IntSlackAllocLinux(
             // offset goes from 0 -> maxOffset so last valid is maxOffset - 1
             // foundSize goes from 0 -> Size so last valid is Size - 1
             // worst case: p[maxOffset - 1 + Size - 1] = p[maxOffset + Size - 2] which is in the buffer still
-            while ((foundSize < Size) && (p[offset + foundSize] == 0x90))
+
+            while ((foundSize < Size) && (p[offset + foundSize] == opcode))
             {
                 foundSize++;
             }

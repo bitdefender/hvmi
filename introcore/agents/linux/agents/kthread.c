@@ -7,6 +7,9 @@
 typedef void * (kthread_create_on_node_fn)(int (*threadfn)(void *data), void *data, int node, const char namefmt[], ...);
 typedef void * (vmalloc_exec_fn)(unsigned long size);
 typedef int (wake_up_process_fn)(void *p);
+typedef void *(__vmalloc_node_range_fn)(unsigned long size, unsigned long align, unsigned long start, unsigned long end,
+                                     unsigned int gfp_mask, unsigned long prot, unsigned long vm_flags, int node,
+                                     const void *caller);
 
 struct data {
     /// @brief The tokens used to communicate with Intocore.
@@ -21,6 +24,7 @@ struct data {
         kthread_create_on_node_fn *kthread_create_on_node;
         wake_up_process_fn *wake_up_process;
         vmalloc_exec_fn *vmalloc_exec;
+        __vmalloc_node_range_fn *__vmalloc_node_range;
     } func;
 
     /// @brief The arguments of the agent.
@@ -43,7 +47,18 @@ void kthread(void)
 /// The section used for this function is .kthread_text'.
 ///
 {
-    void *ptr = _data.func.vmalloc_exec(_data.args.vmalloc_size);
+    void *ptr = NULL;
+
+    if (_data.func.vmalloc_exec)
+    {
+        ptr = _data.func.vmalloc_exec(_data.args.vmalloc_size);
+    }
+    else
+    {
+        ptr = _data.func.__vmalloc_node_range(_data.args.vmalloc_size, 1, VMALLOC_START, VMALLOC_END, GFP_KERNEL,
+                                              PAGE_KERNEL_EXEC, 0, -1, __func__);
+    }
+
     if (!ptr)
     {
         breakpoint_2(_data.token.error, _data.func.vmalloc_exec, 0);

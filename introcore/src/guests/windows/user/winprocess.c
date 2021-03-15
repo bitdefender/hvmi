@@ -4649,7 +4649,7 @@ IntWinProcPrepareInstrument(
     {
         { .Name = "PsProcessType",             .Addr = &h->Code[gGuest.Guest64 ? 0x1f : 0x34] },
         { .Name = "ObReferenceObjectByHandle", .Addr = &h->Code[gGuest.Guest64 ? 0x3b : 0x3c] },
-        { .Name = "ObDereferenceObject",       .Addr = &h->Code[gGuest.Guest64 ? 0x81 : 0x60] },
+        { .Name = "ObDereferenceObject",       .Addr = &h->Code[gGuest.Guest64 ? 0x86 : 0x65] },
     };
 
     UNREFERENCED_PARAMETER(FunctionAddress);
@@ -4679,7 +4679,7 @@ IntWinProcPrepareInstrument(
         }
     }
 
-    *(DWORD *)(void *)(&h->Code[gGuest.Guest64 ? 0x59 : 0x4c]) = WIN_KM_FIELD(Process, Spare);
+    *(DWORD *)(void *)(&h->Code[gGuest.Guest64 ? 0x5e : 0x51]) = WIN_KM_FIELD(Process, Spare);
 
     return INT_STATUS_SUCCESS;
 }

@@ -165,6 +165,7 @@ def_tramp                   module_param_sysfs_remove               module_param
 
 def_tramp                   wake_up_new_task                        wake_up_new_task_jmp
 def_tramp_skip              flush_old_exec                          flush_old_exec_jmp
+def_tramp_skip              begin_new_exec                          begin_new_exec_jmp
 def_tramp                   do_exit                                 do_exit_jmp
 
 def_tramp_skip              arch_ptrace                             arch_ptrace_jmp

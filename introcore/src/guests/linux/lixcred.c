@@ -714,7 +714,6 @@ IntLixCommitCredsHandle(
 {
     INTSTATUS status;
     LIX_CREDS *newCreds = NULL;
-    QWORD crtCredsGva = 0;
 
     UNREFERENCED_PARAMETER(Detour);
 
@@ -730,22 +729,25 @@ IntLixCommitCredsHandle(
         return INT_STATUS_SUCCESS;
     }
 
-    // We should make one last check to be sure they haven't changed in the meantime
-
-    IntLixCredsVerify(pTask);
-
-    if (pTask->Creds)
+    if (LIX_FIELD(Info, CredAltered))
     {
-        crtCredsGva = pTask->Creds->Gva;
+        DWORD in;
+
+        status = IntKernVirtMemFetchDword(pTask->Gva + LIX_FIELD(TaskStruct, InExecve), &in);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntKernVirtMemFetchDword failed for %llx with status: %08x\n",
+                    pTask->Gva + LIX_FIELD(TaskStruct, InExecve), status);
+        }
+        else if (0 == (in & BIT(LIX_FIELD(TaskStruct, InExecveBit))))
+        {
+            // We should make one last check to be sure they haven't changed in the meantime
+            IntLixCredsVerify(pTask);
+        }
     }
     else
     {
-        status = IntKernVirtMemFetchQword(pTask->Gva + LIX_FIELD(TaskStruct, Cred), &crtCredsGva);
-        if (!INT_SUCCESS(status))
-        {
-            ERROR("[ERROR] IntKernVirtMemFetchQword failed for %llx: 0x%08x\n",
-                  pTask->Gva + LIX_FIELD(TaskStruct, Cred), status);
-        }
+        IntLixCredsVerify(pTask);
     }
 
     status = IntLixCredAdd(gVcpu->Regs.R9, &newCreds);

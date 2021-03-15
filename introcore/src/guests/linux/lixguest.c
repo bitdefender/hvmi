@@ -1881,6 +1881,8 @@ IntLixGuestAllocateDeploy(
         return INT_STATUS_NOT_SUPPORTED;
     }
 
+    pHypercallPage->OsSpecificFields.Info.CredAltered = LIX_FIELD(Info, CredAltered);
+
     pHypercallPage->OsSpecificFields.Mm.FlagsOffset = LIX_FIELD(MmStruct, Flags);
     pHypercallPage->OsSpecificFields.Mm.ProtectionBit = 63;
     pHypercallPage->OsSpecificFields.Mm.Rb = LIX_FIELD(MmStruct, RbNode);
