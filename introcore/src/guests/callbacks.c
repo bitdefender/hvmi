@@ -582,7 +582,7 @@ _hook_continue:
         IntRtlpVirtualUnwindCheckAccess();
     }
 
-///#ifdef CHECK_PAGE_RIGHTS
+//#ifdef CHECK_PAGE_RIGHTS
     // Handle special cases where permission set may have failed silently, leaving a page with no registered hooks,
     // but with altered EPT permissions. Note that we are interested only in the exit GPA; in reality, the
     // mem access handler may be called for more addresses - practically, for each individual address accessed
@@ -602,7 +602,7 @@ _hook_continue:
     {
         IntValidatePageRights(LinearAddress, PhysicalAddress, access);
     }
-///#endif
+//#endif
 
     *Action = MAX(*Action, finalAction);
 

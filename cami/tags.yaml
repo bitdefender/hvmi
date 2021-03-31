@@ -18,6 +18,8 @@ lix_fields:
             - HasVmaAdjustExpand
             - HasVdsoFixed
             - HasKsymReducedSize
+            - HasSlackInt3
+            - CredAltered
 
     -
       Name: Module
@@ -225,6 +227,7 @@ win_km_fields:
         - MitigationFlags2
         - DebugPort
         - Spare
+        - InstrumentationCallback
 
     -
       Name: Thread
@@ -397,6 +400,10 @@ win_um_fields:
       Members:
         - 64Size
         - 32Size
+        - Kct
+        - Kct32
+        - KctNumberOfPtrs
+        - Kct32NumberOfPtrs
     -
       Name: Teb
       Members:
@@ -404,3 +411,6 @@ win_um_fields:
         - 32Size
         - Wow64SaveArea
         - Wow64StackInSaveArea
+        - Wow64InfoPtr
+        - Wow64InstrCbkInInfoPtr
+        - InstrCbkRet

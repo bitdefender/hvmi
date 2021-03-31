@@ -740,7 +740,7 @@ send_notification:
 cleanup_and_exit:
     if (NULL != pProcVictim)
     {
-        IntPolicyProcForceBetaIfNeeded(PROC_OPT_PROT_EXPLOIT, pProcVictim, &action);
+        IntPolicyProcForceBetaIfNeeded(PROC_OPT_PROT_SET_THREAD_CTX, pProcVictim, &action);
     }
 
     status = IntDetSetReturnValue(Detour, regs,

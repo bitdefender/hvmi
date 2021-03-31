@@ -74,6 +74,7 @@ const LIX_FN_DETOUR gLixHookHandlersx64[] =
     __init_detour_entry(module_param_sysfs_remove,      IntDriverUnloadHandler,         DETOUR_ENABLE_ALWAYS                                    ),
     __init_detour_entry(wake_up_new_task,               IntLixTaskHandleFork,           DETOUR_ENABLE_ALWAYS                                    ),
     __init_detour_entry(flush_old_exec,                 IntLixTaskHandleExec,           DETOUR_ENABLE_ALWAYS                                    ),
+    __init_detour_entry(begin_new_exec,                 IntLixTaskHandleExec,           DETOUR_ENABLE_ALWAYS                                    ),
     __init_detour_entry(do_exit,                        IntLixTaskHandleDoExit,         DETOUR_ENABLE_ALWAYS                                    ),
     __init_detour_entry(arch_ptrace,                    IntLixTaskHandlePtrace,         INTRO_OPT_ENABLE_UM_PROTECTION                          ),
     __init_detour_entry(compat_arch_ptrace,             IntLixTaskHandlePtrace,         INTRO_OPT_ENABLE_UM_PROTECTION                          ),

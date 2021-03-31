@@ -26,6 +26,7 @@ def_detour_vars(module_param_sysfs_setup);
 def_detour_vars(module_param_sysfs_remove);
 def_detour_vars(wake_up_new_task);
 def_detour_vars(flush_old_exec);
+def_detour_vars(begin_new_exec);
 def_detour_vars(do_exit);
 def_detour_vars(arch_ptrace);
 def_detour_vars(compat_arch_ptrace);
@@ -58,6 +59,7 @@ LIX_HYPERCALL_PAGE hypercall_info __section(".detours") = {
         init_detour_field(module_param_sysfs_remove),
         init_detour_field(wake_up_new_task),
         init_detour_field(flush_old_exec),
+        init_detour_field(begin_new_exec),
         init_detour_field(do_exit),
         init_detour_field(arch_ptrace),
         init_detour_field(compat_arch_ptrace),
@@ -190,10 +192,13 @@ __default_fn_attr
 void commit_creds (long *creds)
 {
     void *current = current_task;
-    uint32_t *in_execve = (uint32_t *)((unsigned long)(current) + hypercall_info.OsSpecificFields.Task.InExecve);
 
-    if ((*in_execve & BIT(hypercall_info.OsSpecificFields.Task.InExecveBit))) {
-        return;
+    if (!hypercall_info.OsSpecificFields.Info.CredAltered) {
+        uint32_t *in_execve = (uint32_t *)((unsigned long)(current) + hypercall_info.OsSpecificFields.Task.InExecve);
+
+        if ((*in_execve & BIT(hypercall_info.OsSpecificFields.Task.InExecveBit))) {
+            return;
+        }
     }
 
     vmcall_2(det_commit_creds, current, creds);
@@ -239,6 +244,24 @@ int flush_old_exec(long binprm)
 
 _vmcall:
     return vmcall_3(det_flush_old_exec, current_task, binprm, d_path((void *)path_struct));
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+__default_fn_attr
+int begin_new_exec(long binprm)
+{
+    unsigned long file = *(unsigned long *)(binprm + hypercall_info.OsSpecificFields.Binprm.FileOffset);
+    unsigned long path_struct = 0;
+
+    if (!file) {
+        goto _vmcall;
+    }
+
+    path_struct = file + hypercall_info.OsSpecificFields.File.PathOffset;
+
+_vmcall:
+    return vmcall_3(det_begin_new_exec, current_task, binprm, d_path((void *)path_struct));
 }
 
 
@@ -527,6 +550,7 @@ void __asm_defines(void)
     def_detour_asm_vars(module_param_sysfs_remove);
     def_detour_asm_vars(wake_up_new_task);
     def_detour_asm_vars(flush_old_exec);
+    def_detour_asm_vars(begin_new_exec);
     def_detour_asm_vars(do_exit);
     def_detour_asm_vars(arch_ptrace);
     def_detour_asm_vars(compat_arch_ptrace);

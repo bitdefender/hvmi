@@ -490,13 +490,13 @@ __section(".detours") =
                 .MaxVersion    = DETOUR_MAX_VERSION_ANY,
                 .HypercallType = hypercallTypeInt3,
 
-                .CodeLength = 0x7f,
+                .CodeLength = 0x84,
                 .Code =
                 {
                     // 0x00: cmp    DWORD PTR [esp+0x8],0x28
                     0x83, 0x7c, 0x24, 0x08, 0x28,
-                    // 0x05: jne    0x7a <_irelevant>
-                    0x75, 0x73,
+                    // 0x05: jne    0x7f <_irelevant>
+                    0x75, 0x78,
                     // 0x07: push   eax
                     0x50,
                     // 0x08: push   ecx
@@ -529,8 +529,8 @@ __section(".detours") =
                     // PsProcessType
                     // 0x32: push   DWORD PTR ds:0xfffff800
                     0xff, 0x35, 0x00, 0xf8, 0xff, 0xff,
-                    // 0x38: push   0x10
-                    0x6a, 0x10,
+                    // 0x38: push   0x0
+                    0x6a, 0x0,
                     // 0x3a: push   ecx
                     0x51,
                     // ObReferenceObjectByHandle
@@ -540,70 +540,72 @@ __section(".detours") =
                     0xff, 0xd0,
                     // 0x42: test   eax,eax
                     0x85, 0xc0,
-                    // 0x44: jne    0x67 <_exit>
+                    // 0x44: mov    eax, 0
+                    0xb8, 0x00, 0x00, 0x00, 0x00,
+                    // 0x49: jne    0x6c <_exit>
                     0x75, 0x21,
-                    // 0x46: mov    ecx,DWORD PTR [esp+0x4]
+                    // 0x4b: mov    ecx,DWORD PTR [esp+0x4]
                     0x8b, 0x4c, 0x24, 0x04,
                     // This offset will be patched by intro with the offset of `_EPROCESS.Spare`
-                    // 0x4a: mov    eax,DWORD PTR [ecx+0x150]
+                    // 0x4f: mov    eax,DWORD PTR [ecx+0x150]
                     0x8b, 0x81, 0x50, 0x01, 0x00, 0x00,
-                    // 0x50: cmp    al,0x2a
+                    // 0x55: cmp    al,0x2a
                     0x3c, 0x2a,
-                    // 0x52: bt     eax,0xd
+                    // 0x57: bt     eax,0xd
                     0x0f, 0xba, 0xe0, 0x0d,
-                    // 0x56: jne    5d <_dereference_and_exit>
+                    // 0x5b: jne    62 <_dereference_and_exit>
                     0x75, 0x05,
-                    // 0x58: jae    5d <_dereference_and_exit>
+                    // 0x5d: jae    62 <_dereference_and_exit>
                     0x73, 0x03,
                                         
-                    // 0x5a <_hypercall>:
-                    // 0x5a: int3
+                    // 0x5f <_hypercall>:
+                    // 0x5f: int3
                     0xcc,
-                    // 0x5b: nop
+                    // 0x60: nop
                     0x90,
-                    // 0x5c: nop
+                    // 0x61: nop
                     0x90,
                                         
-                    // 0x5d <_dereference_and_exit>:
-                    // 0x5d: push   eax
+                    // 0x62 <_dereference_and_exit>:
+                    // 0x62: push   eax
                     0x50,
-                    // 0x5e: push   ecx
+                    // 0x63: push   ecx
                     0x51,
                     // ObDereferenceObject
-                    // 0x5f: mov    eax,0xfffff800
+                    // 0x64: mov    eax,0xfffff800
                     0xb8, 0x00, 0xf8, 0xff, 0xff,
-                    // 0x64: call   eax
+                    // 0x69: call   eax
                     0xff, 0xd0,
-                    // 0x66: pop    eax
+                    // 0x6b: pop    eax
                     0x58,
                                         
-                    // 0x67 <_exit>:
-                    // 0x67: add    esp,0x10
+                    // 0x6c <_exit>:
+                    // 0x6c: add    esp,0x10
                     0x83, 0xc4, 0x10,
-                    // 0x6a: pop    edx
+                    // 0x6f: pop    edx
                     0x5a,
-                    // 0x6b: pop    ecx
+                    // 0x70: pop    ecx
                     0x59,
-                    // 0x6c: cmp    eax,0xc0000022
+                    // 0x71: cmp    eax,0xc0000022
                     0x3d, 0x22, 0x00, 0x00, 0xc0,
-                    // 0x71: jne    0x79 <_allow>
+                    // 0x76: jne    0x7e <_allow>
                     0x75, 0x06,
-                    // 0x73: add    esp,0x4
+                    // 0x78: add    esp,0x4
                     0x83, 0xc4, 0x04,
-                    // 0x76: ret    0x10
+                    // 0x8b: ret    0x10
                     0xc2, 0x10, 0x00,
                                         
-                    // 0x79 <_allow>:
-                    // 0x79: pop    eax
+                    // 0x7e <_allow>:
+                    // 0x7e: pop    eax
                     0x58,
                                         
-                    // 0x7a <_irelevant>:
-                    // 0x7a: jmp    0x74 <_irelevant+0x1>
+                    // 0x7f <_irelevant>:
+                    // 0x7f: jmp    0
                     0xe9, 0xfc, 0xff, 0xff, 0xff,
 
                 },
-                .HypercallOffset        = 0x5a,
-                .RelocatedCodeOffset    = 0x7a,
+                .HypercallOffset        = 0x5f,
+                .RelocatedCodeOffset    = 0x7f,
             },
         },
     },
@@ -1984,13 +1986,13 @@ __section(".detours") =
                 .MaxVersion    = DETOUR_MAX_VERSION_ANY,
                 .HypercallType = hypercallTypeInt3,
 
-                .CodeLength = 0xb8,
+                .CodeLength = 0xbd,
                 .Code =
                 {
                     // 0x00: cmp    edx,0x28
                     0x83, 0xfa, 0x28,
-                    // 0x03: jne    0xb3 <_irelevant>
-                    0x0f, 0x85, 0xaa, 0x00, 0x00, 0x00,
+                    // 0x03: jne    0xb8 <_irelevant>
+                    0x0f, 0x85, 0xaf, 0x00, 0x00, 0x00,
                     // 0x09: push   rax
                     0x50,
                     // 0x0a: push   rcx
@@ -2008,8 +2010,8 @@ __section(".detours") =
                     // reserve space for locals
                     // 0x14: sub    rsp,0x10
                     0x48, 0x83, 0xec, 0x10,
-                    // 0x18: mov    edx,0x10
-                    0xba, 0x10, 0x00, 0x00, 0x00,
+                    // 0x18: mov    edx,0x0
+                    0xba, 0x00, 0x00, 0x00, 0x00,
                     // PsProcessType
                     // 0x1d: movabs rax,0xfffff00000000000
                     0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0xff, 0xff,
@@ -2034,86 +2036,88 @@ __section(".detours") =
                     0x48, 0x83, 0xc4, 0x30,
                     // 0x4d: test   eax,eax
                     0x85, 0xc0,
-                    // 0x4f: jne    0x94 <_exit>
-                    0x75, 0x43,
-                    // 0x51: mov    rcx,QWORD PTR [rsp+0x8]
+                    // 0x4f: mov    eax, 0
+                    0xb8, 0x00, 0x00, 0x00, 0x00,
+                    // 0x54: jne    0x9d <_exit>
+                    0x75, 0x47,
+                    // 0x56: mov    rcx,QWORD PTR [rsp+0x8]
                     0x48, 0x8b, 0x4c, 0x24, 0x08,
                     // This offset will be overwritten by intro with the offset of `_EPROCESS.Spare`
-                    // 0x56: mov    rax,QWORD PTR [rcx+0x150]
+                    // 0x5b: mov    rax,QWORD PTR [rcx+0x150]
                     0x48, 0x8b, 0x81, 0x50, 0x01, 0x00, 0x00,
-                    // 0x5d: cmp    al,0x2a
+                    // 0x62: cmp    al,0x2a
                     0x3c, 0x2a,
-                    // 0x5f: bt     rax,0xd
+                    // 0x64: bt     rax,0xd
                     0x48, 0x0f, 0xba, 0xe0, 0x0d,
-                    // 0x64: jne    75 <_dereference_and_exit>
+                    // 0x69: jne    7a <_dereference_and_exit>
                     0x75, 0x0f,
-                    // 0x66: jae    75 <_dereference_and_exit>
+                    // 0x6b: jae    7a <_dereference_and_exit>
                     0x73, 0x0d,
-                    // 0x68: mov    rdx,QWORD PTR [rsp+0x30]
+                    // 0x6d: mov    rdx,QWORD PTR [rsp+0x30]
                     0x48, 0x8b, 0x54, 0x24, 0x30,
-                    // 0x6d: mov    r8,QWORD PTR [rsp+0x28]
+                    // 0x72: mov    r8,QWORD PTR [rsp+0x28]
                     0x4c, 0x8b, 0x44, 0x24, 0x28,
 
-                    // 0x72 <_hypercall>:
-                    // 0x72: int3
+                    // 0x77 <_hypercall>:
+                    // 0x77: int3
                     0xcc,
-                    // 0x73: nop
+                    // 0x78: nop
                     0x90,
-                    // 0x74: nop
+                    // 0x79: nop
                     0x90,
 
-                    // 0x75 <_dereference_and_exit>:
-                    // 0x75: mov    rcx,QWORD PTR [rsp+0x08]
+                    // 0x7a <_dereference_and_exit>:
+                    // 0x7a: mov    rcx,QWORD PTR [rsp+0x08]
                     0x48, 0x8b, 0x4c, 0x24, 0x08,
-                    // 0x7a: mov    QWORD PTR [rsp+0x08],rax
+                    // 0x7f: mov    QWORD PTR [rsp+0x08],rax
                     0x48, 0x89, 0x44, 0x24, 0x08,
                     // ObDereferenceObject
-                    // 0x7f: movabs rax,0xfffff00000000000
+                    // 0x84: movabs rax,0xfffff00000000000
                     0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0xff, 0xff,
-                    // 0x89: sub    rsp,0x20
+                    // 0x8e: sub    rsp,0x20
                     0x48, 0x83, 0xec, 0x20,
-                    // 0x8d: call   rax
+                    // 0x92: call   rax
                     0xff, 0xd0,
-                    // 0x8f: add    rsp,0x20
+                    // 0x94: add    rsp,0x20
                     0x48, 0x83, 0xc4, 0x20,
-                    // 0x93: mov    rax,QWORD PTR[rsp+0x08]
+                    // 0x98: mov    rax,QWORD PTR[rsp+0x08]
                     0x48, 0x8b, 0x44, 0x24, 0x08,
 
-                    // 0x98 <_exit>:
-                    // 0x98: add    rsp,0x10
+                    // 0x9d <_exit>:
+                    // 0x9d: add    rsp,0x10
                     0x48, 0x83, 0xc4, 0x10,
-                    // 0x9c: pop    r11
+                    // 0xa1: pop    r11
                     0x41, 0x5b,
-                    // 0x9e: pop    r10
+                    // 0xa3: pop    r10
                     0x41, 0x5a,
-                    // 0xa0: pop    r9
+                    // 0xa5: pop    r9
                     0x41, 0x59,
-                    // 0xa2: pop    r8
+                    // 0xa7: pop    r8
                     0x41, 0x58,
-                    // 0xa4: pop    rdx
+                    // 0xa9: pop    rdx
                     0x5a,
-                    // 0xa5: pop    rcx
+                    // 0xaa: pop    rcx
                     0x59,
-                    // 0xa6: cmp    eax,0xc0000022
+                    // 0xab: cmp    eax,0xc0000022
                     0x3d, 0x22, 0x00, 0x00, 0xc0,
-                    // 0xab: jne    a2 <_allow>
+                    // 0xb0: jne    b7 <_allow>
                     0x75, 0x05,
-                    // 0xad: add    rsp,0x8
+                    // 0xb2: add    rsp,0x8
                     0x48, 0x83, 0xc4, 0x08,
-                    // 0xb1: ret
+                    // 0xb6: ret
                     0xc3,
 
-                    // 0xb2 <_allow>:
-                    // 0xb2: pop    rax
+                    // 0xb7 <_allow>:
+                    // 0xb7: pop    rax
                     0x58,
 
-                    // 0xb3 <_irelevant>:
-                    // 0xb3: jmp    a8 <_irelevant+0x5>
+                    // 0xb8 <_irelevant>:
+                    // 0xb8: jmp    a8 <_irelevant+0x5>
                     0xe9, 0x00, 0x00, 0x00, 0x00,
 
                 },
-                .HypercallOffset        = 0x72,
-                .RelocatedCodeOffset    = 0xb3,
+                .HypercallOffset        = 0x77,
+                .RelocatedCodeOffset    = 0xb8,
             },
         },
     },

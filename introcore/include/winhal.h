@@ -54,6 +54,10 @@ typedef struct _WIN_HAL_DATA
     ///         which should be read in HalBuffer.
     LIST_ENTRY      InitSwapHandles;
 
+    /// @brief  HAL headers swap handle.
+    ///         Used only if HAL is not protected, and the headers are not read automatically.
+    void            *HalHdrSwapHandle;
+
     /// @brief  The HAL Performance Counter integrity hook object.
     void            *HalPerfIntegrityObj;
 } WIN_HAL_DATA, *PWIN_HAL_DATA;

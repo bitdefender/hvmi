@@ -38,7 +38,7 @@ km_fields: !opaque_structures
             MitigationFlags2: 0x0
             DebugPort: 0x1f0
             Spare: 0x2a0
-            VirtualSize: 0x1d8
+            InstrumentationCallback: 0x100
 
         Thread: !opaque_fields
             Process: 0x210

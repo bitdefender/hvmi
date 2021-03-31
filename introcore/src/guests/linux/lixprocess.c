@@ -1908,12 +1908,15 @@ IntLixTaskCreateFromBinprm(
 
     InitializeListHead(&UpdatedTask->ExploitProtProcLink);
 
-    status = IntLixCredAdd(*(QWORD *)(pBinprm + LIX_FIELD(Binprm, Cred)), &UpdatedTask->Creds);
-    if (!INT_SUCCESS(status))
+    if (!LIX_FIELD(Info, CredAltered))
     {
-        ERROR("[ERROR] IntLixCredAdd failed for %s (%d 0x%llx). Status: 0x%08x\n",
-              UpdatedTask->Comm, UpdatedTask->Pid, UpdatedTask->Gva, status);
-        UpdatedTask->Creds = NULL;
+        status = IntLixCredAdd(*(QWORD *)(pBinprm + LIX_FIELD(Binprm, Cred)), &UpdatedTask->Creds);
+        if (!INT_SUCCESS(status))
+        {
+            ERROR("[ERROR] IntLixCredAdd failed for %s (%d 0x%llx). Status: 0x%08x\n",
+                    UpdatedTask->Comm, UpdatedTask->Pid, UpdatedTask->Gva, status);
+            UpdatedTask->Creds = NULL;
+        }
     }
 
     _IntLixTaskFinishMap();

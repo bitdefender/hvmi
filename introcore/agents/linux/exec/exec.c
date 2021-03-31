@@ -211,7 +211,7 @@ _exit:
 
     if (ret < 0)
     {
-        // call_usermodehelper(argv_remove[0], argv_remove, envp, _data.args.umh.wait_exec);
+        call_usermodehelper(argv_remove[0], argv_remove, envp, _data.args.umh.wait_exec);
     }
 }
 

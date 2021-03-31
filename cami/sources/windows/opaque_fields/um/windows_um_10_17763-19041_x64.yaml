@@ -22,9 +22,16 @@ fields: !opaque_structures
         Peb: !opaque_fields
             64Size: 0x3a0
             32Size: 0x25c
+            Kct: 0x58
+            Kct32: 0x2c
+            KctNumberOfPtrs: 0x80
+            Kct32NumberOfPtrs: 0x80
 
         Teb: !opaque_fields
             64Size: 0x20
             32Size: 0x10
             Wow64SaveArea: 0x1488
             Wow64StackInSaveArea: 0xc8
+            Wow64InfoPtr: 0x14D0
+            Wow64InstrCbkInInfoPtr: 0x8
+            InstrCbkRet: 0x0

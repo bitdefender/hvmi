@@ -411,7 +411,7 @@ IntLixAgentFree(
     }
     else
     {
-        memset(pSlack, 0x90, Agent->Data.Size);
+        memset(pSlack, LIX_FIELD(Info, HasSlackInt3) ? 0xCC : 0x90, Agent->Data.Size);
         IntVirtMemUnmap(&pSlack);
     }
 

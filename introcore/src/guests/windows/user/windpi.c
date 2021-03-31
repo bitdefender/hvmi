@@ -165,7 +165,9 @@ IntWinDpiSendProcessCreationViolation(
         pEvent->Header.MitreID = IntWinDpiGetDpiMitreId(pEvent->PcType);
     }
 
-    if (pEvent->PcType == INT_PC_VIOLATION_DPI_DEBUG_FLAG)
+    if (pEvent->PcType == INT_PC_VIOLATION_DPI_DEBUG_FLAG ||
+        pEvent->PcType == INT_PC_VIOLATION_DPI_SEC_DESC ||
+        pEvent->PcType == INT_PC_VIOLATION_DPI_ACL_EDIT)
     {
         extraInfo = &VictimProc->DpiExtraInfo;
     }
