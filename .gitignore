@@ -119,3 +119,5 @@ daemon/cmake_install.cmake
 daemon/compile_commands.json
 daemon/install_manifest.txt
 daemon/settings.json
+
+build*/

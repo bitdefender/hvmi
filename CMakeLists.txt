@@ -78,8 +78,6 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-get_filename_component(DISASM_DIRECTORY "${PROJECT_SOURCE_DIR}/bddisasm" ABSOLUTE)
-
 if ("${CMAKE_MAKE_PROGRAM}" MATCHES "make$")
   # We need to resolve symlinks, since the Makefile will do too
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<))\"'")
@@ -136,8 +134,9 @@ if (("${CMAKE_BUILD_TYPE}" STREQUAL "Release") AND (CMAKE_C_FLAGS_RELEASE))
   message(STATUS "Passed CFLAGS_RELEASE: ${CMAKE_C_FLAGS_RELEASE}")
 endif()
 
-include_directories(
-  ${DISASM_DIRECTORY}/inc
+add_library(${CMAKE_PROJECT_NAME} SHARED)
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/introcore/agents
   ${PROJECT_SOURCE_DIR}/introcore/src/guests/linux/detours
@@ -146,7 +145,11 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/introcore/include
   )
 
-add_compile_options(
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
+  ${PROJECT_SOURCE_DIR}/include/public
+  )
+
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
   "$<$<CONFIG:Release>:-U_FORTIFY_SOURCE>"
   "$<$<CONFIG:Release>:-D_FORTIFY_SOURCE=2>"
   -Wall
@@ -178,7 +181,7 @@ if (NOT "${CMAKE_TOOLCHAIN_FILE}")
   add_compile_options(-fdiagnostics-color)
 endif()
 
-add_compile_definitions(
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
   "$<$<CONFIG:Debug>:DEBUG>"
   _LIB
   USER_MODE
@@ -207,13 +210,14 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} \
 
 set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -Wl,-O1")
 
+
 # We could use $<> generators, but it gets too complicated
 if (CMAKE_COMPILER_IS_GNUCC)
   if (CMAKE_C_COMPILER_VERSION VERSION_LESS 7.0)
     message(FATAL_ERROR "GCC 7.0 or bigger required!")
   endif()
 
-  add_compile_options(
+  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
     -Wshift-overflow=2
     -Wnull-dereference
     -Wduplicated-cond
@@ -223,7 +227,7 @@ if (CMAKE_COMPILER_IS_GNUCC)
 
   if ((CMAKE_C_COMPILER_VERSION VERSION_EQUAL 8.0)
       OR (CMAKE_C_COMPILER_VERSION VERSION_GREATER 8.0))
-    add_compile_options(
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
       -Wdangling-else
       -Wshadow=global
       -Walloc-zero
@@ -232,7 +236,7 @@ if (CMAKE_COMPILER_IS_GNUCC)
 
   if ((CMAKE_C_COMPILER_VERSION VERSION_EQUAL 9.0)
       OR (CMAKE_C_COMPILER_VERSION VERSION_GREATER 9.0))
-    add_compile_options(
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
       -Wmultistatement-macros
       -Warray-bounds=2
       -Wformat-overflow=2
@@ -261,21 +265,21 @@ if (CMAKE_COMPILER_IS_GNUCC)
       )
   endif()
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-  add_compile_options(
+  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
     -Wno-missing-braces
     -Wno-incompatible-pointer-types
     )
 
   if ((CMAKE_C_COMPILER_VERSION VERSION_EQUAL 8.0)
       OR (CMAKE_C_COMPILER_VERSION VERSION_GREATER 8.0))
-    add_compile_options(
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
       -Wextra-semi-stmt
       )
   endif()
 
   if ((CMAKE_C_COMPILER_VERSION VERSION_EQUAL 7.0)
       OR (CMAKE_C_COMPILER_VERSION VERSION_GREATER 7.0))
-    add_compile_options(
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
       -Wself-assign
       -Wself-assign-field
       )
@@ -283,7 +287,7 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
 
   if ((CMAKE_C_COMPILER_VERSION VERSION_EQUAL 6.0)
       OR (CMAKE_C_COMPILER_VERSION VERSION_GREATER 6.0))
-    add_compile_options(
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
       -Wshift-overflow
       -Wnull-dereference
       -Wvla
@@ -298,7 +302,7 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
 
   if ((CMAKE_C_COMPILER_VERSION VERSION_EQUAL 5.0)
       OR (CMAKE_C_COMPILER_VERSION VERSION_GREATER 5.0))
-    add_compile_options(
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
       -Wstrict-prototypes
       )
   endif()
@@ -306,14 +310,10 @@ else()
   message(FATAL_ERROR "Unspported compiler: ${CMAKE_C_COMPILER_ID}")
 endif()
 
-add_custom_target(
-  disasm_target
-  COMMAND $(MAKE)
-  WORKING_DIRECTORY "${DISASM_DIRECTORY}"
-  COMMENT "Building bddisasm library"
-  )
-
-add_library(${CMAKE_PROJECT_NAME} SHARED)
+set(BDD_USE_EXTERNAL_VSNPRINTF ON)
+set(BDD_USE_EXTERNAL_MEMSET ON)
+add_subdirectory(bddisasm)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC bddisasm::bddisasm bddisasm::bdshemu)
 
 include(introcore/sources.cmake)
 
@@ -326,14 +326,6 @@ set_target_properties(${CMAKE_PROJECT_NAME}
   C_STANDARD_REQUIRED ON
   C_EXTENSIONS ON
   )
-
-target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE "${DISASM_DIRECTORY}/bin/x64/${CMAKE_BUILD_TYPE}")
-
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE bddisasm bdshemu ${OPTIONAL_LIBRARIES})
-
-add_dependencies(${CMAKE_PROJECT_NAME} disasm_target)
-
-get_target_property(myname ${CMAKE_PROJECT_NAME} LIBRARY_OUTPUT_NAME)
 
 add_custom_command(
   TARGET ${CMAKE_PROJECT_NAME}
@@ -408,7 +400,6 @@ if (CTAGS_EXE)
     COMMAND ${CTAGS_EXE} ${tags_arguments} ${src_files}
     COMMAND ${CTAGS_EXE} ${tags_arguments} -R --append introcore/include
     COMMAND ${CTAGS_EXE} ${tags_arguments} -R --append include
-    COMMAND ${CTAGS_EXE} ${tags_arguments} -R --append ${DISASM_DIRECTORY}/inc
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
 endif()
