@@ -23,15 +23,20 @@ def build_argparser():
     parser.add_argument("-M", "--major", help="Major version", action="store", type=int, default=0)
     parser.add_argument("-m", "--minor", help="Minor version", action="store", type=int, default=0)
     parser.add_argument("-v", "--verbose", help="Verbose", action="store_true")
-    parser.add_argument(
-        "-w", "--win_support", help="Load support from given file", action="store", default=None, required=False
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "-w",
+        "--win_support",
+        help="Load support from given file",
+        action="store",
+        default=None
     )
-    parser.add_argument(
+    group.add_argument(
         "-s",
         "--sources",
         help="Path to directory which contains the YAML source files",
         action="store",
-        default="sources",
+        default="sources"
     )
     return parser
 
@@ -50,12 +55,25 @@ def load_sources(location):
     options.craft_options()
 
 
+def load_win_support(file):
+    if not file.endswith(".yaml"):
+        print("File {} does not have .yaml extention. Will ignore!".format(file))
+    else:
+        for x in yaml.load_all(open(file, "r"), Loader=yaml.Loader):
+            pass
+        print("Loaded ", file)
+    options.craft_options()
+
+
 if __name__ == "__main__":
 
     argparser = build_argparser()
     args = argparser.parse_args(sys.argv[1:])
 
-    load_sources(args.sources)
+    if None != args.win_support:
+        load_win_support(args.win_support)
+    else:
+        load_sources(args.sources)
 
     syscalls = common.SyscallsList()
     syscalls.set_entries(get_all_objects(common.SyscallPattern))
