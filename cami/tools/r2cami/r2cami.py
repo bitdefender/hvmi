@@ -155,7 +155,7 @@ um_fields = [
         CamiField('32Size', '_TEB32', 'sizeof', None),
         CamiField('Wow64SaveArea', None, 'constant', [0x1488, 0x1488]),
         CamiField('Wow64StackInSaveArea', None, 'constant', [0xc8, 0xc8]),
-        CamiField('InstrCbkRet', None, constant, [0, 0x1b0]),
+        CamiField('InstrCbkRet', None, 'constant', [0, 0x1b0]),
         ])
     ]
 
