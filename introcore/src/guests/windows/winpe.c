@@ -160,7 +160,7 @@ IntPeValidateHeader(
 ///
 {
     INTSTATUS status = INT_STATUS_SUCCESS;
-    DWORD size = 0;
+    DWORD size;
     BOOLEAN image64 = TRUE;
     BYTE *pBase;
     IMAGE_NT_HEADERS64 *pNth64;
@@ -175,6 +175,7 @@ IntPeValidateHeader(
     QWORD imageBase = 0;
     OPTIONAL_HEADER_INFO opthdrInfo = { 0 };
     QWORD e_lfanew, secOff = 0;
+    BYTE *pSmallBase = NULL;
 
     if ((ImageBase & PAGE_OFFSET) != 0)
     {
@@ -184,8 +185,27 @@ IntPeValidateHeader(
 
     if (NULL != ImageBaseBuffer)
     {
-        pBase = ImageBaseBuffer;
-        size = ImageBaseBufferSize;
+        // Make sure we can freely access 4K of data, even if the actual MZPE is smaller.
+        if (ImageBaseBufferSize < PAGE_SIZE)
+        {
+            TRACE("[TRACE] The MZPE to validate is smaller than 4K: 0x%08x\n", ImageBaseBufferSize);
+
+            pSmallBase = HpAllocWithTag(PAGE_SIZE, IC_TAG_SMALL_MZPE);
+            if (pSmallBase == NULL)
+            {
+                return INT_STATUS_INSUFFICIENT_RESOURCES;
+            }
+
+            pBase = pSmallBase;
+            size = PAGE_SIZE;
+
+            memcpy(pBase, ImageBaseBuffer, ImageBaseBufferSize);
+        }
+        else
+        {
+            pBase = ImageBaseBuffer;
+            size = ImageBaseBufferSize;
+        }
     }
     else
     {
@@ -438,6 +458,11 @@ leave:
     if (NULL == ImageBaseBuffer)
     {
         IntVirtMemUnmap(&pBase);
+    }
+
+    if (NULL != pSmallBase)
+    {
+        HpFreeAndNullWithTag(&pSmallBase, IC_TAG_SMALL_MZPE);
     }
 
     return status;

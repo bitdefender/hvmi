@@ -138,4 +138,6 @@
 
 #define IC_TAG_IOBD             'DBOI'          ///< Used for interrupt object protection descriptors.
 
+#define IC_TAG_SMALL_MZPE       ':EPS'          ///< Small MZPE.
+
 #endif // _MEMTAGS_H_
