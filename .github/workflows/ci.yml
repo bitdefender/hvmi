@@ -79,5 +79,9 @@ jobs:
         submodules: 'true'
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.0.2
+    - name: Setup Windows SDK
+      uses: fbactions/setup-winsdk@v1
+      with:
+        winsdk-build-version: 18362
     - name: Build introcore
       run: MSBuild /t:Rebuild /p:Configuration=Release /p:Platform=x64 hvmi.sln
