@@ -18,12 +18,12 @@ The main purpose of this project is to provide unmatched security from outside t
 - Deep process introspection (prevents process creation if the parent process has been compromised)
 - Fileless malware (powershell command line scanning)
 
-For more details check out the [HVMI specification](http://hvmi.readthedocs.io) and the [HVMI blog](https://hvmi.github.io/blog/).
+For more details check out the [HVMI specification](http://hvmi.readthedocs.io) and the [HVMI blog](https://bitdefender.github.io/hvmi-blog/).
 
 ## Supported hypervisors
 
 HVMI can work on any hypervisor, as long the proper API is provided (which is documented [here](https://hvmi.readthedocs.io/en/latest/chapters/1-overview.html#prerequisites-from-the-hv)). Currently, it has been integrated and tested with the following hypervisors:
-* [Napoca Hypervisor](https://github.com/napocahv/napoca) - Bitdefender's bare-metal hypervisor for Intel CPUs
+* [Napoca Hypervisor](https://github.com/bitdefender/napoca) - Bitdefender's bare-metal hypervisor for Intel CPUs
 * [Xen](https://xenbits.xen.org) - the famous open source hypervisor
 * [KVM](https://www.linux-kvm.org/page/Main_Page) - the Linux Kernel Virtual Machine
 
@@ -43,16 +43,16 @@ HVMI can work on any hypervisor, as long the proper API is provided (which is do
 
 ## Quick start guide
 
-- [HVMI demo setup on Xen](https://hvmi.github.io/blog/2020/08/10/getting-started-on-Xen.html).
-- [HVMI demo setup on KVM](https://hvmi.github.io/blog/2020/08/10/getting-started-on-kvm.html).
-- [Adding custom exceptions](https://hvmi.github.io/blog/2020/08/19/exceptions.html).
+- [HVMI demo setup on Xen](https://bitdefender.github.io/hvmi-blog/2020/08/10/getting-started-on-Xen.html).
+- [HVMI demo setup on KVM](https://bitdefender.github.io/hvmi-blog/2020/08/10/getting-started-on-kvm.html).
+- [Adding custom exceptions](https://bitdefender.github.io/hvmi-blog/2020/08/19/exceptions.html).
 
 ## Checkout
 
 Get Introcore and all the dependencies by running:
 
 ```bash
-git clone --recurse-submodules https://github.com/hvmi/hvmi.git
+git clone --recurse-submodules https://github.com/bitdefender/hvmi.git
 ```
 
 This will clone the HVMI repository and the [bddisasm](https://github.com/bitdefender/bddisasm) submodule.
