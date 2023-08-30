@@ -36,384 +36,66 @@ toupper(int c)
 // helper routines
 //
 
-/***
-*crt_strtol, crt_strtoul(nptr,endptr,ibase) - Convert ascii string to INT32 un/INT32
-*       INT32.
-*
-*Purpose:
-*       Convert an ascii string to a INT32 32-bit value.  The base
-*       used for the caculations is supplied by the caller.  The base
-*       must be in the range 0, 2-36.  If a base of 0 is supplied, the
-*       ascii string must be examined to determine the base of the
-*       number:
-*               (a) First INT8 = '0', second INT8 = 'x' or 'X',
-*                   use base 16.
-*               (b) First INT8 = '0', use base 8
-*               (c) First INT8 in range '1' - '9', use base 10.
-*
-*       If the 'endptr' value is non-NULL, then crt_strtol/crt_strtoul places
-*       a pointer to the terminating character in this value.
-*       See ANSI standard for details
-*
-*Entry:
-*       nptr == NEAR/FAR pointer to the start of string.
-*       endptr == NEAR/FAR pointer to the end of the string.
-*       ibase == integer base to use for the calculations.
-*
-*       string format: [whitespace] [sign] [0] [x] [digits/letters]
-*
-*Exit:
-*       Good return:
-*               result
-*
-*       Overflow return:
-*               crt_strtol -- INT32_MAX or INT32_MIN
-*               crt_strtoul -- UINT32_MAX
-*               crt_strtol/crt_strtoul -- errno == ERANGE
-*
-*       No digits or bad base return:
-*               0
-*               endptr = nptr*
-*
-*Exceptions:
-*       Input parameters are validated. Refer to the validation section of the function.
-*
-*******************************************************************************/
-
-/* flag values */
-#define FL_UNSIGNED  1 /* crt_strtoul called */
-#define FL_NEG       2 /* negative sign found */
-#define FL_OVERFLOW  4 /* overflow occurred */
-#define FL_READDIGIT 8 /* we've read at least one correct digit */
-
-static UINT32 __cdecl
-crt_strtoxl(
-    const INT8 *nptr,
-    const INT8 **endptr,
-    INT32 ibase,
-    INT32 flags
+static UINT64
+quick_convert(
+    const char *Ptr,
+    const char **EndPtr
     )
 {
-    const INT8 *p;
-    INT8 c;
-    UINT32 number;
-    UINT32 digval;
-    UINT32 maxval;
+    UINT64 result = 0;
+    bool neg = false, hex = false;
+    size_t i = 0;
 
-    /* validation section */
-    if (endptr != NULL)
+    while (Ptr[i] == ' ')
     {
-        /* store beginning of string in endptr */
-        *endptr = (INT8 *)nptr;
+        i++;
     }
 
-    /// TO-DO: reimplement validation
-    ///_VALIDATE_RETURN(nptr != NULL, EINVAL, 0L);
-    ///_VALIDATE_RETURN(ibase == 0 || (2 <= ibase && ibase <= 36), EINVAL, 0L);
-
-    p = nptr;   /* p is our scanning pointer */
-    number = 0; /* start with zero */
-
-    c = *p++; /* read INT8 */
-    ///while ( _isspace_l((INT32)(UINT8)c, _loc_update.GetLocaleT()) )
-    while (' ' == (INT32)(UINT8)c)
-        c = *p++; /* skip whitespace */
-
-    if (c == '-')
+    if (Ptr[i] == '-')
     {
-        flags |= FL_NEG; /* remember minus sign */
-        c = *p++;
+        neg = true, i++;
     }
-    else if (c == '+')
-        c = *p++; /* skip sign */
-
-    if (ibase < 0 || ibase == 1 || ibase > 36)
+    else if (Ptr[i] == '+')
     {
-        /* bad base! */
-        if (endptr)
-            /* store beginning of string in endptr */
-            *endptr = nptr;
-        return 0L; /* return 0 */
+        neg = false, i++;
     }
-    else if (ibase == 0)
+    
+    if (Ptr[i] == '0' && (Ptr[i + 1] == 'x' || Ptr[i + 1] == 'X'))
     {
-        /* determine base free-lance, based on first two chars of
-           string */
-        if (c != '0')
-            ibase = 10;
-        else if (*p == 'x' || *p == 'X')
-            ibase = 16;
-        else
-            ibase = 8;
+        hex = true, i += 2;
     }
 
-    if (ibase == 0)
+    for (; Ptr[i]; i++)
     {
-        /* determine base free-lance, based on first two chars of
-           string */
-        if (c != '0')
-            ibase = 10;
-        else if (*p == 'x' || *p == 'X')
-            ibase = 16;
-        else
-            ibase = 8;
-    }
-
-    if (ibase == 16)
-    {
-        /* we might have 0x in front of number; remove if there */
-        if (c == '0' && (*p == 'x' || *p == 'X'))
+        if (Ptr[i] >= '0' && Ptr[i] <= '9')
         {
-            ++p;
-            c = *p++; /* advance past prefix */
+            result = result * (hex ? 16 : 10) + Ptr[i] - '0';
         }
-    }
-
-    /* if our number exceeds this, we will overflow on multiply */
-    maxval = INT32_MAX / ibase;
-
-
-    for (;;)
-    {
-        /* exit in middle of loop */
-        /* convert c to value */
-        ///if ( __ascii_isdigit_l((INT32)(UINT8)c, _loc_update.GetLocaleT()) )
-        if (isdigit((INT32)(UINT8)c))
-            digval = c - '0';
-        ///else if ( __ascii_isalpha_l((INT32)(UINT8)c, _loc_update.GetLocaleT()) )
-        else if (isalpha((INT32)(UINT8)c))
-            ///digval = __ascii_toupper(c) - 'A' + 10;
-            digval = toupper(c) - 'A' + 10;
+        else if (hex && Ptr[i] >= 'A' && Ptr[i] <= 'F')
+        {
+            result = result * 16 + Ptr[i] - 'A' + 10;
+        }
+        else if (hex && Ptr[i] >= 'a' && Ptr[i] <= 'f')
+        {
+            result = result * 16 + Ptr[i] - 'a' + 10;
+        }
         else
+        {
             break;
-        if (digval >= (UINT32)ibase)
-            break; /* exit loop if bad digit found */
-
-        /* record the fact we have read one digit */
-        flags |= FL_READDIGIT;
-
-        /* we now need to compute number = number * base + digval,
-           but we need to know if overflow occurred.  This requires
-           a tricky pre-check. */
-
-        if (number < maxval || (number == maxval && (UINT32)digval <= UINT32_MAX % ibase))
-        {
-            /* we won't overflow, go ahead and multiply */
-            number = number * ibase + digval;
-        }
-        else
-        {
-            /* we would have overflowed -- set the overflow flag */
-            flags |= FL_OVERFLOW;
-            if (endptr == NULL)
-            {
-                /* no need to keep on parsing if we
-                   don't have to return the endptr. */
-                break;
-            }
-        }
-
-        c = *p++; /* read next digit */
-    }
-
-    --p; /* point to place that stopped scan */
-
-    if (!(flags & FL_READDIGIT))
-    {
-        /* no number there; return 0 and point to beginning of
-           string */
-        if (endptr)
-            /* store beginning of string in endptr later on */
-            p = nptr;
-        number = 0L; /* return 0 */
-    }
-    else if ((flags & FL_OVERFLOW) || (!(flags & FL_UNSIGNED) && (((flags & FL_NEG) && (number > -INT32_MIN)) ||
-                                                                  (!(flags & FL_NEG) && (number > INT32_MAX)))))
-    {
-        /* overflow or INT32 overflow occurred */
-        ///errno = ERANGE;
-        if (flags & FL_UNSIGNED)
-            number = INT32_MAX;
-        else if (flags & FL_NEG)
-            number = (UINT32)(-INT32_MIN);
-        else
-            number = INT32_MAX;
-    }
-
-    if (endptr != NULL)
-        /* store pointer to INT8 that stopped the scan */
-        *endptr = p;
-
-    if (flags & FL_NEG)
-        /* negate result if there was a neg sign */
-        number = (UINT32)(-(INT32)number);
-
-    return number; /* done. */
-}
-
-static UINT64 __cdecl
-crt_strtoxll(
-    const INT8 *nptr,
-    const INT8 **endptr,
-    INT32 ibase,
-    INT32 flags
-    )
-{
-    const INT8 *p;
-    INT8 c;
-    UINT64 number;
-    UINT32 digval;
-    UINT64 maxval;
-
-    /* validation section */
-    if (endptr != NULL)
-    {
-        /* store beginning of string in endptr */
-        *endptr = (INT8 *)nptr;
-    }
-
-    /// TO-DO: reimplement validation
-    ///_VALIDATE_RETURN(nptr != NULL, EINVAL, 0L);
-    ///_VALIDATE_RETURN(ibase == 0 || (2 <= ibase && ibase <= 36), EINVAL, 0L);
-
-    p = nptr;   /* p is our scanning pointer */
-    number = 0; /* start with zero */
-
-    c = *p++; /* read INT8 */
-    ///while ( _isspace_l((INT32)(UINT8)c, _loc_update.GetLocaleT()) )
-    while (' ' == (INT32)(UINT8)c)
-        c = *p++; /* skip whitespace */
-
-    if (c == '-')
-    {
-        flags |= FL_NEG; /* remember minus sign */
-        c = *p++;
-    }
-    else if (c == '+')
-        c = *p++; /* skip sign */
-
-    if (ibase < 0 || ibase == 1 || ibase > 36)
-    {
-        /* bad base! */
-        if (endptr)
-            /* store beginning of string in endptr */
-            *endptr = nptr;
-        return 0L; /* return 0 */
-    }
-    else if (ibase == 0)
-    {
-        /* determine base free-lance, based on first two chars of
-           string */
-        if (c != '0')
-            ibase = 10;
-        else if (*p == 'x' || *p == 'X')
-            ibase = 16;
-        else
-            ibase = 8;
-    }
-
-    if (ibase == 0)
-    {
-        /* determine base free-lance, based on first two chars of
-           string */
-        if (c != '0')
-            ibase = 10;
-        else if (*p == 'x' || *p == 'X')
-            ibase = 16;
-        else
-            ibase = 8;
-    }
-
-    if (ibase == 16)
-    {
-        /* we might have 0x in front of number; remove if there */
-        if (c == '0' && (*p == 'x' || *p == 'X'))
-        {
-            ++p;
-            c = *p++; /* advance past prefix */
         }
     }
 
-    /* if our number exceeds this, we will overflow on multiply */
-    maxval = UINT64_MAX / ibase;
-
-
-    for (;;)
+    if (EndPtr)
     {
-        /* exit in middle of loop */
-        /* convert c to value */
-        ///if ( __ascii_isdigit_l((INT32)(UINT8)c, _loc_update.GetLocaleT()) )
-        if (isdigit((INT32)(UINT8)c))
-            digval = c - '0';
-        ///else if ( __ascii_isalpha_l((INT32)(UINT8)c, _loc_update.GetLocaleT()) )
-        else if (isalpha((INT32)(UINT8)c))
-            ///digval = __ascii_toupper(c) - 'A' + 10;
-            digval = toupper(c) - 'A' + 10;
-        else
-            break;
-        if (digval >= (UINT32)ibase)
-            break; /* exit loop if bad digit found */
-
-        /* record the fact we have read one digit */
-        flags |= FL_READDIGIT;
-
-        /* we now need to compute number = number * base + digval,
-           but we need to know if overflow occurred.  This requires
-           a tricky pre-check. */
-
-        if (number < maxval || (number == maxval && (UINT64)digval <= UINT64_MAX % ibase))
-        {
-            /* we won't overflow, go ahead and multiply */
-            number = number * ibase + digval;
-        }
-        else
-        {
-            /* we would have overflowed -- set the overflow flag */
-            flags |= FL_OVERFLOW;
-            if (endptr == NULL)
-            {
-                /* no need to keep on parsing if we
-                   don't have to return the endptr. */
-                break;
-            }
-        }
-
-        c = *p++; /* read next digit */
+        *EndPtr = Ptr + i;
     }
 
-    --p; /* point to place that stopped scan */
-
-    if (!(flags & FL_READDIGIT))
+    if (neg && result != 0)
     {
-        /* no number there; return 0 and point to beginning of
-           string */
-        if (endptr)
-            /* store beginning of string in endptr later on */
-            p = nptr;
-        number = 0L; /* return 0 */
-    }
-    else if ((flags & FL_OVERFLOW) || (!(flags & FL_UNSIGNED) && (((flags & FL_NEG) && (number > -INT64_MIN)) ||
-                                                                  (!(flags & FL_NEG) && (number > INT64_MAX)))))
-    {
-        /* overflow or INT32 overflow occurred */
-        ///errno = ERANGE;
-        if (flags & FL_UNSIGNED)
-            number = UINT64_MAX;
-        else if (flags & FL_NEG)
-            number = (UINT64)(-INT64_MIN);
-        else
-            number = INT64_MAX;
+        result = ~result + 1;
     }
 
-    if (endptr != NULL)
-        /* store pointer to INT8 that stopped the scan */
-        *endptr = p;
-
-    if (flags & FL_NEG)
-        /* negate result if there was a neg sign */
-        number = (UINT64)(-(INT64)number);
-
-    return number; /* done. */
+    return result;
 }
 
 
@@ -427,7 +109,9 @@ strtol(
     _In_ INT32 ibase
     )
 {
-    return (INT32)crt_strtoxl(nptr, (const INT8 **)endptr, ibase, 0);
+    ibase;
+
+    return (INT32)quick_convert(nptr, (const INT8 **)endptr);
 }
 
 
@@ -441,7 +125,9 @@ strtoul(
     _In_ INT32 ibase
     )
 {
-    return crt_strtoxl(nptr, (const INT8 **)endptr, ibase, FL_UNSIGNED);
+    ibase;
+
+    return (UINT32)quick_convert(nptr, (const INT8 **)endptr);
 }
 
 
@@ -455,7 +141,9 @@ strtoll(
     _In_ INT32 ibase
     )
 {
-    return (INT64)crt_strtoxll(nptr, (const INT8 **)endptr, ibase, 0);
+    ibase;
+
+    return (INT64)quick_convert(nptr, (const INT8 **)endptr);
 }
 
 
@@ -469,5 +157,7 @@ strtoull(
     _In_ INT32 ibase
     )
 {
-    return crt_strtoxll(nptr, (const INT8 **)endptr, ibase, FL_UNSIGNED);
+    ibase;
+
+    return quick_convert(nptr, (const INT8 **)endptr);
 }
